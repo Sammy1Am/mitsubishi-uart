@@ -3,9 +3,9 @@
 namespace esphome {
 namespace mitsubishi_uart {
 
-static const char *TAG = "mitsubishi_uart.component";
+static const char *TAG = "mitsubishi_uart";
 
-MitsubishiUART::MitsubishiUART(uart::UARTComponent *uart_comp){}
+MitsubishiUART::MitsubishiUART(uart::UARTComponent *uart_comp) {}
 
 void MitsubishiUART::setup() {
 
@@ -19,6 +19,10 @@ void MitsubishiUART::control(const climate::ClimateCall &call) {
 
 void MitsubishiUART::update() {
   ESP_LOGI(TAG, "Update!");
+}
+
+void MitsubishiUART::dump_config() {
+  ESP_LOGCONFIG(TAG, "Config dump!");
 }
 
 }  // namespace mitsubishi_uart

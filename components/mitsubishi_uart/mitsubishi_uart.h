@@ -26,6 +26,8 @@ class MitsubishiUART : public climate::Climate, public PollingComponent {
   // Called periodically as PollingComponent
   void update() override;
 
+  void dump_config() override;
+
  private:
   uart::UARTComponent *_hp_uart {nullptr};
   climate::ClimateTraits _traits;
