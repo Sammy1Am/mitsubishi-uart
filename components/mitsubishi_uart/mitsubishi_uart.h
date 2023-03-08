@@ -7,11 +7,16 @@
 namespace esphome {
 namespace mitsubishi_uart {
 
+static const char* MUART_VERSION = "0.1.0";
+
 const int PACKET_MAX_SIZE = 22; // Used to intialize blank packets
 
 const int HEADER_SIZE = 5;
 const int HEADER_INDEX_PACKET_TYPE = 1;
 const int HEADER_INDEX_PAYLOAD_SIZE = 4;
+const int PAYLOAD_INDEX_COMMAND = 5;
+const int PAYLOAD_INDEX_ROOMTEMP_CODE = 8; // TODO: I don't know why I would use this instead of the one below...
+const int PAYLOAD_INDEX_ROOMTEMP = 11;
 
 const uint8_t BYTE_CONTROL = 0xfc;
 
@@ -22,9 +27,18 @@ const uint8_t EMPTY_PACKET[PACKET_MAX_SIZE] = {BYTE_CONTROL, // Sync
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Payload
 0x00}; // Checksum
 
+const uint8_t MUART_MIN_TEMP = 16; // Degrees C
+const uint8_t MUART_MAX_TEMP = 31; // Degrees C
+const float MUART_TEMPERATURE_STEP = 0.5;
 
-
-const uint8_t BYTE_PKTTYPE_CONNECT = 0x5a;
+const uint8_t PKTTYPE_SET_REQUEST = 0x41;
+const uint8_t PKTTYPE_SET_RESPONSE = 0x61;
+const uint8_t PKTTYPE_GET_REQUEST = 0x42;
+const uint8_t PKTTYPE_GET_RESPONSE = 0x62;
+const uint8_t PKTTYPE_CONNECT_REQUEST = 0x5a;
+const uint8_t PKTTYPE_CONNECT_RESPONSE = 0x7a;
+const uint8_t PKTTYPE_EXT_CONNECT_REQUEST = 0x5b;
+const uint8_t PKTTYPE_EXT_CONNECT_RESPONSE = 0x5a;
 
 class Packet {
   public:
@@ -38,6 +52,7 @@ class Packet {
 
     // Packet information getters
     const uint8_t getType(){return packetBytes[HEADER_INDEX_PACKET_TYPE];};
+    const uint8_t getCommand(){return packetBytes[PAYLOAD_INDEX_COMMAND];};
   private:
     const int length;
     const int checksumIndex;
@@ -70,10 +85,19 @@ class MitsubishiUART : public climate::Climate, public PollingComponent {
 
  private:
   uart::UARTComponent *hp_uart;
+  uint8_t updatesSinceLastPacket = 0;
+
   climate::ClimateTraits _traits;
+
+  uint8_t connectState = 0;
+
   void connect();
   void sendPacket(Packet packet);
-  void readPackets();
+  bool readPackets();  //TODO separate methods or arguments for HP vs tstat
+
+  // Packet response handling
+  void hResConnect(Packet &packet);
+  void hResGet(Packet &packet);
 };
 
 }  // namespace mitsubishi_uart
