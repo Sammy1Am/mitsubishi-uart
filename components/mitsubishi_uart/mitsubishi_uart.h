@@ -109,7 +109,10 @@ class MitsubishiUART : public climate::Climate, public PollingComponent {
   uint8_t connectState = 0;
 
   void connect();
-  void sendPacket(Packet packet, bool expectResponse=true);
+
+  // Sends a packet and by default attempts to receive one.  Returns true if a packet was received
+  // Caveat: No attempt is made to match received packet with sent packet
+  bool sendPacket(Packet packet, bool expectResponse=true); 
   bool readPacket(bool waitForPacket=true);  //TODO separate methods or arguments for HP vs tstat?
 
   // Packet response handling

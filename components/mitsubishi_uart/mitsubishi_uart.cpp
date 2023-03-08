@@ -102,11 +102,11 @@ void MitsubishiUART::update() {
   */
   if (connectState == 2) {
     // Request room temp
-    sendPacket(PACKET_TEMP_REQ);
+    sendPacket(PACKET_TEMP_REQ) ? packetsRead++ : 0;
     // Request status
-    sendPacket(PACKET_STATUS_REQ);
+    sendPacket(PACKET_STATUS_REQ) ? packetsRead++ : 0;
     // Request settings
-    sendPacket(PACKET_SETTINGS_REQ);
+    sendPacket(PACKET_SETTINGS_REQ) ? packetsRead++ : 0;
   }
 
   if (packetsRead > 0){
@@ -136,9 +136,10 @@ void MitsubishiUART::connect() {
   sendPacket(PACKET_CONNECT_REQ);
 }
 
-void MitsubishiUART::sendPacket(Packet packet, bool expectResponse) {
+bool MitsubishiUART::sendPacket(Packet packet, bool expectResponse) {
   hp_uart->write_array(packet.getBytes(),packet.getLength());
-  if (expectResponse){ readPacket();}
+  if (expectResponse){ return readPacket();}
+  return false;
 }
 
 /**
