@@ -7,8 +7,12 @@ const char *TAG = "mitsubishi_uart";
 
 const Packet PACKET_CONNECT_REQ = Packet(PKTTYPE_CONNECT_REQUEST, 2)
   .setPayloadByte(0,0xca).setPayloadByte(1,0x01);
+const Packet PACKET_SETTINGS_REQ = Packet(PKTTYPE_GET_REQUEST, 1)
+  .setPayloadByte(0,0x02);
 const Packet PACKET_TEMP_REQ = Packet(PKTTYPE_GET_REQUEST, 1)
-.setPayloadByte(0,0x03);
+  .setPayloadByte(0,0x03);
+const Packet PACKET_STATUS_REQ = Packet(PKTTYPE_GET_REQUEST, 1)
+  .setPayloadByte(0,0x06);
 
 ////
 // Packet
@@ -60,7 +64,7 @@ Packet &Packet::setPayloadByte(int payload_byte_index, uint8_t value) {
 MitsubishiUART::MitsubishiUART(uart::UARTComponent *uart_comp) :
   hp_uart{uart_comp}
 {
-    this->_traits.set_supports_action(false);
+    this->_traits.set_supports_action(true);
     this->_traits.set_supports_current_temperature(true);
     this->_traits.set_supports_two_point_target_temperature(false);
     this->_traits.set_visual_min_temperature(MUART_MIN_TEMP);
@@ -73,6 +77,7 @@ void MitsubishiUART::setup() {
 }
 
 climate::ClimateTraits MitsubishiUART::traits() { return _traits; }
+climate::ClimateTraits& MitsubishiUART::config_traits() { return _traits; }
 
 void MitsubishiUART::control(const climate::ClimateCall &call) {
 
@@ -83,7 +88,11 @@ void MitsubishiUART::update() {
 
   if (connectState == 2) {
     // Request room temp
-    sendPacket(PACKET_TEMP_REQ);
+    //sendPacket(PACKET_TEMP_REQ);
+    // Request status
+    //sendPacket(PACKET_STATUS_REQ);
+    // Request settings
+    sendPacket(PACKET_SETTINGS_REQ);
   }
 
   // Read packets, but if we don't get any, keep track of how long it's been
@@ -173,14 +182,119 @@ void MitsubishiUART::hResConnect(Packet &packet){
 
 void MitsubishiUART::hResGet(Packet &packet){
   switch (packet.getCommand()) {
+    // Settings
+    case 0x02: {
+        bool power = packet.getBytes()[PAYLOAD_INDEX_POWER];
+        //bool iSee = packet.getBytes()[PAYLOAD_INDEX_ISEE] > 0x08 ? true : false; // TODO
+        
+        if (power) {
+          switch (packet.getBytes()[PAYLOAD_INDEX_MODE]) {
+            case 0x01:
+              this->mode = climate::CLIMATE_MODE_HEAT;
+              break;
+            case 0x02:
+              this->mode = climate::CLIMATE_MODE_DRY;
+              break;
+            case 0x03:
+              this->mode = climate::CLIMATE_MODE_COOL;
+              break;
+            case 0x07:
+              this->mode = climate::CLIMATE_MODE_FAN_ONLY;
+              break;
+            case 0x08:
+              this->mode = climate::CLIMATE_MODE_HEAT_COOL;
+              break;
+            default:
+              this->mode = climate::CLIMATE_MODE_OFF;
+          }
+        } else {
+          this->mode = climate::CLIMATE_MODE_OFF;
+        }
+
+        this->target_temperature = ((int)packet.getBytes()[PAYLOAD_INDEX_TARGETTEMP] - 128)/2.0f;
+
+        switch (packet.getBytes()[PAYLOAD_INDEX_FAN]) {
+          case 0x00:
+            this->fan_mode = climate::CLIMATE_FAN_AUTO;
+            break;
+          case 0x01:
+            this->fan_mode = climate::CLIMATE_FAN_QUIET;
+            break;
+          case 0x02:
+            this->fan_mode = climate::CLIMATE_FAN_LOW;
+            break;
+          case 0x03:
+            this->fan_mode = climate::CLIMATE_FAN_MIDDLE;
+            break;
+          case 0x05:
+            this->fan_mode = climate::CLIMATE_FAN_MEDIUM;
+            break;
+          case 0x06:
+            this->fan_mode = climate::CLIMATE_FAN_HIGH;
+            break;
+        }
+      }
+      break;
+    // Room temp
     case 0x03: {
         float roomTemp = ((int)packet.getBytes()[PAYLOAD_INDEX_ROOMTEMP] - 128)/2.0f;
         this->current_temperature = roomTemp;
         ESP_LOGD(TAG, "Room temp: %.1f", roomTemp);
       }
       break;
+    // Status
+    case 0x06: {
+      bool operating = packet.getBytes()[PAYLOAD_INDEX_OPERATING];
+      uint8_t comressporFreq = packet.getBytes()[PAYLOAD_INDEX_OPERATING];
+      
+      // TODO Simplify this switch (too many redundant ACTION_IDLES)
+      switch (this->mode) {
+        case climate::CLIMATE_MODE_HEAT:
+            if (operating) {
+                this->action = climate::CLIMATE_ACTION_HEATING;
+            }
+            else {
+                this->action = climate::CLIMATE_ACTION_IDLE;
+            }
+            break;
+        case climate::CLIMATE_MODE_COOL:
+            if (operating) {
+                this->action = climate::CLIMATE_ACTION_COOLING;
+            }
+            else {
+                this->action = climate::CLIMATE_ACTION_IDLE;
+            }
+            break;
+        case climate::CLIMATE_MODE_HEAT_COOL:
+            this->action = climate::CLIMATE_ACTION_IDLE;
+            if (operating) {
+              if (this->current_temperature > this->target_temperature) {
+                  this->action = climate::CLIMATE_ACTION_COOLING;
+              } else if (this->current_temperature < this->target_temperature) {
+                  this->action = climate::CLIMATE_ACTION_HEATING;
+              }
+            }
+            break;
+        case climate::CLIMATE_MODE_DRY:
+            if (operating) {
+                this->action = climate::CLIMATE_ACTION_DRYING;
+            }
+            else {
+                this->action = climate::CLIMATE_ACTION_IDLE;
+            }
+            break;
+        case climate::CLIMATE_MODE_FAN_ONLY:
+            this->action = climate::CLIMATE_ACTION_FAN;
+            break;
+        default:
+            this->action = climate::CLIMATE_ACTION_OFF;
+        }
+
+        ESP_LOGD(TAG, "Operating: %s Frequency: %d", YESNO(operating), comressporFreq);
+      }
+      break;
     default:
-      ESP_LOGI(TAG, "Unknown get response command %x received.", packet.getType());
+      ESP_LOGI(TAG, "Unknown get response command %x received.", packet.getCommand());
   }
 }
 

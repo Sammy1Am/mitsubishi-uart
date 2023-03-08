@@ -15,8 +15,23 @@ const int HEADER_SIZE = 5;
 const int HEADER_INDEX_PACKET_TYPE = 1;
 const int HEADER_INDEX_PAYLOAD_SIZE = 4;
 const int PAYLOAD_INDEX_COMMAND = 5;
+
+// Get temp
 const int PAYLOAD_INDEX_ROOMTEMP_CODE = 8; // TODO: I don't know why I would use this instead of the one below...
 const int PAYLOAD_INDEX_ROOMTEMP = 11;
+
+// Get status
+const int PAYLOAD_INDEX_OPERATING = 9;
+const int PAYLOAD_INDEX_COMPRESSOR_FREQUENCY = 8;
+
+// Get settings
+const int PAYLOAD_INDEX_POWER = 8;
+const int PAYLOAD_INDEX_ISEE = 9;
+const int PAYLOAD_INDEX_MODE = 9;
+const int PAYLOAD_INDEX_TARGETTEMP = 16;
+const int PAYLOAD_INDEX_FAN = 11;
+const int PAYLOAD_INDEX_VANE = 12;
+const int PAYLOAD_INDEX_HVANE = 15;
 
 const uint8_t BYTE_CONTROL = 0xfc;
 
@@ -74,6 +89,7 @@ class MitsubishiUART : public climate::Climate, public PollingComponent {
 
   // ?
   climate::ClimateTraits traits() override;
+  climate::ClimateTraits& config_traits();
 
   // ?
   void control(const climate::ClimateCall &call) override;
