@@ -86,26 +86,41 @@ void MitsubishiUART::control(const climate::ClimateCall &call) {
 void MitsubishiUART::update() {
   ESP_LOGD(TAG, "Update called.");
 
+  int packetsRead = 0;
+  packetsRead += readPacket(false); //Check for connection results or other residual packets, but don't wait for them
+
+  /**
+   * For whatever reason:
+   * - Sending multiple request packets very quickly will result in only a response to the first one.  It seems
+   * like the heat pump may not be entirely breaking communications by control byte (or possibly it empties the
+   * input buffer between requests?)
+   * 
+   * - Sending multiple request packets sort of quickly results in multiple responses, but the first responses 
+   * are missing their checksums.
+   * 
+   * As a result, we blocking-read for a response as part of sendPacket()
+  */
   if (connectState == 2) {
     // Request room temp
-    //sendPacket(PACKET_TEMP_REQ);
+    sendPacket(PACKET_TEMP_REQ);
     // Request status
-    //sendPacket(PACKET_STATUS_REQ);
+    sendPacket(PACKET_STATUS_REQ);
     // Request settings
     sendPacket(PACKET_SETTINGS_REQ);
   }
 
-  // Read packets, but if we don't get any, keep track of how long it's been
-  if (readPackets()) {
+  if (packetsRead > 0){
     updatesSinceLastPacket = 0;
   } else {
-    if (++updatesSinceLastPacket > 10) {
-      ESP_LOGI(TAG, "No packets received in 10 updates, connection down.");
-      connectState = 0;
-    }
+    updatesSinceLastPacket++;
   }
 
-  this->publish_state();
+  if (updatesSinceLastPacket > 10) {
+    ESP_LOGI(TAG, "No packets received in %d updates, connection down.", updatesSinceLastPacket);
+    connectState = 0;
+  }
+
+  this->publish_state(); //TODO Should I only do this for changes?
 
   // If we're not connected (or have become unconnected) try to send a connect packet again
   if (connectState < 2) {connect();}
@@ -117,32 +132,40 @@ void MitsubishiUART::dump_config() {
 }
 
 void MitsubishiUART::connect() {
-  sendPacket(PACKET_CONNECT_REQ);
   connectState = 1; // Connecting...
+  sendPacket(PACKET_CONNECT_REQ);
 }
 
-void MitsubishiUART::sendPacket(Packet packet) {
+void MitsubishiUART::sendPacket(Packet packet, bool expectResponse) {
   hp_uart->write_array(packet.getBytes(),packet.getLength());
+  if (expectResponse){ readPacket();}
 }
 
 /**
  * Reads packets from UART, and sends them to appropriate handler methods.
 */
-bool MitsubishiUART::readPackets() {
+bool MitsubishiUART::readPacket(bool waitForPacket) {
   uint8_t p_byte;
   bool foundPacket = false;
-
-  // Search for control byte (or check that one is waiting for us)
-  while (hp_uart->available() && hp_uart->peek_byte(&p_byte)){
-    if (p_byte == BYTE_CONTROL){
-      foundPacket=true; 
-      ESP_LOGD(TAG, "FoundPacket!");
-      break;
-      }
-    else {
-      hp_uart->read_byte(&p_byte);
-      }
+  unsigned long readStop = millis() + PACKET_RECEIVE_TIMEOUT;
+  
+  while (millis() < readStop) {
+    // Search for control byte (or check that one is waiting for us)
+    while (hp_uart->available() > HEADER_SIZE && hp_uart->peek_byte(&p_byte)){
+      if (p_byte == BYTE_CONTROL){
+        foundPacket=true; 
+        ESP_LOGD(TAG, "FoundPacket!");
+        break;
+        }
+      else {
+        hp_uart->read_byte(&p_byte);
+        }
+    }
+    if (foundPacket) {break;}
+    if (!waitForPacket) {break;}
+    delay(10);
   }
+  
 
   // If control byte has been found and there's at least a header available, parse the packet
   if (foundPacket && hp_uart->available() > HEADER_SIZE) {
@@ -233,6 +256,11 @@ void MitsubishiUART::hResGet(Packet &packet){
             this->fan_mode = climate::CLIMATE_FAN_HIGH;
             break;
         }
+
+        uint8_t vane = packet.getBytes()[PAYLOAD_INDEX_VANE];
+        ESP_LOGD(TAG, "Vane set to: %x", vane);
+        uint8_t h_vane = packet.getBytes()[PAYLOAD_INDEX_HVANE];
+        ESP_LOGD(TAG, "HVane set to: %x", h_vane);
       }
       break;
     // Room temp

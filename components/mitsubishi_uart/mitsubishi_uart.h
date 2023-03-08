@@ -10,6 +10,7 @@ namespace mitsubishi_uart {
 static const char* MUART_VERSION = "0.1.0";
 
 const int PACKET_MAX_SIZE = 22; // Used to intialize blank packets
+const int PACKET_RECEIVE_TIMEOUT = 500; // Milliseconds to wait for a response
 
 const int HEADER_SIZE = 5;
 const int HEADER_INDEX_PACKET_TYPE = 1;
@@ -108,8 +109,8 @@ class MitsubishiUART : public climate::Climate, public PollingComponent {
   uint8_t connectState = 0;
 
   void connect();
-  void sendPacket(Packet packet);
-  bool readPackets();  //TODO separate methods or arguments for HP vs tstat
+  void sendPacket(Packet packet, bool expectResponse=true);
+  bool readPacket(bool waitForPacket=true);  //TODO separate methods or arguments for HP vs tstat?
 
   // Packet response handling
   void hResConnect(Packet &packet);
