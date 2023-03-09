@@ -50,7 +50,7 @@ void MitsubishiUART::control(const climate::ClimateCall &call) {
 }
 
 void MitsubishiUART::update() {
-  ESP_LOGD(TAG, "Update called.");
+  ESP_LOGV(TAG, "Update called.");
 
   int packetsRead = 0;
   packetsRead += readPacket(false); //Check for connection results or other residual packets, but don't wait for them
@@ -139,7 +139,7 @@ bool MitsubishiUART::readPacket(bool waitForPacket) {
     while (hp_uart->available() > PACKET_HEADER_SIZE && hp_uart->peek_byte(&p_byte)){
       if (p_byte == BYTE_CONTROL){
         foundPacket=true; 
-        ESP_LOGD(TAG, "FoundPacket!");
+        ESP_LOGV(TAG, "FoundPacket!");
         break;
         }
       else {
