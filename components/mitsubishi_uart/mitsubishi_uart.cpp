@@ -39,6 +39,7 @@ MitsubishiUART::MitsubishiUART(uart::UARTComponent *uart_comp) :
 }
 
 void MitsubishiUART::setup() {
+  this->restore_state_();
   connect();
 }
 
