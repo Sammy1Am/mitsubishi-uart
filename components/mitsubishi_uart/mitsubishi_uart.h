@@ -78,6 +78,20 @@ class Packet {
     
 };
 
+struct muartState {
+  climate::ClimateMode c_mode;
+  float c_target_temperature;
+  climate::ClimateFanMode c_fan_mode;
+  float c_current_temperature;
+  climate::ClimateAction c_action;
+  
+  // power
+  // vane
+  // hvane
+  // operating
+  // compressor_frequency
+};
+
 class MitsubishiUART : public climate::Climate, public PollingComponent {
  public:
   /**
@@ -103,6 +117,8 @@ class MitsubishiUART : public climate::Climate, public PollingComponent {
  private:
   uart::UARTComponent *hp_uart;
   uint8_t updatesSinceLastPacket = 0;
+  muartState lastPublishedState {};
+  muartState getCurrentState();
 
   climate::ClimateTraits _traits;
 

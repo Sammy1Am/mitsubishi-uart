@@ -5,6 +5,22 @@ namespace mitsubishi_uart {
 
 const char *TAG = "mitsubishi_uart";
 
+////
+// Structure Comparison
+// Allows for quick state comparisons (this might get unwieldy eventually)
+////
+bool operator!=(const muartState& lhs, const muartState& rhs) {
+  return lhs.c_action != rhs.c_action || 
+         lhs.c_current_temperature != rhs.c_current_temperature || 
+         lhs.c_fan_mode != rhs.c_fan_mode || 
+         lhs.c_mode != rhs.c_mode ||
+         lhs.c_target_temperature != rhs.c_target_temperature;
+}
+
+////
+// Packet
+////
+
 const Packet PACKET_CONNECT_REQ = Packet(PKTTYPE_CONNECT_REQUEST, 2)
   .setPayloadByte(0,0xca).setPayloadByte(1,0x01);
 const Packet PACKET_SETTINGS_REQ = Packet(PKTTYPE_GET_REQUEST, 1)
@@ -14,9 +30,6 @@ const Packet PACKET_TEMP_REQ = Packet(PKTTYPE_GET_REQUEST, 1)
 const Packet PACKET_STATUS_REQ = Packet(PKTTYPE_GET_REQUEST, 1)
   .setPayloadByte(0,0x06);
 
-////
-// Packet
-////
 Packet::Packet(uint8_t packet_type, uint8_t payload_size)
     : length{payload_size + HEADER_SIZE + 1}, checksumIndex{length - 1} {
   memcpy(packetBytes,EMPTY_PACKET,length);
@@ -119,11 +132,27 @@ void MitsubishiUART::update() {
     ESP_LOGI(TAG, "No packets received in %d updates, connection down.", updatesSinceLastPacket);
     connectState = 0;
   }
+  
+  muartState currentState = getCurrentState();
 
-  this->publish_state(); //TODO Should I only do this for changes?
+  if (currentState != lastPublishedState){
+    this->publish_state();
+    lastPublishedState = currentState;
+  }
+  
 
   // If we're not connected (or have become unconnected) try to send a connect packet again
   if (connectState < 2) {connect();}
+}
+
+muartState MitsubishiUART::getCurrentState() {
+  muartState currentState {};
+  currentState.c_action = this->action;
+  currentState.c_current_temperature = this->current_temperature;
+  currentState.c_fan_mode = this->fan_mode.value_or(climate::ClimateFanMode::CLIMATE_FAN_OFF);
+  currentState.c_mode = this->mode;
+  currentState.c_target_temperature = this->target_temperature;
+  return currentState;
 }
 
 void MitsubishiUART::dump_config() {
