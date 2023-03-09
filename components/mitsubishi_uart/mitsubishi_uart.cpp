@@ -3,8 +3,6 @@
 namespace esphome {
 namespace mitsubishi_uart {
 
-const char *TAG = "mitsubishi_uart";
-
 ////
 // Structure Comparison
 // Allows for quick state comparisons (this might get unwieldy eventually)
@@ -17,60 +15,13 @@ bool operator!=(const muartState& lhs, const muartState& rhs) {
          lhs.c_target_temperature != rhs.c_target_temperature;
 }
 
-////
-// Packet
-////
-
-const Packet PACKET_CONNECT_REQ = Packet(PKTTYPE_CONNECT_REQUEST, 2)
-  .setPayloadByte(0,0xca).setPayloadByte(1,0x01);
-const Packet PACKET_SETTINGS_REQ = Packet(PKTTYPE_GET_REQUEST, 1)
-  .setPayloadByte(0,0x02);
-const Packet PACKET_TEMP_REQ = Packet(PKTTYPE_GET_REQUEST, 1)
-  .setPayloadByte(0,0x03);
-const Packet PACKET_STATUS_REQ = Packet(PKTTYPE_GET_REQUEST, 1)
-  .setPayloadByte(0,0x06);
-const Packet PACKET_STANDBY_REQ = Packet(PKTTYPE_GET_REQUEST, 1)
-  .setPayloadByte(0,0x09);
-
-Packet::Packet(uint8_t packet_type, uint8_t payload_size)
-    : length{payload_size + HEADER_SIZE + 1}, checksumIndex{length - 1} {
-  memcpy(packetBytes,EMPTY_PACKET,length);
-  packetBytes[HEADER_INDEX_PACKET_TYPE] = packet_type;
-  packetBytes[HEADER_INDEX_PAYLOAD_SIZE] = payload_size;
-
-  updateChecksum();
-}
-
-Packet::Packet(uint8_t packet_header[HEADER_SIZE], uint8_t payload[], uint8_t payload_size, uint8_t checksum)
-    : length{payload_size + HEADER_SIZE + 1}, checksumIndex{length - 1} {
-  memcpy(packetBytes,packet_header,HEADER_SIZE);
-  memcpy(packetBytes+HEADER_SIZE, payload, payload_size);
-  packetBytes[checksumIndex] = checksum;
-}
-
-const uint8_t Packet::calculateChecksum() {
-  uint8_t sum = 0;
-  for (int i = 0; i < checksumIndex; i++) {
-    sum += packetBytes[i];
-  }
-
-  return (0xfc - sum) & 0xff;
-}
-
-Packet& Packet::updateChecksum() {
-  packetBytes[checksumIndex] = calculateChecksum();
-  return *this;
-}
-
-const bool Packet::isChecksumValid() {
-  return packetBytes[checksumIndex] == calculateChecksum();
-}
-
-Packet &Packet::setPayloadByte(int payload_byte_index, uint8_t value) {
-  packetBytes[HEADER_SIZE + payload_byte_index] = value;
-  updateChecksum();
-  return *this;
-}
+// TODO (Can I move these into the packets files?)
+// Pre-built packets
+const Packet PACKET_CONNECT_REQ = PacketConnectRequest();
+const Packet PACKET_SETTINGS_REQ = PacketGetRequest(PacketGetCommand::settings);
+const Packet PACKET_TEMP_REQ = PacketGetRequest(PacketGetCommand::room_temp);
+const Packet PACKET_STATUS_REQ = PacketGetRequest(PacketGetCommand::status);
+const Packet PACKET_STANDBY_REQ = PacketGetRequest(PacketGetCommand::standby);
 
 ////
 // MitsubishiUART
@@ -185,7 +136,7 @@ bool MitsubishiUART::readPacket(bool waitForPacket) {
   
   while (millis() < readStop) {
     // Search for control byte (or check that one is waiting for us)
-    while (hp_uart->available() > HEADER_SIZE && hp_uart->peek_byte(&p_byte)){
+    while (hp_uart->available() > PACKET_HEADER_SIZE && hp_uart->peek_byte(&p_byte)){
       if (p_byte == BYTE_CONTROL){
         foundPacket=true; 
         ESP_LOGD(TAG, "FoundPacket!");
@@ -202,27 +153,39 @@ bool MitsubishiUART::readPacket(bool waitForPacket) {
   
 
   // If control byte has been found and there's at least a header available, parse the packet
-  if (foundPacket && hp_uart->available() > HEADER_SIZE) {
-    uint8_t p_header[HEADER_SIZE];
-    hp_uart->read_array(p_header, HEADER_SIZE);
-    int payloadSize = p_header[HEADER_INDEX_PAYLOAD_SIZE];
+  if (foundPacket && hp_uart->available() > PACKET_HEADER_SIZE) {
+    uint8_t p_header[PACKET_HEADER_SIZE];
+    hp_uart->read_array(p_header, PACKET_HEADER_SIZE);
+    int payloadSize = p_header[PACKET_HEADER_INDEX_PAYLOAD_SIZE];
     uint8_t p_payload[payloadSize];
     uint8_t checksum;
     hp_uart->read_array(p_payload,payloadSize);
     hp_uart->read_byte(&checksum);
 
-    Packet packet = Packet(p_header,p_payload,payloadSize,checksum);
-    ESP_LOGD(TAG, "Packet with type %x and %s validity.", packet.getType(), YESNO(packet.isChecksumValid()));
-
-    switch (packet.getType()) {
-      case PKTTYPE_CONNECT_RESPONSE:
-        hResConnect(packet);
+    switch (p_header[PACKET_HEADER_INDEX_PACKET_TYPE]) {
+      case PacketType::connect_response:
+        hResConnect(PacketConnectResponse(p_header,p_payload,payloadSize,checksum));
         break;
-      case PKTTYPE_GET_RESPONSE:
-        hResGet(packet);
+      case PacketType::get_response:
+        switch (p_payload[0]){ // Switch on command type
+          case PacketGetCommand::settings:
+            hResGetSettings(PacketGetResponseSettings(p_header,p_payload,payloadSize,checksum));
+            break;
+          case PacketGetCommand::room_temp:
+            hResGetRoomTemp(PacketGetResponseRoomTemp(p_header,p_payload,payloadSize,checksum));
+            break;
+          case PacketGetCommand::status:
+            hResGetStatus(PacketGetResponseStatus(p_header,p_payload,payloadSize,checksum));
+            break;
+          case PacketGetCommand::standby:
+            hResGetStandby(PacketGetResponseStandby(p_header,p_payload,payloadSize,checksum));
+            break;
+          default:
+            ESP_LOGI(TAG, "Unknown get response command %x received.", p_payload[0]);
+        }
         break;
       default:
-        ESP_LOGI(TAG, "Unknown packet type %x received.", packet.getType());
+        ESP_LOGI(TAG, "Unknown packet type %x received.", p_header[PACKET_HEADER_INDEX_PACKET_TYPE]);
     }
 
     return true;
@@ -231,143 +194,129 @@ bool MitsubishiUART::readPacket(bool waitForPacket) {
   return false;
 }
 
-void MitsubishiUART::hResConnect(Packet &packet){
+void MitsubishiUART::hResConnect(PacketConnectResponse packet){
   // Not sure there's any info in the response.
   connectState = 2;
   ESP_LOGI(TAG, "Connected to heatpump.");
 }
 
-void MitsubishiUART::hResGet(Packet &packet){
-  switch (packet.getCommand()) {
-    // Settings
-    case 0x02: {
-        bool power = packet.getBytes()[PAYLOAD_INDEX_POWER];
-        //bool iSee = packet.getBytes()[PAYLOAD_INDEX_ISEE] > 0x08 ? true : false; // TODO
-        
-        if (power) {
-          switch (packet.getBytes()[PAYLOAD_INDEX_MODE]) {
-            case 0x01:
-              this->mode = climate::CLIMATE_MODE_HEAT;
-              break;
-            case 0x02:
-              this->mode = climate::CLIMATE_MODE_DRY;
-              break;
-            case 0x03:
-              this->mode = climate::CLIMATE_MODE_COOL;
-              break;
-            case 0x07:
-              this->mode = climate::CLIMATE_MODE_FAN_ONLY;
-              break;
-            case 0x08:
-              this->mode = climate::CLIMATE_MODE_HEAT_COOL;
-              break;
-            default:
-              this->mode = climate::CLIMATE_MODE_OFF;
-          }
-        } else {
+  void MitsubishiUART::hResGetSettings(PacketGetResponseSettings packet){
+    bool power = packet.getPower();
+    if (power) {
+      switch (packet.getMode()) {
+        case 0x01:
+          this->mode = climate::CLIMATE_MODE_HEAT;
+          break;
+        case 0x02:
+          this->mode = climate::CLIMATE_MODE_DRY;
+          break;
+        case 0x03:
+          this->mode = climate::CLIMATE_MODE_COOL;
+          break;
+        case 0x07:
+          this->mode = climate::CLIMATE_MODE_FAN_ONLY;
+          break;
+        case 0x08:
+          this->mode = climate::CLIMATE_MODE_HEAT_COOL;
+          break;
+        default:
           this->mode = climate::CLIMATE_MODE_OFF;
-        }
-
-        this->target_temperature = ((int)packet.getBytes()[PAYLOAD_INDEX_TARGETTEMP] - 128)/2.0f;
-
-        switch (packet.getBytes()[PAYLOAD_INDEX_FAN]) {
-          case 0x00:
-            this->fan_mode = climate::CLIMATE_FAN_AUTO;
-            break;
-          case 0x01:
-            this->fan_mode = climate::CLIMATE_FAN_QUIET;
-            break;
-          case 0x02:
-            this->fan_mode = climate::CLIMATE_FAN_LOW;
-            break;
-          case 0x03:
-            this->fan_mode = climate::CLIMATE_FAN_MIDDLE;
-            break;
-          case 0x05:
-            this->fan_mode = climate::CLIMATE_FAN_MEDIUM;
-            break;
-          case 0x06:
-            this->fan_mode = climate::CLIMATE_FAN_HIGH;
-            break;
-        }
-
-        uint8_t vane = packet.getBytes()[PAYLOAD_INDEX_VANE];
-        ESP_LOGD(TAG, "Vane set to: %x", vane);
-        uint8_t h_vane = packet.getBytes()[PAYLOAD_INDEX_HVANE];
-        ESP_LOGD(TAG, "HVane set to: %x", h_vane);
       }
-      break;
-    // Room temp
-    case 0x03: {
-        float roomTemp = ((int)packet.getBytes()[PAYLOAD_INDEX_ROOMTEMP] - 128)/2.0f;
-        this->current_temperature = roomTemp;
-        ESP_LOGD(TAG, "Room temp: %.1f", roomTemp);
-      }
-      break;
-    // Status
-    case 0x06: {
-      bool operating = packet.getBytes()[PAYLOAD_INDEX_OPERATING];
-      uint8_t comressporFreq = packet.getBytes()[PAYLOAD_INDEX_OPERATING];
-      
-      // TODO Simplify this switch (too many redundant ACTION_IDLES)
-      switch (this->mode) {
-        case climate::CLIMATE_MODE_HEAT:
-            if (operating) {
+    } else {
+      this->mode = climate::CLIMATE_MODE_OFF;
+    }
+
+    this->target_temperature = packet.getTargetTemp();
+
+    switch (packet.getFan()) {
+      case 0x00:
+        this->fan_mode = climate::CLIMATE_FAN_AUTO;
+        break;
+      case 0x01:
+        this->fan_mode = climate::CLIMATE_FAN_QUIET;
+        break;
+      case 0x02:
+        this->fan_mode = climate::CLIMATE_FAN_LOW;
+        break;
+      case 0x03:
+        this->fan_mode = climate::CLIMATE_FAN_MIDDLE;
+        break;
+      case 0x05:
+        this->fan_mode = climate::CLIMATE_FAN_MEDIUM;
+        break;
+      case 0x06:
+        this->fan_mode = climate::CLIMATE_FAN_HIGH;
+        break;
+    }
+
+    uint8_t vane = packet.getVane();
+    ESP_LOGD(TAG, "Vane set to: %x", vane);
+    uint8_t h_vane = packet.getHorizontalVane();
+    ESP_LOGD(TAG, "HVane set to: %x", h_vane);
+  }
+
+  void MitsubishiUART::hResGetRoomTemp(PacketGetResponseRoomTemp packet){
+    this->current_temperature = packet.getRoomTemp();
+    ESP_LOGD(TAG, "Room temp: %.1f", this->current_temperature);
+  }
+
+  void MitsubishiUART::hResGetStatus(PacketGetResponseStatus packet){
+    bool operating = packet.getOperating();
+    uint8_t comressporFreq = packet.getCompressorFrequency();
+    
+    // TODO Simplify this switch (too many redundant ACTION_IDLES)
+    switch (this->mode) {
+      case climate::CLIMATE_MODE_HEAT:
+          if (operating) {
+              this->action = climate::CLIMATE_ACTION_HEATING;
+          }
+          else {
+              this->action = climate::CLIMATE_ACTION_IDLE;
+          }
+          break;
+      case climate::CLIMATE_MODE_COOL:
+          if (operating) {
+              this->action = climate::CLIMATE_ACTION_COOLING;
+          }
+          else {
+              this->action = climate::CLIMATE_ACTION_IDLE;
+          }
+          break;
+      case climate::CLIMATE_MODE_HEAT_COOL:
+          this->action = climate::CLIMATE_ACTION_IDLE;
+          if (operating) {
+            if (this->current_temperature > this->target_temperature) {
+                this->action = climate::CLIMATE_ACTION_COOLING;
+            } else if (this->current_temperature < this->target_temperature) {
                 this->action = climate::CLIMATE_ACTION_HEATING;
             }
-            else {
-                this->action = climate::CLIMATE_ACTION_IDLE;
-            }
-            break;
-        case climate::CLIMATE_MODE_COOL:
-            if (operating) {
-                this->action = climate::CLIMATE_ACTION_COOLING;
-            }
-            else {
-                this->action = climate::CLIMATE_ACTION_IDLE;
-            }
-            break;
-        case climate::CLIMATE_MODE_HEAT_COOL:
-            this->action = climate::CLIMATE_ACTION_IDLE;
-            if (operating) {
-              if (this->current_temperature > this->target_temperature) {
-                  this->action = climate::CLIMATE_ACTION_COOLING;
-              } else if (this->current_temperature < this->target_temperature) {
-                  this->action = climate::CLIMATE_ACTION_HEATING;
-              }
-            }
-            break;
-        case climate::CLIMATE_MODE_DRY:
-            if (operating) {
-                this->action = climate::CLIMATE_ACTION_DRYING;
-            }
-            else {
-                this->action = climate::CLIMATE_ACTION_IDLE;
-            }
-            break;
-        case climate::CLIMATE_MODE_FAN_ONLY:
-            this->action = climate::CLIMATE_ACTION_FAN;
-            break;
-        default:
-            this->action = climate::CLIMATE_ACTION_OFF;
-        }
+          }
+          break;
+      case climate::CLIMATE_MODE_DRY:
+          if (operating) {
+              this->action = climate::CLIMATE_ACTION_DRYING;
+          }
+          else {
+              this->action = climate::CLIMATE_ACTION_IDLE;
+          }
+          break;
+      case climate::CLIMATE_MODE_FAN_ONLY:
+          this->action = climate::CLIMATE_ACTION_FAN;
+          break;
+      default:
+          this->action = climate::CLIMATE_ACTION_OFF;
+      }
 
-        ESP_LOGD(TAG, "Operating: %s Frequency: %d", YESNO(operating), comressporFreq);
-      }
-      break;
-    case 0x09: {
-      // TODO these are a little uncertain
-      // 0x04 = pre-heat, 0x08 = standby
-      uint8_t loopStatus = packet.getBytes()[PAYLOAD_INDEX_LOOPSTATUS];
-      // 1 to 5, lowest to highest power
-      uint8_t stage = packet.getBytes()[PAYLOAD_INDEX_STAGE];
-      ESP_LOGD(TAG, "Loop status: %x Stage: %x", loopStatus, stage);
-      }
-      break;
-    default:
-      ESP_LOGI(TAG, "Unknown get response command %x received.", packet.getCommand());
+      ESP_LOGD(TAG, "Operating: %s Frequency: %d", YESNO(operating), comressporFreq);
   }
-}
+  void MitsubishiUART::hResGetStandby(PacketGetResponseStandby packet){
+    // TODO these are a little uncertain
+    // 0x04 = pre-heat, 0x08 = standby
+    uint8_t loopStatus = packet.getLoopStatus();
+    // 1 to 5, lowest to highest power
+    uint8_t stage = packet.getStage();
+    ESP_LOGD(TAG, "Loop status: %x Stage: %x", loopStatus, stage);
+  }
 
 
 }  // namespace mitsubishi_uart
