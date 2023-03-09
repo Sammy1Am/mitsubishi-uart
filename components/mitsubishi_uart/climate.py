@@ -12,6 +12,7 @@ from esphome.const import (
 from esphome.core import coroutine
 
 AUTO_LOAD = ["climate"]
+DEPENDENCIES = ["uart"]
 
 CONF_HP_UART = "hp_uart"
 CONF_SUPPORTS = "supports"
