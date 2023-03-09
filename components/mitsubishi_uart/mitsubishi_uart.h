@@ -34,6 +34,10 @@ const int PAYLOAD_INDEX_FAN = 11;
 const int PAYLOAD_INDEX_VANE = 12;
 const int PAYLOAD_INDEX_HVANE = 15;
 
+// Get standby
+const int PAYLOAD_INDEX_LOOPSTATUS = 8;
+const int PAYLOAD_INDEX_STAGE = 9;
+
 const uint8_t BYTE_CONTROL = 0xfc;
 
 const uint8_t EMPTY_PACKET[PACKET_MAX_SIZE] = {BYTE_CONTROL, // Sync

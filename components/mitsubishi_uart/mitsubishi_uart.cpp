@@ -29,6 +29,8 @@ const Packet PACKET_TEMP_REQ = Packet(PKTTYPE_GET_REQUEST, 1)
   .setPayloadByte(0,0x03);
 const Packet PACKET_STATUS_REQ = Packet(PKTTYPE_GET_REQUEST, 1)
   .setPayloadByte(0,0x06);
+const Packet PACKET_STANDBY_REQ = Packet(PKTTYPE_GET_REQUEST, 1)
+  .setPayloadByte(0,0x09);
 
 Packet::Packet(uint8_t packet_type, uint8_t payload_size)
     : length{payload_size + HEADER_SIZE + 1}, checksumIndex{length - 1} {
@@ -120,6 +122,8 @@ void MitsubishiUART::update() {
     sendPacket(PACKET_STATUS_REQ) ? packetsRead++ : 0;
     // Request settings
     sendPacket(PACKET_SETTINGS_REQ) ? packetsRead++ : 0;
+    //
+    sendPacket(PACKET_STANDBY_REQ) ? packetsRead++ : 0;
   }
 
   if (packetsRead > 0){
@@ -349,6 +353,15 @@ void MitsubishiUART::hResGet(Packet &packet){
         }
 
         ESP_LOGD(TAG, "Operating: %s Frequency: %d", YESNO(operating), comressporFreq);
+      }
+      break;
+    case 0x09: {
+      // TODO these are a little uncertain
+      // 0x04 = pre-heat, 0x08 = standby
+      uint8_t loopStatus = packet.getBytes()[PAYLOAD_INDEX_LOOPSTATUS];
+      // 1 to 5, lowest to highest power
+      uint8_t stage = packet.getBytes()[PAYLOAD_INDEX_STAGE];
+      ESP_LOGD(TAG, "Loop status: %x Stage: %x", loopStatus, stage);
       }
       break;
     default:
