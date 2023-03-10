@@ -3,6 +3,7 @@
 #include "esphome/core/component.h"
 #include "esphome/components/climate/climate.h"
 #include "esphome/components/uart/uart.h"
+#include "esphome/components/select/select.h"
 #include "muart_packet.h"
 
 namespace esphome {
@@ -11,12 +12,11 @@ namespace mitsubishi_uart {
 static const char *TAG = "mitsubishi_uart";
 static const char *MUART_VERSION = "0.1.0";
 
-const int PACKET_RECEIVE_TIMEOUT = 500; // Milliseconds to wait for a response
+const int PACKET_RECEIVE_TIMEOUT = 500;  // Milliseconds to wait for a response
 
-const uint8_t MUART_MIN_TEMP = 16; // Degrees C
-const uint8_t MUART_MAX_TEMP = 31; // Degrees C
+const uint8_t MUART_MIN_TEMP = 16;  // Degrees C
+const uint8_t MUART_MAX_TEMP = 31;  // Degrees C
 const float MUART_TEMPERATURE_STEP = 0.5;
-
 
 struct muartState {
   climate::ClimateMode c_mode;
@@ -24,7 +24,7 @@ struct muartState {
   climate::ClimateFanMode c_fan_mode;
   float c_current_temperature;
   climate::ClimateAction c_action;
-  
+
   // power
   // vane
   // hvane
@@ -44,7 +44,7 @@ class MitsubishiUART : public climate::Climate, public PollingComponent {
 
   // ?
   climate::ClimateTraits traits() override;
-  climate::ClimateTraits& config_traits();
+  climate::ClimateTraits &config_traits();
 
   // ?
   void control(const climate::ClimateCall &call) override;
@@ -54,10 +54,12 @@ class MitsubishiUART : public climate::Climate, public PollingComponent {
 
   void dump_config() override;
 
+  void set_select_vane_direction(select::Select *svd) { this->select_vane_direction = svd; }
+
  private:
   uart::UARTComponent *hp_uart;
   uint8_t updatesSinceLastPacket = 0;
-  muartState lastPublishedState {};
+  muartState lastPublishedState{};
   muartState getCurrentState();
 
   climate::ClimateTraits _traits;
@@ -68,8 +70,8 @@ class MitsubishiUART : public climate::Climate, public PollingComponent {
 
   // Sends a packet and by default attempts to receive one.  Returns true if a packet was received
   // Caveat: No attempt is made to match received packet with sent packet
-  bool sendPacket(Packet packet, bool expectResponse=true); 
-  bool readPacket(bool waitForPacket=true);  //TODO separate methods or arguments for HP vs tstat?
+  bool sendPacket(Packet packet, bool expectResponse = true);
+  bool readPacket(bool waitForPacket = true);  // TODO separate methods or arguments for HP vs tstat?
 
   // Packet response handling
   void hResConnect(PacketConnectResponse packet);
@@ -77,6 +79,8 @@ class MitsubishiUART : public climate::Climate, public PollingComponent {
   void hResGetRoomTemp(PacketGetResponseRoomTemp packet);
   void hResGetStatus(PacketGetResponseStatus packet);
   void hResGetStandby(PacketGetResponseStandby packet);
+
+  select::Select *select_vane_direction{};
 };
 
 }  // namespace mitsubishi_uart

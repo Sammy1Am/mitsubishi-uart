@@ -11,7 +11,7 @@ from esphome.const import (
 )
 from esphome.core import coroutine
 
-AUTO_LOAD = ["climate"]
+AUTO_LOAD = ["climate", "select"]
 DEPENDENCIES = ["uart"]
 
 CONF_HP_UART = "hp_uart"
@@ -23,24 +23,31 @@ DEFAULT_FAN_MODES = ["AUTO", "QUIET", "LOW", "MIDDLE", "MEDIUM", "HIGH"]
 
 DEFAULT_POLLING_INTERVAL = "5s"
 
-mitsubishi_uart_ns = cg.esphome_ns.namespace('mitsubishi_uart')
-MitsubishiUART = mitsubishi_uart_ns.class_('MitsubishiUART', climate.Climate, cg.PollingComponent)
+mitsubishi_uart_ns = cg.esphome_ns.namespace("mitsubishi_uart")
+MitsubishiUART = mitsubishi_uart_ns.class_(
+    "MitsubishiUART", climate.Climate, cg.PollingComponent
+)
 
-CONFIG_SCHEMA = climate.CLIMATE_SCHEMA.extend({
-    cv.GenerateID(CONF_ID): cv.declare_id(MitsubishiUART),
-    cv.Required(CONF_HP_UART): cv.use_id(uart.UARTComponent), #TODO Set a default?
-    # Set default, but allow override of supports.
-    cv.Optional(CONF_SUPPORTS, default={}): cv.Schema(
-        {
-            cv.Optional(CONF_MODE, default=DEFAULT_CLIMATE_MODES):
-                cv.ensure_list(climate.validate_climate_mode),
-            cv.Optional(CONF_FAN_MODE, default=DEFAULT_FAN_MODES):
-                cv.ensure_list(climate.validate_climate_fan_mode),
-            # cv.Optional(CONF_SWING_MODE, default=DEFAULT_SWING_MODES):
-            #     cv.ensure_list(climate.validate_climate_swing_mode),
-        }
-    )
-}).extend(cv.polling_component_schema(DEFAULT_POLLING_INTERVAL))
+CONFIG_SCHEMA = climate.CLIMATE_SCHEMA.extend(
+    {
+        cv.GenerateID(CONF_ID): cv.declare_id(MitsubishiUART),
+        cv.Required(CONF_HP_UART): cv.use_id(uart.UARTComponent),  # TODO Set a default?
+        # Set default, but allow override of supports.
+        cv.Optional(CONF_SUPPORTS, default={}): cv.Schema(
+            {
+                cv.Optional(CONF_MODE, default=DEFAULT_CLIMATE_MODES): cv.ensure_list(
+                    climate.validate_climate_mode
+                ),
+                cv.Optional(CONF_FAN_MODE, default=DEFAULT_FAN_MODES): cv.ensure_list(
+                    climate.validate_climate_fan_mode
+                ),
+                # cv.Optional(CONF_SWING_MODE, default=DEFAULT_SWING_MODES):
+                #     cv.ensure_list(climate.validate_climate_swing_mode),
+            }
+        ),
+    }
+).extend(cv.polling_component_schema(DEFAULT_POLLING_INTERVAL))
+
 
 @coroutine
 async def to_code(config):
