@@ -4,6 +4,7 @@
 #include "esphome/components/climate/climate.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/select/select.h"
+#include "select/muart_select.h"
 #include "muart_packet.h"
 
 namespace esphome {
@@ -54,7 +55,7 @@ class MitsubishiUART : public climate::Climate, public PollingComponent {
 
   void dump_config() override;
 
-  void set_select_vane_direction(select::Select *svd) { this->select_vane_direction = svd; }
+  void set_select_vane_direction(MUARTSelect *svd) { this->select_vane_direction = svd; }
 
  private:
   uart::UARTComponent *hp_uart;
@@ -80,7 +81,7 @@ class MitsubishiUART : public climate::Climate, public PollingComponent {
   void hResGetStatus(PacketGetResponseStatus packet);
   void hResGetStandby(PacketGetResponseStandby packet);
 
-  select::Select *select_vane_direction{};
+  MUARTSelect *select_vane_direction{};
 };
 
 }  // namespace mitsubishi_uart
