@@ -2,11 +2,10 @@
 
 #include "esphome/core/log.h"
 #include "esphome/components/select/select.h"
+#include "../mitsubishi_uart.h"
 
 namespace esphome{
 namespace mitsubishi_uart{
-
-class MitsubishiUART; // TODO: Is there a way to do this without a circular dependency?
 
 /**
  * A brief explainer on ESPHome's Select:
@@ -22,7 +21,6 @@ class MUARTSelect : public select::Select, public Component {
   public:
     void control(const std::string &value) override;
     void set_parent(MitsubishiUART *parent) {this->parent_ = parent;}
-    void updateIndex(const int currentIndex);
   protected:
     MitsubishiUART *parent_;
 };

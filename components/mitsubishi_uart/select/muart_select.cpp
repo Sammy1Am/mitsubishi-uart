@@ -9,13 +9,18 @@ void MUARTSelect::control(const std::string &value) {
   // TODO: figure ^ out how to get TAG here instead of a string.
 }
 
-// If receivedIndex is different than our active index, publish it.
-void MUARTSelect::updateIndex(int receivedIndex) {
-  if (receivedIndex != this->active_index().value()){
-    std::string value = this->traits.get_options().at(receivedIndex);
-    this->publish_state(value);
-  }
-}
+// void MUARTSelect::publish_state(const std::string &state) {
+//   ESP_LOGI("mitsubishi_uart","Publish Called");
+//   if (state != this->traits.get_options().at(this->active_index().value())){ // TODO How safe is calling .value() like this?
+//       Select::publish_state(state);
+//       ESP_LOGI("mitsubishi_uart","Published");
+//     }
+// }
+
+// // If receivedIndex is different than our active index, publish it.
+// void MUARTSelect::updateIndex(int receivedIndex) {
+//   
+// }
 
 
 }

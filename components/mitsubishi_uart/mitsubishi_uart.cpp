@@ -251,7 +251,7 @@ void MitsubishiUART::hResGetSettings(PacketGetResponseSettings packet) {
 
   uint8_t vane = packet.getVane();
   if (vane>0x05) {vane = 0x06;} // "Swing" is 0x07 and there's no 0x06, so the select menu index only goes to 6
-  this->select_vane_direction->updateIndex(vane);
+  this->select_vane_direction->publish_state(this->select_vane_direction->traits.get_options().at(vane));
 
   uint8_t h_vane = packet.getHorizontalVane();
   ESP_LOGD(TAG, "HVane set to: %x", h_vane);
