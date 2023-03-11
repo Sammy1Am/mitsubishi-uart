@@ -4,11 +4,11 @@ from esphome.components import select
 from esphome.const import (
     CONF_ID,
 )
-from .. import climate
+from .. import CONF_MUART_ID, mitsubishi_uart_ns, MitsubishiUART
 
-DEPENDENCIES = ["uart"]
+DEPENDENCIES = ["mitsubishi_uart"]
 
-CONF_MUART_ID = "muart_id"
+
 CONF_VANE_DIRECTION = "vane_direction"
 CONF_TEMP_SOURCE = "temp_source"
 
@@ -17,13 +17,13 @@ SELECTS = {
     # CONF_TEMP_SOURCE: (["Internal", "Thermostat"]),
 }
 
-MUARTSelect = climate.mitsubishi_uart_ns.class_(
-    "MUARTSelect", select.Select, cg.Component
-)
+LazySelect = mitsubishi_uart_ns.class_("LazySelect", select.Select)
+MUARTSelect = mitsubishi_uart_ns.class_("MUARTSelect", LazySelect, cg.Component)
+# TODO Need component here ^?
 
 MUART_COMPONENT_SCHEMA = cv.Schema(
     {
-        cv.Required(CONF_MUART_ID): cv.use_id(climate.MitsubishiUART),
+        cv.Required(CONF_MUART_ID): cv.use_id(MitsubishiUART),
     }
 )
 
@@ -43,7 +43,7 @@ CONFIG_SCHEMA = MUART_COMPONENT_SCHEMA.extend(
 
 
 async def to_code(config):
-    parent = await cg.get_variable(config[CONF_MUART_ID])
+    muart = await cg.get_variable(config[CONF_MUART_ID])
 
     for select_type, (select_name, s_options) in SELECTS.items():
         if select_type in config:
@@ -51,5 +51,5 @@ async def to_code(config):
             var = cg.new_Pvariable(s_conf[CONF_ID])
             await cg.register_component(var, s_conf)
             await select.register_select(var, s_conf, options=s_options)
-            cg.add(getattr(parent, f"set_select_{select_type}")(var))
-            cg.add(var.set_parent(parent))
+            cg.add(getattr(muart, f"set_select_{select_type}")(var))
+            cg.add(var.set_parent(muart))

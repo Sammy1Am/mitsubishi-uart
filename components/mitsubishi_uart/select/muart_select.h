@@ -17,7 +17,7 @@ namespace mitsubishi_uart{
  * a new state.  Or conversely there is no way to publish state without implictly setting it.
 */
 
-class MUARTSelect : public select::Select, public Component {
+class MUARTSelect : public LazySelect, public Component {
   public:
     void control(const std::string &value) override;
     void set_parent(MitsubishiUART *parent) {this->parent_ = parent;}
