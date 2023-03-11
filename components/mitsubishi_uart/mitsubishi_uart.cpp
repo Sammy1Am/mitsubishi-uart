@@ -58,6 +58,9 @@ void MitsubishiUART::update() {
     connectState = 0;
   }
 
+  // This will publish the state IFF something has changed
+  this->climate_->lazy_publish_state();
+
   // If we're not connected (or have become unconnected) try to send a connect packet again
   if (connectState < 2) {
     connect();

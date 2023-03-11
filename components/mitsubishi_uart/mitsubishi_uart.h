@@ -84,7 +84,7 @@ class MitsubishiUART : public PollingComponent {
 
   void dump_config() override;
 
-  void set_climate(climate::Climate *c) { this->climate_ = c;}
+  void set_climate(LazyClimate *c) { this->climate_ = c;}
   void set_select_vane_direction(LazySelect *svd) { this->select_vane_direction = svd; }
 
  private:
@@ -107,7 +107,7 @@ class MitsubishiUART : public PollingComponent {
   void hResGetStatus(PacketGetResponseStatus packet);
   void hResGetStandby(PacketGetResponseStandby packet);
 
-  climate::Climate *climate_{};
+  LazyClimate *climate_{};
   LazySelect *select_vane_direction{};
 };
 
