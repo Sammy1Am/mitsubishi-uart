@@ -21,6 +21,12 @@ MitsubishiUART = mitsubishi_uart_ns.class_(
     "MitsubishiUART", climate.Climate, cg.PollingComponent
 )
 
+MUART_COMPONENT_SCHEMA = cv.Schema(
+    {
+        cv.Required(CONF_MUART_ID): cv.use_id(MitsubishiUART),
+    }
+)
+
 CONFIG_SCHEMA = climate.CLIMATE_SCHEMA.extend(
     {
         cv.GenerateID(CONF_ID): cv.declare_id(MitsubishiUART),

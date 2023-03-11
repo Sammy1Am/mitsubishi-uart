@@ -4,7 +4,7 @@ from esphome.components import select
 from esphome.const import (
     CONF_ID,
 )
-from .. import CONF_MUART_ID, mitsubishi_uart_ns, MitsubishiUART
+from .. import CONF_MUART_ID, MUART_COMPONENT_SCHEMA, mitsubishi_uart_ns, MitsubishiUART
 
 DEPENDENCIES = ["mitsubishi_uart"]
 
@@ -21,16 +21,9 @@ LazySelect = mitsubishi_uart_ns.class_("LazySelect", select.Select)
 MUARTSelect = mitsubishi_uart_ns.class_("MUARTSelect", LazySelect, cg.Component)
 # TODO Need component here ^?
 
-MUART_COMPONENT_SCHEMA = cv.Schema(
-    {
-        cv.Required(CONF_MUART_ID): cv.use_id(MitsubishiUART),
-    }
-)
-
 MUARTSELECT_SCHEMA = select.SELECT_SCHEMA.extend(cv.COMPONENT_SCHEMA).extend(
     {cv.GenerateID(): cv.declare_id(MUARTSelect)}
 )
-
 
 CONFIG_SCHEMA = MUART_COMPONENT_SCHEMA.extend(
     {

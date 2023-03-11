@@ -7,7 +7,7 @@ from esphome.const import (
     CONF_FAN_MODE,
 )
 from esphome.core import coroutine
-from .. import CONF_MUART_ID, mitsubishi_uart_ns, MitsubishiUART
+from .. import CONF_MUART_ID, MUART_COMPONENT_SCHEMA, mitsubishi_uart_ns, MitsubishiUART
 
 AUTO_LOAD = ["climate"]
 DEPENDENCIES = ["mitsubishi_uart"]
@@ -20,10 +20,10 @@ DEFAULT_FAN_MODES = ["AUTO", "QUIET", "LOW", "MIDDLE", "MEDIUM", "HIGH"]
 LazyClimate = mitsubishi_uart_ns.class_("LazyClimate", climate.Climate)
 MUARTClimate = mitsubishi_uart_ns.class_("MUARTClimate", LazyClimate, cg.Component)
 
-CONFIG_SCHEMA = climate.CLIMATE_SCHEMA.extend(
+CONFIG_SCHEMA = climate.CLIMATE_SCHEMA.extend(MUART_COMPONENT_SCHEMA).extend(
     {
         cv.GenerateID(CONF_ID): cv.declare_id(MUARTClimate),
-        cv.Required(CONF_MUART_ID): cv.use_id(MitsubishiUART),  # TODO Set a default?
+        
         # Set default, but allow override of supports.
         cv.Optional(CONF_SUPPORTS, default={}): cv.Schema(
             {
