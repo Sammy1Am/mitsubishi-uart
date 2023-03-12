@@ -9,7 +9,6 @@ from .. import (
     MUART_COMPONENT_SCHEMA,
     mitsubishi_uart_ns,
     MUARTComponent,
-    MitsubishiUART,
 )
 
 DEPENDENCIES = ["mitsubishi_uart"]
@@ -24,7 +23,6 @@ SELECTS = {
 }
 
 MUARTSelect = mitsubishi_uart_ns.class_("MUARTSelect", MUARTComponent)
-# TODO Need component here ^?
 
 MUARTSELECT_SCHEMA = select.SELECT_SCHEMA.extend(cv.COMPONENT_SCHEMA).extend(
     {cv.GenerateID(): cv.declare_id(MUARTSelect)}

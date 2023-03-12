@@ -12,7 +12,6 @@ from .. import (
     MUART_COMPONENT_SCHEMA,
     mitsubishi_uart_ns,
     MUARTComponent,
-    MitsubishiUART,
 )
 
 AUTO_LOAD = ["climate"]

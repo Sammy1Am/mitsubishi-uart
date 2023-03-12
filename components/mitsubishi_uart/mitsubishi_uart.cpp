@@ -226,12 +226,15 @@ void MitsubishiUART::hResGetSettings(PacketGetResponseSettings packet) {
 
 void MitsubishiUART::hResGetRoomTemp(PacketGetResponseRoomTemp packet) {
   this->climate_->current_temperature = packet.getRoomTemp();
+  // My current understanding is that the reported internal temperature will always be here
+  // even when we're using an external temperature for control.
+  this->sensor_internal_temperature->lazy_publish_state(packet.getRoomTemp());
   ESP_LOGD(TAG, "Room temp: %.1f", this->climate_->current_temperature);
 }
 
 void MitsubishiUART::hResGetStatus(PacketGetResponseStatus packet) {
   const bool operating = packet.getOperating();
-  const uint8_t comressporFreq = packet.getCompressorFrequency();
+  this->sensor_compressor_frequency->lazy_publish_state(packet.getCompressorFrequency());
 
   // TODO Simplify this switch (too many redundant ACTION_IDLES)
   switch (this->climate_->mode) {
@@ -273,15 +276,14 @@ void MitsubishiUART::hResGetStatus(PacketGetResponseStatus packet) {
       this->climate_->action = climate::CLIMATE_ACTION_OFF;
   }
 
-  ESP_LOGD(TAG, "Operating: %s Frequency: %d", YESNO(operating), comressporFreq);
+  ESP_LOGD(TAG, "Operating: %s", YESNO(operating));
 }
 void MitsubishiUART::hResGetStandby(PacketGetResponseStandby packet) {
   // TODO these are a little uncertain
   // 0x04 = pre-heat, 0x08 = standby
-  const uint8_t loopStatus = packet.getLoopStatus();
+  this->sensor_loop_status->lazy_publish_state(packet.getLoopStatus());
   // 1 to 5, lowest to highest power
-  const uint8_t stage = packet.getStage();
-  ESP_LOGD(TAG, "Loop status: %x Stage: %x", loopStatus, stage);
+  this->sensor_stage->lazy_publish_state(packet.getStage());
 }
 
 }  // namespace mitsubishi_uart

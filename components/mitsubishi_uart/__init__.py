@@ -8,7 +8,7 @@ from esphome.const import (
 )
 from esphome.core import coroutine
 
-AUTO_LOAD = ["climate", "select"]
+AUTO_LOAD = ["climate", "select", "sensor"]
 DEPENDENCIES = ["uart"]
 
 CONF_MUART_ID = "muart_id"

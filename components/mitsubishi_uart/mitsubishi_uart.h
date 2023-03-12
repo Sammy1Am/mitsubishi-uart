@@ -1,9 +1,10 @@
 #pragma once
 
 #include "esphome/core/component.h"
-#include "esphome/components/climate/climate.h"
 #include "esphome/components/uart/uart.h"
+#include "esphome/components/climate/climate.h"
 #include "esphome/components/select/select.h"
+#include "esphome/components/sensor/sensor.h"
 #include "muart_packet.h"
 
 namespace esphome {
@@ -20,17 +21,17 @@ class MitsubishiUART;
  * A wrapper for components to provide a set_parent(MitsubishiUART) method, and lazy_publish_state(state).
  * The latter is provided because the heat pump does not support "pushing" changes to the microcontroller,
  * so we're polling every few seconds; but don't need to provide published updates quite that often.
-*/
-template <typename BASECOMPONENT, typename STATETYPE>
-class MUARTComponent : public BASECOMPONENT {
-  //static_assert(std::is_base_of<Component, BASECOMPONENT>::value, "BASECOMPONENT must derive from Component");
-  public:
-    // Sets parent MitsubishiUART where control commands will be sent (only really needed for controls, not sensors)
-    void set_parent(MitsubishiUART *parent) {this->parent_ = parent;}
-    // Determines if new provided state differs from current state, and then publishes IFF it is.
-    virtual void lazy_publish_state(STATETYPE new_state) = 0;
-  protected:
-    MitsubishiUART *parent_;
+ */
+template<typename BASECOMPONENT, typename STATETYPE> class MUARTComponent : public BASECOMPONENT {
+  // static_assert(std::is_base_of<Component, BASECOMPONENT>::value, "BASECOMPONENT must derive from Component");
+ public:
+  // Sets parent MitsubishiUART where control commands will be sent (only really needed for controls, not sensors)
+  void set_parent(MitsubishiUART *parent) { this->parent_ = parent; }
+  // Determines if new provided state differs from current state, and then publishes IFF it is.
+  virtual void lazy_publish_state(STATETYPE new_state) = 0;
+
+ protected:
+  MitsubishiUART *parent_;
 };
 
 class MitsubishiUART : public PollingComponent {
@@ -45,8 +46,23 @@ class MitsubishiUART : public PollingComponent {
 
   void dump_config() override;
 
-  void set_climate(MUARTComponent<climate::Climate, void*> *c) { this->climate_ = c;}
-  void set_select_vane_direction(MUARTComponent<select::Select, const std::string&> *svd) { this->select_vane_direction = svd; }
+  void set_climate(MUARTComponent<climate::Climate, void *> *c) { this->climate_ = c; }
+  void set_select_vane_direction(MUARTComponent<select::Select, const std::string &> *svd) {
+    this->select_vane_direction = svd;
+  }
+
+  void set_sensor_internal_temperature(MUARTComponent<sensor::Sensor, float> *s) {
+    this->sensor_internal_temperature = s;
+  }
+  void set_sensor_loop_status(MUARTComponent<sensor::Sensor, float> *s) {
+    this->sensor_loop_status = s;
+  }
+  void set_sensor_stage(MUARTComponent<sensor::Sensor, float> *s) {
+    this->sensor_stage = s;
+  }
+  void set_sensor_compressor_frequency(MUARTComponent<sensor::Sensor, float> *s) {
+    this->sensor_compressor_frequency = s;
+  }
 
  private:
   uart::UARTComponent *hp_uart;
@@ -68,11 +84,14 @@ class MitsubishiUART : public PollingComponent {
   void hResGetStatus(PacketGetResponseStatus packet);
   void hResGetStandby(PacketGetResponseStandby packet);
 
-  MUARTComponent<climate::Climate, void*> *climate_{};
-  MUARTComponent<select::Select, const std::string&> *select_vane_direction{};
+  MUARTComponent<climate::Climate, void *> *climate_{};
+  MUARTComponent<select::Select, const std::string &> *select_vane_direction{};
+
+  MUARTComponent<sensor::Sensor, float> *sensor_internal_temperature{};
+  MUARTComponent<sensor::Sensor, float> *sensor_loop_status{};
+  MUARTComponent<sensor::Sensor, float> *sensor_stage{};
+  MUARTComponent<sensor::Sensor, float> *sensor_compressor_frequency{};
 };
-
-
 
 }  // namespace mitsubishi_uart
 }  // namespace esphome
