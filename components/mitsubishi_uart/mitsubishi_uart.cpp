@@ -45,12 +45,17 @@ void MitsubishiUART::update() {
   if (connectState == 2) {
     // Request room temp
     sendPacket(PACKET_TEMP_REQ) ? packetsRead++ : 0;
+    // Request settings (needs to be done before status for mode logic to work)
+    sendPacket(PACKET_SETTINGS_REQ) ? packetsRead++ : 0;
     // Request status
     sendPacket(PACKET_STATUS_REQ) ? packetsRead++ : 0;
-    // Request settings
-    sendPacket(PACKET_SETTINGS_REQ) ? packetsRead++ : 0;
-    //
+    
+    // Request standby info
     sendPacket(PACKET_STANDBY_REQ) ? packetsRead++ : 0;
+
+    // This will publish the state IFF something has changed. Only called if connected
+    // so any updates to connection status will need to be done outside this.
+    this->climate_->lazy_publish_state({nullptr});
   }
 
   if (packetsRead > 0) {
@@ -63,9 +68,6 @@ void MitsubishiUART::update() {
     ESP_LOGI(TAG, "No packets received in %d updates, connection down.", updatesSinceLastPacket);
     connectState = 0;
   }
-
-  // This will publish the state IFF something has changed
-  this->climate_->lazy_publish_state({nullptr});
 
   // If we're not connected (or have become unconnected) try to send a connect packet again
   if (connectState < 2) {
