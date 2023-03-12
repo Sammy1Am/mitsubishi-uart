@@ -21,6 +21,10 @@ LOOP_STATUS = "loop_status"
 STAGE = "stage"
 COMPRESSOR_FREQUENCY = "compressor_frequency"
 
+MUARTSensor = mitsubishi_uart_ns.class_("MUARTSensor", MUARTComponent)
+
+MUARTSENSOR_SCHEMA = cv.Schema({cv.GenerateID(): cv.declare_id(MUARTSensor)})
+
 SENSORS = {
     INTERNAL_TEMPERATURE: (
         "Internal Temperature",
@@ -28,14 +32,15 @@ SENSORS = {
             unit_of_measurement=UNIT_CELSIUS,
             device_class=DEVICE_CLASS_TEMPERATURE,
             state_class=STATE_CLASS_MEASUREMENT,
-        ),
+        ).extend(MUARTSENSOR_SCHEMA),
     ),
-    LOOP_STATUS: ("Loop Status", sensor.sensor_schema()),
-    STAGE: ("Stage", sensor.sensor_schema()),
-    COMPRESSOR_FREQUENCY: ("Compressor Frequency", sensor.sensor_schema()),
+    LOOP_STATUS: ("Loop Status", sensor.sensor_schema().extend(MUARTSENSOR_SCHEMA)),
+    STAGE: ("Stage", sensor.sensor_schema().extend(MUARTSENSOR_SCHEMA)),
+    COMPRESSOR_FREQUENCY: (
+        "Compressor Frequency",
+        sensor.sensor_schema().extend(MUARTSENSOR_SCHEMA),
+    ),
 }
-
-MUARTSensor = mitsubishi_uart_ns.class_("MUARTSensor", MUARTComponent)
 
 CONFIG_SCHEMA = MUART_COMPONENT_SCHEMA.extend(
     {

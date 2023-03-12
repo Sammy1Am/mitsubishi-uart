@@ -21,10 +21,25 @@ wifi:
 
 captive_portal:
 
+select:
+  - platform: mitsubishi_uart
+    muart_id: heat_pump
+# vane_direction:
+#   muart_id: muart
+
 climate:
   - platform: mitsubishi_uart
     name: "Basement Heat Pump"
-    hp_uart: hp_uart
+    muart_id: heat_pump
+
+sensor:
+  - platform: mitsubishi_uart
+    muart_id: heat_pump
+
+mitsubishi_uart:
+  id: heat_pump
+  hp_uart: hp_uart
+  #update_interval: 300s
 
 uart:
   id: hp_uart
