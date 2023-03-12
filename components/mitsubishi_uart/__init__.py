@@ -17,9 +17,8 @@ CONF_HP_UART = "hp_uart"
 DEFAULT_POLLING_INTERVAL = "5s"
 
 mitsubishi_uart_ns = cg.esphome_ns.namespace("mitsubishi_uart")
-MitsubishiUART = mitsubishi_uart_ns.class_(
-    "MitsubishiUART", climate.Climate, cg.PollingComponent
-)
+MUARTComponent = mitsubishi_uart_ns.class_("MUARTComponent")
+MitsubishiUART = mitsubishi_uart_ns.class_("MitsubishiUART", cg.PollingComponent)
 
 MUART_COMPONENT_SCHEMA = cv.Schema(
     {
@@ -27,12 +26,12 @@ MUART_COMPONENT_SCHEMA = cv.Schema(
     }
 )
 
-CONFIG_SCHEMA = climate.CLIMATE_SCHEMA.extend(
+CONFIG_SCHEMA = cv.polling_component_schema(DEFAULT_POLLING_INTERVAL).extend(
     {
         cv.GenerateID(CONF_ID): cv.declare_id(MitsubishiUART),
         cv.Required(CONF_HP_UART): cv.use_id(uart.UARTComponent),  # TODO Set a default?
     }
-).extend(cv.polling_component_schema(DEFAULT_POLLING_INTERVAL))
+)
 
 
 @coroutine

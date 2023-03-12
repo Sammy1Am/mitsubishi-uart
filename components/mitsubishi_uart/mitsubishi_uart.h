@@ -14,62 +14,23 @@ static const char *MUART_VERSION = "0.2.0";
 
 const int PACKET_RECEIVE_TIMEOUT = 500;  // Milliseconds to wait for a response
 
-/**
- * A light wrapper around the Climate class to only publish state when something has changed.
- * This is especially useful for Mitsubishi heat pumps as there's no way for the heat pump to
- * "push" updates to a client, so to keep things responsive we're polling the unit every few seconds.
- * Publishing updates every few seconds is excessive though, so this helps with that.
-*/
-class LazyClimate : public climate::Climate {
-  // Struct to store (relevant) state of the Climate object to determine if publishing is needed.
-  struct climateState {
-    climate::ClimateMode c_mode;
-    float c_target_temperature;
-    climate::ClimateFanMode c_fan_mode;
-    float c_current_temperature;
-    climate::ClimateAction c_action;
-  };
-
-  public:
-    void lazy_publish_state(){
-      climateState currentState = this->getCurrentState();
-      if (stateDiffers(currentState, this->lastPublishedState_)) {
-        publish_state();
-        lastPublishedState_ = currentState;
-      }
-    }
-  private:
-    climateState getCurrentState(){
-      climateState currentState{};
-      currentState.c_action = this->action;
-      currentState.c_current_temperature = this->current_temperature;
-      currentState.c_fan_mode = this->fan_mode.value_or(climate::ClimateFanMode::CLIMATE_FAN_OFF);
-      currentState.c_mode = this->mode;
-      currentState.c_target_temperature = this->target_temperature;
-      return currentState;
-    }
-    climateState lastPublishedState_;
-    bool stateDiffers(const climateState &lhs, const climateState &rhs){
-      return lhs.c_action != rhs.c_action || lhs.c_current_temperature != rhs.c_current_temperature ||
-        lhs.c_fan_mode != rhs.c_fan_mode || lhs.c_mode != rhs.c_mode ||
-        lhs.c_target_temperature != rhs.c_target_temperature;
-    }
-};
+class MitsubishiUART;
 
 /**
- * A light wrapper around the Select class to only publish state when something has changed.
- * This is especially useful for Mitsubishi heat pumps as there's no way for the heat pump to
- * "push" updates to a client, so to keep things responsive we're polling the unit every few seconds.
- * Publishing updates every few seconds is excessive though, so this helps with that.
+ * A wrapper for components to provide a set_parent(MitsubishiUART) method, and lazy_publish_state(state).
+ * The latter is provided because the heat pump does not support "pushing" changes to the microcontroller,
+ * so we're polling every few seconds; but don't need to provide published updates quite that often.
 */
-class LazySelect : public select::Select {
+template <typename BASECOMPONENT, typename STATETYPE>
+class MUARTComponent : public BASECOMPONENT {
+  //static_assert(std::is_base_of<Component, BASECOMPONENT>::value, "BASECOMPONENT must derive from Component");
   public:
-    // Only publishes if this state would be different than the current one
-    void lazy_publish_state(const std::string &state){
-      if (state != this->traits.get_options().at(this->active_index().value())){ // TODO How safe is calling .value() like this?
-      publish_state(state);
-      }
-    };
+    // Sets parent MitsubishiUART where control commands will be sent (only really needed for controls, not sensors)
+    void set_parent(MitsubishiUART *parent) {this->parent_ = parent;}
+    // Determines if new provided state differs from current state, and then publishes IFF it is.
+    virtual void lazy_publish_state(STATETYPE new_state) = 0;
+  protected:
+    MitsubishiUART *parent_;
 };
 
 class MitsubishiUART : public PollingComponent {
@@ -84,8 +45,8 @@ class MitsubishiUART : public PollingComponent {
 
   void dump_config() override;
 
-  void set_climate(LazyClimate *c) { this->climate_ = c;}
-  void set_select_vane_direction(LazySelect *svd) { this->select_vane_direction = svd; }
+  void set_climate(MUARTComponent<climate::Climate, void*> *c) { this->climate_ = c;}
+  void set_select_vane_direction(MUARTComponent<select::Select, const std::string&> *svd) { this->select_vane_direction = svd; }
 
  private:
   uart::UARTComponent *hp_uart;
@@ -107,9 +68,11 @@ class MitsubishiUART : public PollingComponent {
   void hResGetStatus(PacketGetResponseStatus packet);
   void hResGetStandby(PacketGetResponseStandby packet);
 
-  LazyClimate *climate_{};
-  LazySelect *select_vane_direction{};
+  MUARTComponent<climate::Climate, void*> *climate_{};
+  MUARTComponent<select::Select, const std::string&> *select_vane_direction{};
 };
+
+
 
 }  // namespace mitsubishi_uart
 }  // namespace esphome

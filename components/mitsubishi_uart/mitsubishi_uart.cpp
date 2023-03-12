@@ -11,6 +11,12 @@ const Packet PACKET_TEMP_REQ = PacketGetRequest(PacketGetCommand::room_temp);
 const Packet PACKET_STATUS_REQ = PacketGetRequest(PacketGetCommand::status);
 const Packet PACKET_STANDBY_REQ = PacketGetRequest(PacketGetCommand::standby);
 
+const void lazy_publish_state(select::Select *select_component, const std::string &state) {
+  if (state != select_component->traits.get_options().at(select_component->active_index().value())){ // TODO How safe is calling .value() like this?
+    select_component->publish_state(state);
+  }
+}
+
 ////
 // MitsubishiUART
 ////
@@ -59,7 +65,7 @@ void MitsubishiUART::update() {
   }
 
   // This will publish the state IFF something has changed
-  this->climate_->lazy_publish_state();
+  this->climate_->lazy_publish_state({nullptr});
 
   // If we're not connected (or have become unconnected) try to send a connect packet again
   if (connectState < 2) {

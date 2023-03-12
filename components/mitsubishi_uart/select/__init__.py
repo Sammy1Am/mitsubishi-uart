@@ -4,7 +4,13 @@ from esphome.components import select
 from esphome.const import (
     CONF_ID,
 )
-from .. import CONF_MUART_ID, MUART_COMPONENT_SCHEMA, mitsubishi_uart_ns, MitsubishiUART
+from .. import (
+    CONF_MUART_ID,
+    MUART_COMPONENT_SCHEMA,
+    mitsubishi_uart_ns,
+    MUARTComponent,
+    MitsubishiUART,
+)
 
 DEPENDENCIES = ["mitsubishi_uart"]
 
@@ -17,8 +23,7 @@ SELECTS = {
     # CONF_TEMP_SOURCE: (["Internal", "Thermostat"]),
 }
 
-LazySelect = mitsubishi_uart_ns.class_("LazySelect", select.Select)
-MUARTSelect = mitsubishi_uart_ns.class_("MUARTSelect", LazySelect, cg.Component)
+MUARTSelect = mitsubishi_uart_ns.class_("MUARTSelect", MUARTComponent)
 # TODO Need component here ^?
 
 MUARTSELECT_SCHEMA = select.SELECT_SCHEMA.extend(cv.COMPONENT_SCHEMA).extend(
@@ -42,7 +47,7 @@ async def to_code(config):
         if select_type in config:
             s_conf = config[select_type]
             var = cg.new_Pvariable(s_conf[CONF_ID])
-            await cg.register_component(var, s_conf)
+            # await cg.register_component(var, s_conf)
             await select.register_select(var, s_conf, options=s_options)
             cg.add(getattr(muart, f"set_select_{select_type}")(var))
             cg.add(var.set_parent(muart))

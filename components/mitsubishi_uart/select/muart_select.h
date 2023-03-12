@@ -17,12 +17,12 @@ namespace mitsubishi_uart{
  * a new state.  Or conversely there is no way to publish state without implictly setting it.
 */
 
-class MUARTSelect : public LazySelect, public Component {
+class MUARTSelect : public MUARTComponent<select::Select, const std::string&> {
   public:
     void control(const std::string &value) override;
-    void set_parent(MitsubishiUART *parent) {this->parent_ = parent;}
-  protected:
-    MitsubishiUART *parent_;
+    void lazy_publish_state(const std::string &value);
+  private:
+    std::string lastPublishedState_ {};
 };
 
 }
