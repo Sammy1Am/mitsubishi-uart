@@ -41,7 +41,10 @@ class MitsubishiUART : public PollingComponent {
    */
   MitsubishiUART(uart::UARTComponent *uart_comp);
 
-  // Called periodically as PollingComponent
+  // Called repeatedly (used for UART receiving/forwarding)
+  void loop() override;
+
+  // Called periodically as PollingComponent (used for UART sending periodically)
   void update() override;
 
   void dump_config() override;
@@ -54,12 +57,8 @@ class MitsubishiUART : public PollingComponent {
   void set_sensor_internal_temperature(MUARTComponent<sensor::Sensor, float> *s) {
     this->sensor_internal_temperature = s;
   }
-  void set_sensor_loop_status(MUARTComponent<sensor::Sensor, float> *s) {
-    this->sensor_loop_status = s;
-  }
-  void set_sensor_stage(MUARTComponent<sensor::Sensor, float> *s) {
-    this->sensor_stage = s;
-  }
+  void set_sensor_loop_status(MUARTComponent<sensor::Sensor, float> *s) { this->sensor_loop_status = s; }
+  void set_sensor_stage(MUARTComponent<sensor::Sensor, float> *s) { this->sensor_stage = s; }
   void set_sensor_compressor_frequency(MUARTComponent<sensor::Sensor, float> *s) {
     this->sensor_compressor_frequency = s;
   }

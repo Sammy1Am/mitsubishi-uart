@@ -12,7 +12,8 @@ const Packet PACKET_STATUS_REQ = PacketGetRequest(PacketGetCommand::status);
 const Packet PACKET_STANDBY_REQ = PacketGetRequest(PacketGetCommand::standby);
 
 const void lazy_publish_state(select::Select *select_component, const std::string &state) {
-  if (state != select_component->traits.get_options().at(select_component->active_index().value())){ // TODO How safe is calling .value() like this?
+  if (state != select_component->traits.get_options().at(
+                   select_component->active_index().value())) {  // TODO How safe is calling .value() like this?
     select_component->publish_state(state);
   }
 }
@@ -21,15 +22,17 @@ const void lazy_publish_state(select::Select *select_component, const std::strin
 // MitsubishiUART
 ////
 
-MitsubishiUART::MitsubishiUART(uart::UARTComponent *uart_comp) : hp_uart{uart_comp} {
+MitsubishiUART::MitsubishiUART(uart::UARTComponent *uart_comp) : hp_uart{uart_comp} {}
 
+void MitsubishiUART::loop() {
+  // If a packet is available, read and handle it.  Only do one packet per loop to keep things responsive
+  readPacket(false);
 }
 
 void MitsubishiUART::update() {
   ESP_LOGV(TAG, "Update called.");
 
   int packetsRead = 0;
-  packetsRead += readPacket(false);  // Check for connection results or other residual packets, but don't wait for them
 
   /**
    * For whatever reason:
@@ -49,7 +52,7 @@ void MitsubishiUART::update() {
     sendPacket(PACKET_SETTINGS_REQ) ? packetsRead++ : 0;
     // Request status
     sendPacket(PACKET_STATUS_REQ) ? packetsRead++ : 0;
-    
+
     // Request standby info
     sendPacket(PACKET_STANDBY_REQ) ? packetsRead++ : 0;
 
@@ -219,7 +222,9 @@ void MitsubishiUART::hResGetSettings(PacketGetResponseSettings packet) {
   }
 
   uint8_t vane = packet.getVane();
-  if (vane>0x05) {vane = 0x06;} // "Swing" is 0x07 and there's no 0x06, so the select menu index only goes to 6
+  if (vane > 0x05) {
+    vane = 0x06;
+  }  // "Swing" is 0x07 and there's no 0x06, so the select menu index only goes to 6
   this->select_vane_direction->lazy_publish_state(this->select_vane_direction->traits.get_options().at(vane));
 
   const uint8_t h_vane = packet.getHorizontalVane();
