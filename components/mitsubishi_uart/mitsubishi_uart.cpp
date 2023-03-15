@@ -35,6 +35,10 @@ void MitsubishiUART::loop() {
 void MitsubishiUART::update() {
   ESP_LOGV(TAG, "Update called.");
 
+  if (passive_mode) {
+    return;
+  }
+
   int packetsRead = 0;
 
   /**
@@ -92,6 +96,8 @@ void MitsubishiUART::connect() {
 }
 
 // Send packet on designated UART interface (as long as it exists, regardless of connection state)
+// CAUTION: expecting a response will block until a packet is received, using this inappropriately
+// could hang execution or cause infinite recursion issues.  TODO: Could we prevent that?
 bool MitsubishiUART::sendPacket(Packet packet, uart::UARTComponent *uart, bool expectResponse) {
   if (!uart) {
     return false;
@@ -153,6 +159,9 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool waitForPacket) {
       case PacketType::connect_response:
         hResConnect(PacketConnectResponse(p_header, p_payload, payloadSize, checksum));
         break;
+      case PacketType::extended_connect_response:
+        hResExtendedConnect(PacketExtendedConnectResponse(p_header, p_payload, payloadSize, checksum));
+        break;
       case PacketType::get_response:
         switch (p_payload[0]) {  // Switch on command type
           case PacketGetCommand::settings:
@@ -171,6 +180,10 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool waitForPacket) {
             ESP_LOGI(TAG, "Unknown get response command %x received.", p_payload[0]);
         }
         break;
+
+      case PacketType::connect_request:
+        hReqConnect(PacketConnectRequest(p_header, p_payload, payloadSize, checksum));
+        break;
       default:
         ESP_LOGI(TAG, "Unknown packet type %x received.", p_header[PACKET_HEADER_INDEX_PACKET_TYPE]);
     }
@@ -185,6 +198,18 @@ void MitsubishiUART::hResConnect(PacketConnectResponse packet) {
   // Not sure there's any info in the response.
   connectState = 2;
   ESP_LOGI(TAG, "Connected to heatpump.");
+  if (forwarding) {
+    sendPacket(packet, tstat_uart);
+  }
+}
+
+void MitsubishiUART::hResExtendedConnect(PacketExtendedConnectResponse packet) {
+  // TODO : Don't know what's in these
+  connectState = 2;
+  ESP_LOGI(TAG, "Connected to heatpump.");
+  if (forwarding) {
+    sendPacket(packet, tstat_uart);
+  }
 }
 
 void MitsubishiUART::hResGetSettings(PacketGetResponseSettings packet) {
@@ -306,6 +331,20 @@ void MitsubishiUART::hResGetStandby(PacketGetResponseStandby packet) {
   this->sensor_loop_status->lazy_publish_state(packet.getLoopStatus());
   // 1 to 5, lowest to highest power
   this->sensor_stage->lazy_publish_state(packet.getStage());
+}
+
+////
+//  Handle Requests (received from thermostat)
+////
+void MitsubishiUART::hReqConnect(PacketConnectRequest packet) {
+  if (forwarding) {
+    sendPacket(packet, hp_uart, true);
+  }
+}
+void MitsubishiUART::hReqExtendedConnect(PacketExtendedConnectRequest packet) {
+  if (forwarding) {
+    sendPacket(packet, hp_uart, true);
+  }
 }
 
 }  // namespace mitsubishi_uart

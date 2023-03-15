@@ -51,6 +51,14 @@ class MitsubishiUART : public PollingComponent {
 
   void set_tstat_uart(uart::UARTComponent *tstat_uart_comp) { this->tstat_uart = tstat_uart_comp; }
 
+  // If true, MUART will not generate any packets of its own, only listen and forward them between
+  // the heat pump and thermostat.  NOTE: This *only* works if a thermostat is being used, since the
+  // heat pump will not send out packets on its own.
+  bool passive_mode = true;
+
+  // Should MUART forward thermostat packets (and heat pump responses)
+  bool forwarding = true;
+
   void set_climate(MUARTComponent<climate::Climate, void *> *c) { this->climate_ = c; }
   void set_select_vane_direction(MUARTComponent<select::Select, const std::string &> *svd) {
     this->select_vane_direction = svd;
@@ -82,10 +90,19 @@ class MitsubishiUART : public PollingComponent {
 
   // Packet response handling
   void hResConnect(PacketConnectResponse packet);
+  void hResExtendedConnect(PacketExtendedConnectResponse packet);
   void hResGetSettings(PacketGetResponseSettings packet);
   void hResGetRoomTemp(PacketGetResponseRoomTemp packet);
   void hResGetStatus(PacketGetResponseStatus packet);
   void hResGetStandby(PacketGetResponseStandby packet);
+
+  // Packet request handling
+  void hReqConnect(PacketConnectRequest packet);
+  void hReqExtendedConnect(PacketExtendedConnectRequest packet);
+  // void hReqGetSettings(PacketGetRequestSettings packet);
+  // void hReqGetRoomTemp(PacketGetRequestRoomTemp packet);
+  // void hReqGetStatus(PacketGetRequestStatus packet);
+  // void hReqGetStandby(PacketGetRequestStandby packet);
 
   MUARTComponent<climate::Climate, void *> *climate_{};
   MUARTComponent<select::Select, const std::string &> *select_vane_direction{};
