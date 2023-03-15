@@ -39,7 +39,7 @@ class MitsubishiUART : public PollingComponent {
   /**
    * Create a new MitsubishiUART with the specified esphome::uart::UARTComponent.
    */
-  MitsubishiUART(uart::UARTComponent *uart_comp);
+  MitsubishiUART(uart::UARTComponent *hp_uart_comp);
 
   // Called repeatedly (used for UART receiving/forwarding)
   void loop() override;
@@ -48,6 +48,8 @@ class MitsubishiUART : public PollingComponent {
   void update() override;
 
   void dump_config() override;
+
+  void set_tstat_uart(uart::UARTComponent *tstat_uart_comp) { this->tstat_uart = tstat_uart_comp; }
 
   void set_climate(MUARTComponent<climate::Climate, void *> *c) { this->climate_ = c; }
   void set_select_vane_direction(MUARTComponent<select::Select, const std::string &> *svd) {
@@ -65,6 +67,7 @@ class MitsubishiUART : public PollingComponent {
 
  private:
   uart::UARTComponent *hp_uart;
+  uart::UARTComponent *tstat_uart{nullptr};
   uint8_t updatesSinceLastPacket = 0;
 
   uint8_t connectState = 0;
@@ -73,8 +76,9 @@ class MitsubishiUART : public PollingComponent {
 
   // Sends a packet and by default attempts to receive one.  Returns true if a packet was received
   // Caveat: No attempt is made to match received packet with sent packet
-  bool sendPacket(Packet packet, bool expectResponse = true);
-  bool readPacket(bool waitForPacket = true);  // TODO separate methods or arguments for HP vs tstat?
+  bool sendPacket(Packet packet, uart::UARTComponent *uart, bool expectResponse = true);
+  bool readPacket(uart::UARTComponent *uart,
+                  bool waitForPacket = true);  // TODO separate methods or arguments for HP vs tstat?
 
   // Packet response handling
   void hResConnect(PacketConnectResponse packet);

@@ -59,5 +59,5 @@ async def to_code(config):
 
     # await cg.register_component(var, config)
     await climate.register_climate(var, config)
-    cg.add(getattr(muart, "set_climate")(var))
+    cg.add(var.set_climate(var))
     cg.add(var.set_parent(muart))

@@ -26,7 +26,10 @@ MitsubishiUART::MitsubishiUART(uart::UARTComponent *uart_comp) : hp_uart{uart_co
 
 void MitsubishiUART::loop() {
   // If a packet is available, read and handle it.  Only do one packet per loop to keep things responsive
-  readPacket(false);
+  readPacket(hp_uart, false);
+  if (tstat_uart) {
+    readPacket(tstat_uart, false);
+  }
 }
 
 void MitsubishiUART::update() {
@@ -47,14 +50,14 @@ void MitsubishiUART::update() {
    */
   if (connectState == 2) {
     // Request room temp
-    sendPacket(PACKET_TEMP_REQ) ? packetsRead++ : 0;
+    sendPacket(PACKET_TEMP_REQ, hp_uart) ? packetsRead++ : 0;
     // Request settings (needs to be done before status for mode logic to work)
-    sendPacket(PACKET_SETTINGS_REQ) ? packetsRead++ : 0;
+    sendPacket(PACKET_SETTINGS_REQ, hp_uart) ? packetsRead++ : 0;
     // Request status
-    sendPacket(PACKET_STATUS_REQ) ? packetsRead++ : 0;
+    sendPacket(PACKET_STATUS_REQ, hp_uart) ? packetsRead++ : 0;
 
     // Request standby info
-    sendPacket(PACKET_STANDBY_REQ) ? packetsRead++ : 0;
+    sendPacket(PACKET_STANDBY_REQ, hp_uart) ? packetsRead++ : 0;
 
     // This will publish the state IFF something has changed. Only called if connected
     // so any updates to connection status will need to be done outside this.
@@ -85,34 +88,46 @@ void MitsubishiUART::dump_config() {
 
 void MitsubishiUART::connect() {
   connectState = 1;  // Connecting...
-  sendPacket(PACKET_CONNECT_REQ);
+  sendPacket(PACKET_CONNECT_REQ, hp_uart);
 }
 
-bool MitsubishiUART::sendPacket(Packet packet, bool expectResponse) {
-  hp_uart->write_array(packet.getBytes(), packet.getLength());
+// Send packet on designated UART interface (as long as it exists, regardless of connection state)
+bool MitsubishiUART::sendPacket(Packet packet, uart::UARTComponent *uart, bool expectResponse) {
+  if (!uart) {
+    return false;
+  }
+  uart->write_array(packet.getBytes(), packet.getLength());
   if (expectResponse) {
-    return readPacket();
+    return readPacket(uart);
   }
   return false;
 }
 
 /**
- * Reads packets from UART, and sends them to appropriate handler methods.
+ * Reads packets from UARTs, and sends them to appropriate handler methods.
+ *
+ * An assumption is made that all response packets received are coming from the heat pump,
+ * and all request packets received are coming from an attached thermostat (i.e. we don't
+ * need to track the source UART of any packets because we can deduce it.)
  */
-bool MitsubishiUART::readPacket(bool waitForPacket) {
+bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool waitForPacket) {
   uint8_t p_byte;
   bool foundPacket = false;
   unsigned long readStop = millis() + PACKET_RECEIVE_TIMEOUT;
 
+  if (!uart) {
+    return false;
+  }
+
   while (millis() < readStop) {
     // Search for control byte (or check that one is waiting for us)
-    while (hp_uart->available() > PACKET_HEADER_SIZE && hp_uart->peek_byte(&p_byte)) {
+    while (uart->available() > PACKET_HEADER_SIZE && uart->peek_byte(&p_byte)) {
       if (p_byte == BYTE_CONTROL) {
         foundPacket = true;
         ESP_LOGV(TAG, "FoundPacket!");
         break;
       } else {
-        hp_uart->read_byte(&p_byte);
+        uart->read_byte(&p_byte);
       }
     }
     if (foundPacket) {
@@ -125,14 +140,14 @@ bool MitsubishiUART::readPacket(bool waitForPacket) {
   }
 
   // If control byte has been found and there's at least a header available, parse the packet
-  if (foundPacket && hp_uart->available() > PACKET_HEADER_SIZE) {
+  if (foundPacket && uart->available() > PACKET_HEADER_SIZE) {
     uint8_t p_header[PACKET_HEADER_SIZE];
-    hp_uart->read_array(p_header, PACKET_HEADER_SIZE);
+    uart->read_array(p_header, PACKET_HEADER_SIZE);
     const int payloadSize = p_header[PACKET_HEADER_INDEX_PAYLOAD_SIZE];
     uint8_t p_payload[payloadSize];
     uint8_t checksum;
-    hp_uart->read_array(p_payload, payloadSize);
-    hp_uart->read_byte(&checksum);
+    uart->read_array(p_payload, payloadSize);
+    uart->read_byte(&checksum);
 
     switch (p_header[PACKET_HEADER_INDEX_PACKET_TYPE]) {
       case PacketType::connect_response:
