@@ -22,8 +22,8 @@ enum PacketType : uint8_t {
   get_response = 0x62,
   set_request = 0x41,
   set_response = 0x61,
-  extended_connect_request = 0x5a,
-  extended_connect_response = 0x5b
+  extended_connect_request = 0x5b,
+  extended_connect_response = 0x7b
 };
 
 enum PacketGetCommand : uint8_t { settings = 0x02, room_temp = 0x03, status = 0x06, standby = 0x09 };

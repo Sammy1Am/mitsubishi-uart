@@ -14,6 +14,8 @@ DEPENDENCIES = ["uart"]
 CONF_MUART_ID = "muart_id"
 CONF_HP_UART = "hp_uart"
 CONF_TSTAT_UART = "tstat_uart"
+CONF_PASSIVE_MODE = "passive_mode"
+CONF_FORWARDING = "forwarding"
 
 DEFAULT_POLLING_INTERVAL = "5s"
 
@@ -32,6 +34,8 @@ CONFIG_SCHEMA = cv.polling_component_schema(DEFAULT_POLLING_INTERVAL).extend(
         cv.GenerateID(CONF_ID): cv.declare_id(MitsubishiUART),
         cv.Required(CONF_HP_UART): cv.use_id(uart.UARTComponent),  # TODO Set a default?
         cv.Optional(CONF_TSTAT_UART): cv.use_id(uart.UARTComponent),
+        cv.Optional(CONF_PASSIVE_MODE, default=False): cv.boolean,
+        cv.Optional(CONF_FORWARDING, default=False): cv.boolean,
     }
 )
 
@@ -44,5 +48,8 @@ async def to_code(config):
     if CONF_TSTAT_UART in config:
         tstat_uart_component = await cg.get_variable(config[CONF_TSTAT_UART])
         cg.add(var.set_tstat_uart(tstat_uart_component))
+
+    cg.add(var.set_passive_mode(config[CONF_PASSIVE_MODE]))
+    cg.add(var.set_passive_mode(config[CONF_FORWARDING]))
 
     await cg.register_component(var, config)

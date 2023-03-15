@@ -177,6 +177,7 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool waitForPacket) {
             hResGetStandby(PacketGetResponseStandby(p_header, p_payload, payloadSize, checksum));
             break;
           default:
+            sendPacket(Packet(p_header, p_payload, payloadSize, checksum), tstat_uart, false);
             ESP_LOGI(TAG, "Unknown get response command %x received.", p_payload[0]);
         }
         break;
@@ -184,8 +185,18 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool waitForPacket) {
       case PacketType::connect_request:
         hReqConnect(PacketConnectRequest(p_header, p_payload, payloadSize, checksum));
         break;
+      case PacketType::extended_connect_request:
+        hReqExtendedConnect(PacketExtendedConnectRequest(p_header, p_payload, payloadSize, checksum));
+        break;
       default:
         ESP_LOGI(TAG, "Unknown packet type %x received.", p_header[PACKET_HEADER_INDEX_PACKET_TYPE]);
+        if (forwarding) {
+          if (uart == tstat_uart) {
+            sendPacket(Packet(p_header, p_payload, payloadSize, checksum), hp_uart, false);
+          } else {
+            sendPacket(Packet(p_header, p_payload, payloadSize, checksum), tstat_uart, false);
+          }
+        }
     }
 
     return true;
@@ -199,7 +210,7 @@ void MitsubishiUART::hResConnect(PacketConnectResponse packet) {
   connectState = 2;
   ESP_LOGI(TAG, "Connected to heatpump.");
   if (forwarding) {
-    sendPacket(packet, tstat_uart);
+    sendPacket(packet, tstat_uart, false);
   }
 }
 
@@ -208,11 +219,15 @@ void MitsubishiUART::hResExtendedConnect(PacketExtendedConnectResponse packet) {
   connectState = 2;
   ESP_LOGI(TAG, "Connected to heatpump.");
   if (forwarding) {
-    sendPacket(packet, tstat_uart);
+    sendPacket(packet, tstat_uart, false);
   }
 }
 
 void MitsubishiUART::hResGetSettings(PacketGetResponseSettings packet) {
+  if (forwarding) {
+    sendPacket(packet, tstat_uart, false);
+  }
+
   const bool power = packet.getPower();
   if (power) {
     switch (packet.getMode()) {
@@ -272,6 +287,10 @@ void MitsubishiUART::hResGetSettings(PacketGetResponseSettings packet) {
 }
 
 void MitsubishiUART::hResGetRoomTemp(PacketGetResponseRoomTemp packet) {
+  if (forwarding) {
+    sendPacket(packet, tstat_uart, false);
+  }
+
   this->climate_->current_temperature = packet.getRoomTemp();
   // My current understanding is that the reported internal temperature will always be here
   // even when we're using an external temperature for control.
@@ -280,6 +299,10 @@ void MitsubishiUART::hResGetRoomTemp(PacketGetResponseRoomTemp packet) {
 }
 
 void MitsubishiUART::hResGetStatus(PacketGetResponseStatus packet) {
+  if (forwarding) {
+    sendPacket(packet, tstat_uart, false);
+  }
+
   const bool operating = packet.getOperating();
   this->sensor_compressor_frequency->lazy_publish_state(packet.getCompressorFrequency());
 
@@ -326,6 +349,10 @@ void MitsubishiUART::hResGetStatus(PacketGetResponseStatus packet) {
   ESP_LOGD(TAG, "Operating: %s", YESNO(operating));
 }
 void MitsubishiUART::hResGetStandby(PacketGetResponseStandby packet) {
+  if (forwarding) {
+    sendPacket(packet, tstat_uart, false);
+  }
+
   // TODO these are a little uncertain
   // 0x04 = pre-heat, 0x08 = standby
   this->sensor_loop_status->lazy_publish_state(packet.getLoopStatus());

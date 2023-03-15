@@ -51,13 +51,8 @@ class MitsubishiUART : public PollingComponent {
 
   void set_tstat_uart(uart::UARTComponent *tstat_uart_comp) { this->tstat_uart = tstat_uart_comp; }
 
-  // If true, MUART will not generate any packets of its own, only listen and forward them between
-  // the heat pump and thermostat.  NOTE: This *only* works if a thermostat is being used, since the
-  // heat pump will not send out packets on its own.
-  bool passive_mode = true;
-
-  // Should MUART forward thermostat packets (and heat pump responses)
-  bool forwarding = true;
+  void set_passive_mode(bool enable) { this->passive_mode = enable; }
+  void set_forwarding(bool enable) { this->forwarding = enable; }
 
   void set_climate(MUARTComponent<climate::Climate, void *> *c) { this->climate_ = c; }
   void set_select_vane_direction(MUARTComponent<select::Select, const std::string &> *svd) {
@@ -79,6 +74,14 @@ class MitsubishiUART : public PollingComponent {
   uint8_t updatesSinceLastPacket = 0;
 
   uint8_t connectState = 0;
+
+  // If true, MUART will not generate any packets of its own, only listen and forward them between
+  // the heat pump and thermostat.  NOTE: This *only* works if a thermostat is being used, since the
+  // heat pump will not send out packets on its own.
+  bool passive_mode = true;
+
+  // Should MUART forward thermostat packets (and heat pump responses)
+  bool forwarding = true;
 
   void connect();
 
