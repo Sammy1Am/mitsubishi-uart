@@ -11,12 +11,10 @@ const Packet PACKET_TEMP_REQ = PacketGetRequest(PacketGetCommand::room_temp);
 const Packet PACKET_STATUS_REQ = PacketGetRequest(PacketGetCommand::status);
 const Packet PACKET_STANDBY_REQ = PacketGetRequest(PacketGetCommand::standby);
 
-const void lazy_publish_state(select::Select *select_component, const std::string &state) {
-  if (state != select_component->traits.get_options().at(
-                   select_component->active_index().value())) {  // TODO How safe is calling .value() like this?
-    select_component->publish_state(state);
-  }
-}
+#define DIR_MC_HP "MC->HP"
+#define DIR_HP_MC "MC<-HP"
+#define DIR_TS_MC "TS->MC"
+#define DIR_MC_TS "TS<-MC"
 
 ////
 // MitsubishiUART
@@ -95,6 +93,11 @@ void MitsubishiUART::connect() {
   sendPacket(PACKET_CONNECT_REQ, hp_uart);
 }
 
+void logPacket(const char *direction, Packet packet) {
+  ESP_LOGD(TAG, "%s [%02x] %s", direction, packet.getPacketType(),
+           format_hex_pretty(&packet.getBytes()[PACKET_HEADER_SIZE], packet.getLength() - PACKET_HEADER_SIZE).c_str());
+}
+
 // Send packet on designated UART interface (as long as it exists, regardless of connection state)
 // CAUTION: expecting a response will block until a packet is received, using this inappropriately
 // could hang execution or cause infinite recursion issues.  TODO: Could we prevent that?
@@ -102,6 +105,7 @@ bool MitsubishiUART::sendPacket(Packet packet, uart::UARTComponent *uart, bool e
   if (!uart) {
     return false;
   }
+  logPacket(uart == hp_uart ? DIR_MC_HP : DIR_MC_TS, packet);
   uart->write_array(packet.getBytes(), packet.getLength());
   if (expectResponse) {
     return readPacket(uart);
@@ -155,6 +159,9 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool waitForPacket) {
     uart->read_array(p_payload, payloadSize);
     uart->read_byte(&checksum);
 
+    // TODO Don't like needing to build a packet just for this...
+    logPacket(uart == hp_uart ? DIR_HP_MC : DIR_TS_MC, Packet(p_header, p_payload, payloadSize, checksum));
+
     switch (p_header[PACKET_HEADER_INDEX_PACKET_TYPE]) {
       case PacketType::connect_response:
         hResConnect(PacketConnectResponse(p_header, p_payload, payloadSize, checksum));
@@ -188,6 +195,9 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool waitForPacket) {
       case PacketType::extended_connect_request:
         hReqExtendedConnect(PacketExtendedConnectRequest(p_header, p_payload, payloadSize, checksum));
         break;
+      case PacketType::get_request:
+        hReqGet(Packet(p_header, p_payload, payloadSize, checksum));
+        break;
       default:
         ESP_LOGI(TAG, "Unknown packet type %x received.", p_header[PACKET_HEADER_INDEX_PACKET_TYPE]);
         if (forwarding) {
@@ -204,6 +214,10 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool waitForPacket) {
 
   return false;
 }
+
+////
+// Response Handlers
+////
 
 void MitsubishiUART::hResConnect(PacketConnectResponse packet) {
   // Not sure there's any info in the response.
@@ -369,6 +383,11 @@ void MitsubishiUART::hReqConnect(PacketConnectRequest packet) {
   }
 }
 void MitsubishiUART::hReqExtendedConnect(PacketExtendedConnectRequest packet) {
+  if (forwarding) {
+    sendPacket(packet, hp_uart, true);
+  }
+}
+void MitsubishiUART::hReqGet(Packet packet) {
   if (forwarding) {
     sendPacket(packet, hp_uart, true);
   }

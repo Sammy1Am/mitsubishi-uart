@@ -92,16 +92,17 @@ class MitsubishiUART : public PollingComponent {
                   bool waitForPacket = true);  // TODO separate methods or arguments for HP vs tstat?
 
   // Packet response handling
-  void hResConnect(PacketConnectResponse packet);
-  void hResExtendedConnect(PacketExtendedConnectResponse packet);
-  void hResGetSettings(PacketGetResponseSettings packet);
-  void hResGetRoomTemp(PacketGetResponseRoomTemp packet);
-  void hResGetStatus(PacketGetResponseStatus packet);
-  void hResGetStandby(PacketGetResponseStandby packet);
+  void hResConnect(const PacketConnectResponse packet);
+  void hResExtendedConnect(const PacketExtendedConnectResponse packet);
+  void hResGetSettings(const PacketGetResponseSettings packet);
+  void hResGetRoomTemp(const PacketGetResponseRoomTemp packet);
+  void hResGetStatus(const PacketGetResponseStatus packet);
+  void hResGetStandby(const PacketGetResponseStandby packet);
 
   // Packet request handling
-  void hReqConnect(PacketConnectRequest packet);
-  void hReqExtendedConnect(PacketExtendedConnectRequest packet);
+  void hReqConnect(const PacketConnectRequest packet);
+  void hReqExtendedConnect(const PacketExtendedConnectRequest packet);
+  void hReqGet(Packet packet);  // Currently no need to differentiate requests that I'm aware of
   // void hReqGetSettings(PacketGetRequestSettings packet);
   // void hReqGetRoomTemp(PacketGetRequestRoomTemp packet);
   // void hReqGetStatus(PacketGetRequestStatus packet);
