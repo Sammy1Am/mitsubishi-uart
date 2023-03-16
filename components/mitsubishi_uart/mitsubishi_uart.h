@@ -108,23 +108,23 @@ class MitsubishiUART : public PollingComponent {
    * to the thermostat).
    */
   bool readPacket(uart::UARTComponent *uart, bool waitForPacket, bool forwardPacket);
-  void postprocessPacket(uart::UARTComponent *sourceUART, Packet packet, bool forwardPacket);
+  void postprocessPacket(uart::UARTComponent *sourceUART, const Packet &packet, bool forwardPacket);
 
   // Packet response handling
-  PacketConnectResponse hResConnect(const PacketConnectResponse packet);
-  PacketExtendedConnectResponse hResExtendedConnect(const PacketExtendedConnectResponse packet);
-  PacketGetResponseSettings hResGetSettings(const PacketGetResponseSettings packet);
-  PacketGetResponseRoomTemp hResGetRoomTemp(const PacketGetResponseRoomTemp packet);
-  Packet hResGetFour(const Packet packet);
-  PacketGetResponseStatus hResGetStatus(const PacketGetResponseStatus packet);
-  PacketGetResponseStandby hResGetStandby(const PacketGetResponseStandby packet);
+  PacketConnectResponse hResConnect(const PacketConnectResponse &packet);
+  PacketExtendedConnectResponse hResExtendedConnect(const PacketExtendedConnectResponse &packet);
+  PacketGetResponseSettings hResGetSettings(const PacketGetResponseSettings &packet);
+  PacketGetResponseRoomTemp hResGetRoomTemp(const PacketGetResponseRoomTemp &packet);
+  Packet hResGetFour(const Packet &packet);
+  PacketGetResponseStatus hResGetStatus(const PacketGetResponseStatus &packet);
+  PacketGetResponseStandby hResGetStandby(const PacketGetResponseStandby &packet);
 
   // Packet request handling
-  PacketConnectRequest hReqConnect(const PacketConnectRequest packet);
-  PacketExtendedConnectRequest hReqExtendedConnect(const PacketExtendedConnectRequest packet);
-  Packet hReqGet(const Packet packet);  // Currently no need to differentiate requests that I'm aware of
-  PacketSetSettingsRequest hReqSetSettings(const PacketSetSettingsRequest packet);
-  PacketSetRemoteTemperatureRequest hReqSetRemoteTemperature(const PacketSetRemoteTemperatureRequest packet);
+  PacketConnectRequest hReqConnect(const PacketConnectRequest &packet);
+  PacketExtendedConnectRequest hReqExtendedConnect(const PacketExtendedConnectRequest &packet);
+  Packet hReqGet(const Packet &packet);  // Currently no need to differentiate requests that I'm aware of
+  PacketSetSettingsRequest hReqSetSettings(const PacketSetSettingsRequest &packet);
+  PacketSetRemoteTemperatureRequest hReqSetRemoteTemperature(const PacketSetRemoteTemperatureRequest &packet);
   // void hReqGetSettings(PacketGetRequestSettings packet);
   // void hReqGetRoomTemp(PacketGetRequestRoomTemp packet);
   // void hReqGetStatus(PacketGetRequestStatus packet);

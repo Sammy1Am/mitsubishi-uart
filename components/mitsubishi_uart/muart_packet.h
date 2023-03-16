@@ -50,14 +50,14 @@ class Packet {
   Packet(uint8_t packet_header[PACKET_HEADER_SIZE], uint8_t payload[], uint8_t payload_size,
          uint8_t checksum);  // For reading packets
   virtual ~Packet() {}
-  const uint8_t *getBytes() { return packetBytes; };  // Primarily for sending packets
-  const int getLength() { return length; };
+  const uint8_t *getBytes() const { return packetBytes; };  // Primarily for sending packets
+  const int getLength() const { return length; };
 
-  const bool isChecksumValid();
+  const bool isChecksumValid() const;
 
   // Packet information getters
-  const uint8_t getPacketType() { return packetBytes[PACKET_HEADER_INDEX_PACKET_TYPE]; };
-  const uint8_t getCommand() { return packetBytes[PAYLOAD_INDEX_COMMAND]; };
+  const uint8_t getPacketType() const { return packetBytes[PACKET_HEADER_INDEX_PACKET_TYPE]; };
+  const uint8_t getCommand() const { return packetBytes[PAYLOAD_INDEX_COMMAND]; };
 
  protected:
   Packet(uint8_t packet_type, uint8_t payload_size);  // For building packets
@@ -67,7 +67,7 @@ class Packet {
   const int length;
   const int checksumIndex;
   uint8_t packetBytes[PACKET_MAX_SIZE]{};
-  const uint8_t calculateChecksum();
+  uint8_t calculateChecksum() const;
   Packet &updateChecksum();
 };
 
@@ -126,12 +126,12 @@ class PacketGetResponseSettings : public Packet {
   using Packet::Packet;
 
  public:
-  bool getPower() { return this->getBytes()[INDEX_POWER]; }
-  uint8_t getMode() { return this->getBytes()[INDEX_MODE]; }
-  float getTargetTemp() { return ((int) this->getBytes()[INDEX_TARGETTEMP] - 128) / 2.0f; }
-  uint8_t getFan() { return this->getBytes()[INDEX_FAN]; }
-  uint8_t getVane() { return this->getBytes()[INDEX_VANE]; }
-  uint8_t getHorizontalVane() { return this->getBytes()[INDEX_HVANE]; }
+  bool getPower() const { return this->getBytes()[INDEX_POWER]; }
+  uint8_t getMode() const { return this->getBytes()[INDEX_MODE]; }
+  float getTargetTemp() const { return ((int) this->getBytes()[INDEX_TARGETTEMP] - 128) / 2.0f; }
+  uint8_t getFan() const { return this->getBytes()[INDEX_FAN]; }
+  uint8_t getVane() const { return this->getBytes()[INDEX_VANE]; }
+  uint8_t getHorizontalVane() const { return this->getBytes()[INDEX_HVANE]; }
 };
 
 class PacketGetResponseRoomTemp : public Packet {
@@ -140,7 +140,7 @@ class PacketGetResponseRoomTemp : public Packet {
   using Packet::Packet;
 
  public:
-  float getRoomTemp() { return ((int) this->getBytes()[INDEX_ROOMTEMP] - 128) / 2.0f; }
+  float getRoomTemp() const { return ((int) this->getBytes()[INDEX_ROOMTEMP] - 128) / 2.0f; }
 };
 
 class PacketGetResponseStatus : public Packet {
@@ -149,8 +149,8 @@ class PacketGetResponseStatus : public Packet {
   using Packet::Packet;
 
  public:
-  bool getOperating() { return this->getBytes()[INDEX_OPERATING]; }
-  uint8_t getCompressorFrequency() { return this->getBytes()[INDEX_COMPRESSOR_FREQUENCY]; }
+  bool getOperating() const { return this->getBytes()[INDEX_OPERATING]; }
+  uint8_t getCompressorFrequency() const { return this->getBytes()[INDEX_COMPRESSOR_FREQUENCY]; }
 };
 
 class PacketGetResponseStandby : public Packet {
@@ -159,8 +159,8 @@ class PacketGetResponseStandby : public Packet {
   using Packet::Packet;
 
  public:
-  uint8_t getLoopStatus() { return this->getBytes()[INDEX_LOOPSTATUS]; }
-  uint8_t getStage() { return this->getBytes()[INDEX_STAGE]; }
+  uint8_t getLoopStatus() const { return this->getBytes()[INDEX_LOOPSTATUS]; }
+  uint8_t getStage() const { return this->getBytes()[INDEX_STAGE]; }
 };
 
 ////
@@ -183,7 +183,7 @@ class PacketSetRemoteTemperatureRequest : public Packet {
   }
   using Packet::Packet;
 
-  float getRemoteTemperature() { return ((int) this->getBytes()[INDEX_REMOTE_TEMPERATURE] - 128) / 2.0f; }
+  const float getRemoteTemperature() const { return ((int) this->getBytes()[INDEX_REMOTE_TEMPERATURE] - 128) / 2.0f; }
 };
 
 // class PacketSetRequest : public Packet {
