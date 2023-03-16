@@ -34,6 +34,8 @@ void MitsubishiUART::update() {
   ESP_LOGV(TAG, "Update called.");
 
   if (passive_mode) {
+    // If we're not trying to request updates, go ahead and try to publish any updates we picked up on.
+    this->climate_->lazy_publish_state({nullptr});
     return;
   }
 
