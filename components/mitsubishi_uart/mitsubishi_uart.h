@@ -96,6 +96,7 @@ class MitsubishiUART : public PollingComponent {
   void hResExtendedConnect(const PacketExtendedConnectResponse packet);
   void hResGetSettings(const PacketGetResponseSettings packet);
   void hResGetRoomTemp(const PacketGetResponseRoomTemp packet);
+  void hResGetFour(const Packet packet);
   void hResGetStatus(const PacketGetResponseStatus packet);
   void hResGetStandby(const PacketGetResponseStandby packet);
 

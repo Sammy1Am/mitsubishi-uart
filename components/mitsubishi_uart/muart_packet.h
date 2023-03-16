@@ -26,7 +26,7 @@ enum PacketType : uint8_t {
   extended_connect_response = 0x7b
 };
 
-enum PacketGetCommand : uint8_t { settings = 0x02, room_temp = 0x03, status = 0x06, standby = 0x09 };
+enum PacketGetCommand : uint8_t { settings = 0x02, room_temp = 0x03, four = 0x04, status = 0x06, standby = 0x09 };
 
 static const uint8_t EMPTY_PACKET[PACKET_MAX_SIZE] = {BYTE_CONTROL,        // Sync
                                                       0x00,                // Packet type

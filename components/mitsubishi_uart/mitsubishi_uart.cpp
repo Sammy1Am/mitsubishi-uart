@@ -179,6 +179,9 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool waitForPacket) {
           case PacketGetCommand::room_temp:
             hResGetRoomTemp(PacketGetResponseRoomTemp(p_header, p_payload, payloadSize, checksum));
             break;
+          case PacketGetCommand::four:
+            hResGetFour(Packet(p_header, p_payload, payloadSize, checksum));
+            break;
           case PacketGetCommand::status:
             hResGetStatus(PacketGetResponseStatus(p_header, p_payload, payloadSize, checksum));
             break;
@@ -312,6 +315,20 @@ void MitsubishiUART::hResGetRoomTemp(PacketGetResponseRoomTemp packet) {
   // even when we're using an external temperature for control.
   this->sensor_internal_temperature->lazy_publish_state(packet.getRoomTemp());
   ESP_LOGD(TAG, "Room temp: %.1f", this->climate_->current_temperature);
+}
+
+void MitsubishiUART::hResGetFour(Packet packet) {
+  // This one is mysterious, keep an eye on it (might just be a ping?)
+  int bytesSum = 0;
+  for (int i = 6; i < packet.getLength() - 7; i++) {
+    bytesSum +=
+        packet.getBytes()[i];  // Sum of interesting payload bytes (i.e. not the first one, it's 4, and not checksum)
+  }
+
+  ESP_LOGD(TAG, "Get Four returned sum %d", bytesSum);
+  if (forwarding) {
+    sendPacket(packet, tstat_uart, false);
+  }
 }
 
 void MitsubishiUART::hResGetStatus(PacketGetResponseStatus packet) {
