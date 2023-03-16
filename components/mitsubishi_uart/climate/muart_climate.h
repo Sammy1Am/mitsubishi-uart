@@ -19,13 +19,11 @@ struct ClimateState {
 
   const bool operator!=(ClimateState &rhs) const {
     return c_action != rhs.c_action || c_current_temperature != rhs.c_current_temperature ||
-    c_fan_mode != rhs.c_fan_mode || c_mode != rhs.c_mode ||
-    c_target_temperature != rhs.c_target_temperature;
+           c_fan_mode != rhs.c_fan_mode || c_mode != rhs.c_mode || c_target_temperature != rhs.c_target_temperature;
   }
 };
 
-class MUARTClimate : public MUARTComponent<climate::Climate, void*> {
-
+class MUARTClimate : public MUARTComponent<climate::Climate, void *> {
  public:
   /**
    * Create a new MitsubishiUART with the specified esphome::uart::UARTComponent.
@@ -38,13 +36,12 @@ class MUARTClimate : public MUARTComponent<climate::Climate, void*> {
 
   // ?
   void control(const climate::ClimateCall &call) override;
-  void lazy_publish_state(void *ignored);  //TODO I'm not sure how better to do this with generics
+  void lazy_publish_state(void *ignored);  // TODO I'm not sure how better to do this with generics
 
  private:
   climate::ClimateTraits traits_;
   ClimateState getCurrentState();
   ClimateState lastPublishedState_;
-
 };
 
 }  // namespace mitsubishi_uart

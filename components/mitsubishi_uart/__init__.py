@@ -50,6 +50,6 @@ async def to_code(config):
         cg.add(var.set_tstat_uart(tstat_uart_component))
 
     cg.add(var.set_passive_mode(config[CONF_PASSIVE_MODE]))
-    cg.add(var.set_passive_mode(config[CONF_FORWARDING]))
+    cg.add(var.set_forwarding(config[CONF_FORWARDING]))
 
     await cg.register_component(var, config)

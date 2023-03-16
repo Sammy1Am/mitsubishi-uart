@@ -26,7 +26,14 @@ enum PacketType : uint8_t {
   extended_connect_response = 0x7b
 };
 
-enum PacketGetCommand : uint8_t { settings = 0x02, room_temp = 0x03, four = 0x04, status = 0x06, standby = 0x09 };
+enum PacketGetCommand : uint8_t {
+  gc_settings = 0x02,
+  gc_room_temp = 0x03,
+  gc_four = 0x04,
+  gc_status = 0x06,
+  gc_standby = 0x09
+};
+enum PacketSetCommand : uint8_t { sc_settings = 0x01, sc_remote_temperature = 0x07 };
 
 static const uint8_t EMPTY_PACKET[PACKET_MAX_SIZE] = {BYTE_CONTROL,        // Sync
                                                       0x00,                // Packet type
@@ -40,9 +47,9 @@ class Packet {
   static const int PAYLOAD_INDEX_COMMAND = 5;
 
  public:
-  // Constructors
   Packet(uint8_t packet_header[PACKET_HEADER_SIZE], uint8_t payload[], uint8_t payload_size,
-         uint8_t checksum);                           // For reading packets
+         uint8_t checksum);  // For reading packets
+  virtual ~Packet() {}
   const uint8_t *getBytes() { return packetBytes; };  // Primarily for sending packets
   const int getLength() { return length; };
 
@@ -106,6 +113,7 @@ class PacketGetRequest : public Packet {
   PacketGetRequest(PacketGetCommand get_command) : Packet(PacketType::get_request, 1) {
     setPayloadByte(0, get_command);
   }
+  using Packet::Packet;
 };
 
 class PacketGetResponseSettings : public Packet {
@@ -158,6 +166,26 @@ class PacketGetResponseStandby : public Packet {
 ////
 // Set
 ////
+
+class PacketSetSettingsRequest : public Packet {
+ public:
+  PacketSetSettingsRequest() : Packet(PacketType::set_request, 16) { setPayloadByte(0, PacketSetCommand::sc_settings); }
+  using Packet::Packet;
+  // TODO: Add setters for various settings
+};
+
+class PacketSetRemoteTemperatureRequest : public Packet {
+  static const int INDEX_REMOTE_TEMPERATURE = 8;
+
+ public:
+  PacketSetRemoteTemperatureRequest() : Packet(PacketType::set_request, 4) {
+    setPayloadByte(0, PacketSetCommand::sc_remote_temperature);
+  }
+  using Packet::Packet;
+
+  float getRemoteTemperature() { return ((int) this->getBytes()[INDEX_REMOTE_TEMPERATURE] - 128) / 2.0f; }
+};
+
 // class PacketSetRequest : public Packet {
 //   public:
 //     PacketSetRequest() : Packet(PKTTYPE, //TODO) {
@@ -165,23 +193,6 @@ class PacketGetResponseStandby : public Packet {
 // };
 
 // class PacketConnectResponse : public Packet {
-//   using Packet::Packet;
-// };
-
-////
-// Extended Connect
-////
-// class PacketExtendedConnectRequest : public Packet {
-//   static const uint8_t PKTTYPE = 0x5b;
-//   public:
-//     PacketExtendedConnectRequest() : Packet(PKTTYPE, //TODO) {
-//       setPayloadByte(0,0xca);
-//       setPayloadByte(1,0x01);
-//     }
-// };
-
-// class PacketExtendedConnectResponse : public Packet {
-//   static const uint8_t PKTTYPE = 0x5a;
 //   using Packet::Packet;
 // };
 

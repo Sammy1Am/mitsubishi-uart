@@ -17,6 +17,7 @@ from .. import (
 DEPENDENCIES = ["mitsubishi_uart"]
 
 INTERNAL_TEMPERATURE = "internal_temperature"
+THERMOSTAT_TEMPERATURE = "thermostat_temperature"
 LOOP_STATUS = "loop_status"
 STAGE = "stage"
 COMPRESSOR_FREQUENCY = "compressor_frequency"
@@ -28,6 +29,14 @@ MUARTSENSOR_SCHEMA = cv.Schema({cv.GenerateID(): cv.declare_id(MUARTSensor)})
 SENSORS = {
     INTERNAL_TEMPERATURE: (
         "Internal Temperature",
+        sensor.sensor_schema(
+            unit_of_measurement=UNIT_CELSIUS,
+            device_class=DEVICE_CLASS_TEMPERATURE,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ).extend(MUARTSENSOR_SCHEMA),
+    ),
+    THERMOSTAT_TEMPERATURE: (
+        "Thermostat Temperature",
         sensor.sensor_schema(
             unit_of_measurement=UNIT_CELSIUS,
             device_class=DEVICE_CLASS_TEMPERATURE,
