@@ -51,21 +51,21 @@ class Packet {
          uint8_t checksum);  // For reading packets
   virtual ~Packet() {}
   const uint8_t *getBytes() const { return packetBytes; };  // Primarily for sending packets
-  const int getLength() const { return length; };
+  int getLength() const { return length; };
 
-  const bool isChecksumValid() const;
+  bool isChecksumValid() const;
 
   // Packet information getters
-  const uint8_t getPacketType() const { return packetBytes[PACKET_HEADER_INDEX_PACKET_TYPE]; };
-  const uint8_t getCommand() const { return packetBytes[PAYLOAD_INDEX_COMMAND]; };
+  uint8_t getPacketType() const { return packetBytes[PACKET_HEADER_INDEX_PACKET_TYPE]; };
+  uint8_t getCommand() const { return packetBytes[PAYLOAD_INDEX_COMMAND]; };
 
  protected:
   Packet(uint8_t packet_type, uint8_t payload_size);  // For building packets
   Packet &setPayloadByte(int payload_byte_index, uint8_t value);
 
  private:
-  const int length;
-  const int checksumIndex;
+  int length;
+  int checksumIndex;
   uint8_t packetBytes[PACKET_MAX_SIZE]{};
   uint8_t calculateChecksum() const;
   Packet &updateChecksum();
@@ -183,7 +183,7 @@ class PacketSetRemoteTemperatureRequest : public Packet {
   }
   using Packet::Packet;
 
-  const float getRemoteTemperature() const { return ((int) this->getBytes()[INDEX_REMOTE_TEMPERATURE] - 128) / 2.0f; }
+  float getRemoteTemperature() const { return ((int) this->getBytes()[INDEX_REMOTE_TEMPERATURE] - 128) / 2.0f; }
 };
 
 // class PacketSetRequest : public Packet {

@@ -37,7 +37,7 @@ Packet &Packet::updateChecksum() {
   return *this;
 }
 
-const bool Packet::isChecksumValid() const { return packetBytes[checksumIndex] == calculateChecksum(); }
+bool Packet::isChecksumValid() const { return packetBytes[checksumIndex] == calculateChecksum(); }
 
 Packet &Packet::setPayloadByte(int payload_byte_index, uint8_t value) {
   packetBytes[PACKET_HEADER_SIZE + payload_byte_index] = value;
