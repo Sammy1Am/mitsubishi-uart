@@ -78,7 +78,7 @@ class MitsubishiUART : public PollingComponent {
   uart::UARTComponent *tstat_uart{nullptr};
 
   LOOP_STATE current_loop_state = LOOP_STATE::LS_IDLE;
-  int loop_state_start = 0;
+  uint32_t loop_state_start = 0;
 
   std::deque<Packet> hp_queue_;
   std::deque<Packet> ts_queue_;

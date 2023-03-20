@@ -148,6 +148,11 @@ bool MitsubishiUART::sendPacket(Packet packet, uart::UARTComponent *uart) {
 /**
  * Attempt to read a packet from the specified UART, process it, and queue for forwarding (if needed).
  * Returns true if a packet was read REGARDLESS OF SUCCESS.
+ *
+ * NOTE: SoftwareSerial (at least on the ESP8266, and this might apply to HardwareSerial as well) appears to sometimes
+ * return a number of available() bytes, but then timeout while reading that number of bytes.  Adding some delay seems
+ * to resolve this problem, so there is additional delay added here to make sure all our bytes actually *are* available
+ * before we call read_array.
  */
 bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool isExternalPacket) {
   // Sanity check
@@ -169,8 +174,6 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool isExternalPacket
 
   // If we found one...
   if (packetBytes[0] == BYTE_CONTROL) {
-    // Wait just a moment
-    delay(10);
     // Read the rest of the header
     if (!uart->read_array(&packetBytes[1], PACKET_HEADER_SIZE - 1)) {
       // If it doesn't work, abort read
@@ -179,6 +182,16 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool isExternalPacket
 
     // Find the payload size
     const int payloadSize = packetBytes[PACKET_HEADER_INDEX_PAYLOAD_SIZE];
+
+    // Wait until all the incoming bytes are here (or timeout) see note at top of function.
+    // Delay a little first just for good measure (2400 baud is *slow*)
+    do {
+      if (millis() - loop_state_start > LOOP_STATE_TIMEOUT) {
+        return true;  // We waited too long, just give up.
+      }
+      // Occastionally seeing timeouts as early as byte 13 of 17.  4 bytes at 2400 baud is 13.3ms.
+      delay(14);
+    } while (uart->available() < payloadSize + 1);
 
     // Read the payload + checksum
     if (!uart->read_array(&packetBytes[PACKET_HEADER_SIZE], payloadSize + 1)) {
