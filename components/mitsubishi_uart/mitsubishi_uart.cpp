@@ -54,7 +54,7 @@ void MitsubishiUART::loop() {
 
   // If we've been waiting too long for a response from the heatpump, go back to idle
   else if (millis() - loop_state_start > LOOP_STATE_TIMEOUT) {
-    ESP_LOGI(TAG, "Loop state timeout waiting for response");
+    ESP_LOGW(TAG, "Loop state timeout waiting for response");
     this->current_loop_state = LS_IDLE;
   }
 
