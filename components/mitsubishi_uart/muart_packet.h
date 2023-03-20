@@ -10,10 +10,10 @@ namespace mitsubishi_uart {
 static const char *PTAG = "mitsubishi_uart";
 
 const uint8_t BYTE_CONTROL = 0xfc;
-const int PACKET_MAX_SIZE = 22;  // Used to intialize empty packet
-const int PACKET_HEADER_SIZE = 5;
-const int PACKET_HEADER_INDEX_PACKET_TYPE = 1;
-const int PACKET_HEADER_INDEX_PAYLOAD_SIZE = 4;
+const uint8_t PACKET_MAX_SIZE = 22;  // Used to intialize empty packet
+const uint8_t PACKET_HEADER_SIZE = 5;
+const uint8_t PACKET_HEADER_INDEX_PACKET_TYPE = 1;
+const uint8_t PACKET_HEADER_INDEX_PAYLOAD_SIZE = 4;
 
 enum PacketType : uint8_t {
   connect_request = 0x5a,
@@ -47,11 +47,14 @@ class Packet {
   static const int PAYLOAD_INDEX_COMMAND = 5;
 
  public:
-  Packet(uint8_t packet_header[PACKET_HEADER_SIZE], uint8_t payload[], uint8_t payload_size,
-         uint8_t checksum);  // For reading packets
+  Packet(const uint8_t packet_bytes[], const uint8_t packet_length);  // For reading or copying packets
   virtual ~Packet() {}
   const uint8_t *getBytes() const { return packetBytes; };  // Primarily for sending packets
-  int getLength() const { return length; };
+  const uint8_t getLength() const { return length; };
+
+  // Did this packet originate outside our microcontroller (e.g. from a thermostat); used
+  // to determine if packet should be forwarded or not.
+  bool isExternal = false;
 
   bool isChecksumValid() const;
 
@@ -64,8 +67,8 @@ class Packet {
   Packet &setPayloadByte(int payload_byte_index, uint8_t value);
 
  private:
-  int length;
-  int checksumIndex;
+  uint8_t length;
+  uint8_t checksumIndex;
   uint8_t packetBytes[PACKET_MAX_SIZE]{};
   uint8_t calculateChecksum() const;
   Packet &updateChecksum();

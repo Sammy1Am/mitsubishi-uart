@@ -13,7 +13,9 @@ namespace mitsubishi_uart {
 static const char *TAG = "mitsubishi_uart";
 static const char *MUART_VERSION = "0.2.0";
 
-const int PACKET_RECEIVE_TIMEOUT = 500;  // Milliseconds to wait for a response
+const int LOOP_STATE_TIMEOUT = 500;  // Maximum amount of time to wait in one loop state for an action to complete.
+
+enum LOOP_STATE { LS_IDLE, LS_AWAIT_MC_RESPONSE, LS_AWAIT_THERMOSTAT_RESPONSE };
 
 class MitsubishiUART;
 
@@ -74,8 +76,14 @@ class MitsubishiUART : public PollingComponent {
  private:
   uart::UARTComponent *hp_uart;
   uart::UARTComponent *tstat_uart{nullptr};
-  uint8_t updatesSinceLastPacket = 0;
 
+  LOOP_STATE current_loop_state = LOOP_STATE::LS_IDLE;
+  int loop_state_start = 0;
+
+  std::deque<Packet> hp_queue_;
+  std::deque<Packet> ts_queue_;
+
+  uint8_t updatesSinceLastPacket = 0;
   uint8_t connectState = 0;
 
   // If true, MUART will not generate any packets of its own, only listen and forward them between
@@ -89,25 +97,17 @@ class MitsubishiUART : public PollingComponent {
   void connect();
 
   /**
-   * Sends a packet to the specified UART.  If processResponse is true, will block to read
-   * a response packet *and process it* before returning.
-   *
-   * CAVEAT: This is working on the assumption that processing in this library is NOT
-   * concurrent, and all requests will receive a response.
-   * (In practice, it seems like there's a read timeout on the serial port so that requests without
-   * a response don't break things)
-   *
-   * If forwardResponse is true, will attempt to forward any response to the other UART interface (e.g.
-   * if we're sending to the heat pump, the response will be forwarded to the thermostat).
+   * Sends a packet to the specified UART.  Returns true if successfully sent.
    */
-  bool sendPacket(Packet packet, uart::UARTComponent *uart, bool processResponse, bool forwardResponse);
+  bool sendPacket(Packet packet, uart::UARTComponent *uart);
   /**
    * Reads a packet from the specified UART.  If waitForPacket, will block for PACKET_RECEIVE_TIMEOUT
    * before giving up and returning.  If fowardPacket, will attempt to forward the packet to whichever
    * UART interface the packet wasn't received on (e.g. if it came from the heat pump, we'll forward it
    * to the thermostat).
    */
-  bool readPacket(uart::UARTComponent *uart, bool waitForPacket, bool forwardPacket);
+  bool readPacket(uart::UARTComponent *uart, bool isExternalPacket = false);
+  void processPacket(Packet &packetToProcess);
   void postprocessPacket(uart::UARTComponent *sourceUART, const Packet &packet, bool forwardPacket);
 
   // Packet response handling
@@ -119,16 +119,9 @@ class MitsubishiUART : public PollingComponent {
   PacketGetResponseStatus hResGetStatus(const PacketGetResponseStatus &packet);
   PacketGetResponseStandby hResGetStandby(const PacketGetResponseStandby &packet);
 
-  // Packet request handling
-  PacketConnectRequest hReqConnect(const PacketConnectRequest &packet);
-  PacketExtendedConnectRequest hReqExtendedConnect(const PacketExtendedConnectRequest &packet);
-  Packet hReqGet(const Packet &packet);  // Currently no need to differentiate requests that I'm aware of
+  // Packet request handling (most requests just get forwarded and don't need any processing)
   PacketSetSettingsRequest hReqSetSettings(const PacketSetSettingsRequest &packet);
   PacketSetRemoteTemperatureRequest hReqSetRemoteTemperature(const PacketSetRemoteTemperatureRequest &packet);
-  // void hReqGetSettings(PacketGetRequestSettings packet);
-  // void hReqGetRoomTemp(PacketGetRequestRoomTemp packet);
-  // void hReqGetStatus(PacketGetRequestStatus packet);
-  // void hReqGetStandby(PacketGetRequestStandby packet);
 
   MUARTComponent<climate::Climate, void *> *climate_{};
   MUARTComponent<select::Select, const std::string &> *select_vane_direction{};

@@ -22,12 +22,49 @@ const Packet PACKET_STANDBY_REQ = PacketGetRequest(PacketGetCommand::gc_standby)
 
 MitsubishiUART::MitsubishiUART(uart::UARTComponent *uart_comp) : hp_uart{uart_comp} {}
 
+/**
+ * UART communications (especially software UART) seem very sensitive to long loops (and we know
+ * WiFi is as well), so the goal in the loop here is to perform one smaller operation at a time.
+ * This means using an if-else tree to ensure only one action is performed per loop.
+ */
 void MitsubishiUART::loop() {
-  // If a packet is available, read and handle it.  Only do one packet per loop to keep things responsive
-  if (tstat_uart) {
-    // We're only handling packets from the thermostat here based on the assumption that
-    // any packets received from the heatpump are related to something we sent and waited for.
-    readPacket(tstat_uart, false, this->forwarding_);
+  // Regardless of what we're doing, if there's a queued packet to send to the thermostat, send it
+  if (!this->ts_queue_.empty()) {
+    // If there are any packets in the ts_queue_
+    sendPacket(ts_queue_.front(), tstat_uart);
+    ts_queue_.pop_front();
+  }
+
+  // If we're idle...
+  else if (this->current_loop_state == LS_IDLE) {
+    // Try reading from the thermostat (to give it priority)
+    if (!(tstat_uart && readPacket(tstat_uart))) {
+      // But if we didn't, see if there are any heatpump packets to send
+      if (!this->hp_queue_.empty()) {
+        // If there are any packets in the ts_queue_
+        sendPacket(hp_queue_.front(), hp_uart);
+        // Set the current loop state based on if we're waiting on a response for a thermostat packet or
+        // heatpump packet
+        this->current_loop_state = hp_queue_.front().isExternal ? LS_AWAIT_THERMOSTAT_RESPONSE : LS_AWAIT_MC_RESPONSE;
+        this->loop_state_start = millis();
+        hp_queue_.pop_front();
+      }
+    }
+  }
+
+  // If we've been waiting too long for a response from the heatpump, go back to idle
+  else if (millis() - loop_state_start > LOOP_STATE_TIMEOUT) {
+    ESP_LOGI(TAG, "Loop state timeout waiting for response");
+    this->current_loop_state = LS_IDLE;
+  }
+
+  // If we're not idle, we're awaiting a response, so try to get one of those (queue it for forwarding if it's
+  // from the thermostat)
+  else {
+    if (readPacket(hp_uart, this->current_loop_state == LS_AWAIT_THERMOSTAT_RESPONSE)) {
+      // If a packet was read, go back to IDLE
+      this->current_loop_state = LS_IDLE;
+    }
   }
 }
 
@@ -48,21 +85,23 @@ void MitsubishiUART::update() {
    * As a result, we blocking-read for a response as part of sendPacket()
    */
   if (connectState == 2) {
-    if (!passive_mode) {
-      // Request room temp
-      sendPacket(PACKET_TEMP_REQ, hp_uart, true, false) ? packetsRead++ : 0;
-      // Request settings (needs to be done before status for mode logic to work)
-      sendPacket(PACKET_SETTINGS_REQ, hp_uart, true, false) ? packetsRead++ : 0;
-      // Request status
-      sendPacket(PACKET_STATUS_REQ, hp_uart, true, false) ? packetsRead++ : 0;
-
-      // Request standby info
-      sendPacket(PACKET_STANDBY_REQ, hp_uart, true, false) ? packetsRead++ : 0;
-    }
-
     // This will publish the state IFF something has changed. Only called if connected
     // so any updates to connection status will need to be done outside this.
     this->climate_->lazy_publish_state(nullptr);
+
+    if (!passive_mode) {
+      // Check size just for some sort of sanity check
+      if (hp_queue_.size() < 6) {
+        // Request room temp
+        hp_queue_.push_back(PACKET_TEMP_REQ);
+        // Request settings (needs to be done before status for mode logic to work)
+        hp_queue_.push_back(PACKET_SETTINGS_REQ);
+        // Request status
+        hp_queue_.push_back(PACKET_STATUS_REQ);
+        // Request standby info
+        hp_queue_.push_back(PACKET_STANDBY_REQ);
+      }
+    }
   }
 
   if (!passive_mode) {
@@ -92,183 +131,149 @@ void MitsubishiUART::dump_config() {
 
 void MitsubishiUART::connect() {
   connectState = 1;  // Connecting...
-  sendPacket(PACKET_CONNECT_REQ, hp_uart, true, false);
+  if (hp_queue_.size() < 6) {
+    hp_queue_.push_back(PACKET_CONNECT_REQ);
+  }
 }
 
 void logPacket(const char *direction, const Packet &packet) {
-  ESP_LOGD(TAG, "%s [%02x] %s", direction, packet.getPacketType(),
-           format_hex_pretty(&packet.getBytes()[PACKET_HEADER_SIZE], packet.getLength() - PACKET_HEADER_SIZE).c_str());
+  // ESP_LOGD(TAG, "%s [%02x] %s", direction, packet.getPacketType(),
+  //          format_hex_pretty(&packet.getBytes()[PACKET_HEADER_SIZE], packet.getLength() -
+  //          PACKET_HEADER_SIZE).c_str());
 }
 
 // Send packet on designated UART interface (as long as it exists, regardless of connection state)
-// CAUTION: expecting a response will block until a packet is received, using this inappropriately
-// could hang execution or cause infinite recursion issues.  TODO: Could we prevent that?
-bool MitsubishiUART::sendPacket(Packet packet, uart::UARTComponent *uart, bool processResponse, bool forwardResponse) {
+bool MitsubishiUART::sendPacket(Packet packet, uart::UARTComponent *uart) {
   if (!uart) {
     return false;
   }
-  logPacket(uart == hp_uart ? DIR_MC_HP : DIR_MC_TS, packet);
   uart->write_array(packet.getBytes(), packet.getLength());
-  if (processResponse) {
-    return readPacket(uart, true, forwardResponse);
+  return true;  // I don't think there's anyway to confirm this was actually sent, if the UART exists, assume it was.
+}
+
+/**
+ * Attempt to read a packet from the specified UART, process it, and queue for forwarding (if needed).
+ * Returns true if a packet was read REGARDLESS OF SUCCESS.
+ */
+bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool isExternalPacket) {
+  // Sanity check
+  if (!uart) {
+    return false;
   }
+
+  uint8_t packetBytes[PACKET_MAX_SIZE];
+  packetBytes[0] = 0;  // Reset control byte before starting
+
+  // Look for a control byte
+  while (uart->available() > PACKET_HEADER_SIZE && uart->read_byte(&packetBytes[0])) {
+    if (packetBytes[0] == BYTE_CONTROL) {
+      ESP_LOGV(TAG, "Found a packet.");
+      break;
+    }
+  }
+
+  // If we found one...
+  if (packetBytes[0] == BYTE_CONTROL) {
+    // Wait just a moment
+    delay(10);
+    // Read the rest of the header
+    if (!uart->read_array(&packetBytes[1], PACKET_HEADER_SIZE - 1)) {
+      // If it doesn't work, abort read
+      return true;
+    }
+
+    // Find the payload size
+    const int payloadSize = packetBytes[PACKET_HEADER_INDEX_PAYLOAD_SIZE];
+
+    // Read the payload + checksum
+    if (!uart->read_array(&packetBytes[PACKET_HEADER_SIZE], payloadSize + 1)) {
+      // If it doesn't work, abort read
+      return true;
+    }
+
+    // Construct a packet
+    Packet receivedPacket = Packet(packetBytes, payloadSize + PACKET_HEADER_SIZE + 1);
+
+    // If the checksum is valid...
+    if (receivedPacket.isChecksumValid()) {
+      // TODO: This is an okay place for logging probably
+
+      // Process it
+      processPacket(receivedPacket);
+
+      // If we're forwarding, forward it
+      if (this->forwarding_ && isExternalPacket) {
+        if (uart == hp_uart) {
+          ts_queue_.push_back(receivedPacket);
+        } else if (uart == tstat_uart) {
+          hp_queue_.push_back(receivedPacket);
+        }
+      }
+    }
+    return true;
+  }
+
+  // No packet was found
   return false;
 }
 
 /**
- * Reads packets from UARTs, and sends them to appropriate handler methods.
- *
- * An assumption is made that all response packets received are coming from the heat pump,
- * and all request packets received are coming from an attached thermostat (i.e. we don't
- * need to track the source UART of any packets because we can deduce it.)
+ * Processess information from packets.
+ * TODO: This still currently involves copying all the packet bytes to a new typed-packet which is fairly inefficient.
+ * Should try to use a move-constructor instead
  */
-bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool waitForPacket, bool forwardPacket) {
-  uint8_t p_byte;
-  bool foundPacket = false;
-  const unsigned long readStop = millis() + PACKET_RECEIVE_TIMEOUT;
-
-  if (!uart) {
-    return false;
-  }
-
-  while (millis() < readStop) {
-    // Search for control byte (or check that one is waiting for us)
-    while (uart->available() > PACKET_HEADER_SIZE && uart->peek_byte(&p_byte)) {
-      if (p_byte == BYTE_CONTROL) {
-        foundPacket = true;
-        ESP_LOGV(TAG, "FoundPacket!");
-        break;
-      } else {
-        uart->read_byte(&p_byte);
+void MitsubishiUART::processPacket(Packet &packetToProcess) {
+  switch (packetToProcess.getPacketType()) {
+    // RESPONSES
+    case PacketType::connect_response:
+      hResConnect(PacketConnectResponse(packetToProcess.getBytes(), packetToProcess.getLength()));
+      break;
+    case PacketType::extended_connect_response:
+      hResExtendedConnect(PacketExtendedConnectResponse(packetToProcess.getBytes(), packetToProcess.getLength()));
+      break;
+    case PacketType::get_response:
+      switch (packetToProcess.getCommand()) {  // Switch on command type
+        case PacketGetCommand::gc_settings:
+          hResGetSettings(PacketGetResponseSettings(packetToProcess.getBytes(), packetToProcess.getLength()));
+          break;
+        case PacketGetCommand::gc_room_temp:
+          hResGetRoomTemp(PacketGetResponseRoomTemp(packetToProcess.getBytes(), packetToProcess.getLength()));
+          break;
+        case PacketGetCommand::gc_four:
+          hResGetFour(packetToProcess);
+          break;
+        case PacketGetCommand::gc_status:
+          hResGetStatus(PacketGetResponseStatus(packetToProcess.getBytes(), packetToProcess.getLength()));
+          break;
+        case PacketGetCommand::gc_standby:
+          hResGetStandby(PacketGetResponseStandby(packetToProcess.getBytes(), packetToProcess.getLength()));
+          break;
+        default:
+          ESP_LOGI(TAG, "Unknown get response command %x received.", packetToProcess.getCommand());
       }
-    }
-    if (foundPacket) {
       break;
-    }
-    if (!waitForPacket) {
+
+    // REQUESTS (these are solely from the thermostat)
+    case PacketType::connect_request:
+    case PacketType::extended_connect_request:
+    case PacketType::get_request:
+      // Nothing to do for these requests
       break;
-    }
-    delay(10);
-  }
-
-  // If control byte has been found and there's at least a header available, parse the packet
-  if (foundPacket && uart->available() > PACKET_HEADER_SIZE) {
-    uint8_t p_header[PACKET_HEADER_SIZE];
-    uart->read_array(p_header, PACKET_HEADER_SIZE);
-    const int payloadSize = p_header[PACKET_HEADER_INDEX_PAYLOAD_SIZE];
-    uint8_t p_payload[payloadSize];
-    uint8_t checksum;
-    uart->read_array(p_payload, payloadSize);
-    uart->read_byte(&checksum);
-
-    // TODO: This switch seems very unwieldy.  Too much nesting and repeated code.  Needs streamlining
-    switch (p_header[PACKET_HEADER_INDEX_PACKET_TYPE]) {
-      case PacketType::connect_response:
-        postprocessPacket(uart, hResConnect(PacketConnectResponse(p_header, p_payload, payloadSize, checksum)),
-                          forwardPacket);
-        break;
-      case PacketType::extended_connect_response:
-        postprocessPacket(
-            uart, hResExtendedConnect(PacketExtendedConnectResponse(p_header, p_payload, payloadSize, checksum)),
-            forwardPacket);
-        break;
-      case PacketType::get_response:
-        switch (p_payload[0]) {  // Switch on command type
-          case PacketGetCommand::gc_settings:
-            postprocessPacket(uart,
-                              hResGetSettings(PacketGetResponseSettings(p_header, p_payload, payloadSize, checksum)),
-                              forwardPacket);
-            break;
-          case PacketGetCommand::gc_room_temp:
-            postprocessPacket(uart,
-                              hResGetRoomTemp(PacketGetResponseRoomTemp(p_header, p_payload, payloadSize, checksum)),
-                              forwardPacket);
-            break;
-          case PacketGetCommand::gc_four:
-            postprocessPacket(uart, hResGetFour(Packet(p_header, p_payload, payloadSize, checksum)), forwardPacket);
-            break;
-          case PacketGetCommand::gc_status:
-            postprocessPacket(uart, hResGetStatus(PacketGetResponseStatus(p_header, p_payload, payloadSize, checksum)),
-                              forwardPacket);
-            break;
-          case PacketGetCommand::gc_standby:
-            postprocessPacket(uart,
-                              hResGetStandby(PacketGetResponseStandby(p_header, p_payload, payloadSize, checksum)),
-                              forwardPacket);
-            break;
-          default:
-            if (forwardPacket) {
-              // We got a response from the HP we don't recognize, if we're forwarding, just send it along
-              sendPacket(Packet(p_header, p_payload, payloadSize, checksum), tstat_uart, false, false);
-            }
-            ESP_LOGI(TAG, "Unknown get response command %x received.", p_payload[0]);
-        }
-        break;
-
-      case PacketType::connect_request:
-        postprocessPacket(uart, hReqConnect(PacketConnectRequest(p_header, p_payload, payloadSize, checksum)),
-                          forwardPacket);
-        break;
-      case PacketType::extended_connect_request:
-        postprocessPacket(uart,
-                          hReqExtendedConnect(PacketExtendedConnectRequest(p_header, p_payload, payloadSize, checksum)),
-                          forwardPacket);
-        break;
-      case PacketType::get_request:
-        postprocessPacket(uart, hReqGet(Packet(p_header, p_payload, payloadSize, checksum)), forwardPacket);
-        break;
-      case PacketType::set_request:
-        switch (p_payload[0]) {  // Switch on command type
-          case PacketSetCommand::sc_settings:
-            postprocessPacket(uart,
-                              hReqSetSettings(PacketSetSettingsRequest(p_header, p_payload, payloadSize, checksum)),
-                              forwardPacket);
-            break;
-          case PacketSetCommand::sc_remote_temperature:
-            postprocessPacket(
-                uart,
-                hReqSetRemoteTemperature(PacketSetRemoteTemperatureRequest(p_header, p_payload, payloadSize, checksum)),
-                forwardPacket);
-            break;
-          default:
-            if (forwardPacket) {
-              // Recevied an unknown set request-- assume there will be some kind of response
-              // and forward it back.
-              sendPacket(Packet(p_header, p_payload, payloadSize, checksum), hp_uart, true, true);
-            }
-            ESP_LOGI(TAG, "Unknown set request command %x received.", p_payload[0]);
-        }
-        break;
-      default:
-        ESP_LOGI(TAG, "Unknown packet type %x received.", p_header[PACKET_HEADER_INDEX_PACKET_TYPE]);
-        if (forwardPacket) {
-          if (uart == tstat_uart) {
-            // If we received something weird from the thermostat, go ahead and send it to the HP and expect a response
-            sendPacket(Packet(p_header, p_payload, payloadSize, checksum), hp_uart, true, true);
-          } else {
-            // If we received something weird from the heatpump, send it back to the thermostat, but don't expect any
-            // response
-            sendPacket(Packet(p_header, p_payload, payloadSize, checksum), tstat_uart, false, false);
-          }
-        }
-    }
-
-    return true;
-  }
-
-  return false;
-}
-
-void MitsubishiUART::postprocessPacket(uart::UARTComponent *sourceUART, const Packet &packet, bool forwardPacket) {
-  logPacket(sourceUART == hp_uart ? DIR_HP_MC : DIR_TS_MC, packet);
-  if (forwardPacket) {
-    if (sourceUART == hp_uart) {
-      // Forward back to thermostat, don't expect response
-      sendPacket(packet, tstat_uart, false, false);
-    } else if (sourceUART == tstat_uart) {
-      // Forward to heat pump, process response
-      sendPacket(packet, hp_uart, true, true);
-    }
+    case PacketType::set_request:
+      switch (packetToProcess.getCommand()) {  // Switch on command type
+        case PacketSetCommand::sc_settings:
+          // Nothing to do for this
+          break;
+        case PacketSetCommand::sc_remote_temperature:
+          hReqSetRemoteTemperature(
+              PacketSetRemoteTemperatureRequest(packetToProcess.getBytes(), packetToProcess.getLength()));
+          break;
+        default:
+          ESP_LOGI(TAG, "Unknown set request command %x received.", packetToProcess.getCommand());
+      }
+      break;
+    default:
+      ESP_LOGI(TAG, "Unknown packet type %x received.", packetToProcess.getPacketType());
   }
 }
 
@@ -437,12 +442,6 @@ PacketGetResponseStandby MitsubishiUART::hResGetStandby(const PacketGetResponseS
 ////
 //  Handle Requests (received from thermostat)
 ////
-PacketConnectRequest MitsubishiUART::hReqConnect(const PacketConnectRequest &packet) { return packet; }
-PacketExtendedConnectRequest MitsubishiUART::hReqExtendedConnect(const PacketExtendedConnectRequest &packet) {
-  return packet;
-}
-Packet MitsubishiUART::hReqGet(const Packet &packet) { return packet; }
-PacketSetSettingsRequest MitsubishiUART::hReqSetSettings(const PacketSetSettingsRequest &packet) { return packet; }
 PacketSetRemoteTemperatureRequest MitsubishiUART::hReqSetRemoteTemperature(
     const PacketSetRemoteTemperatureRequest &packet) {
   this->sensor_thermostat_temperature->lazy_publish_state(packet.getRemoteTemperature());

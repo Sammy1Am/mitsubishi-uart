@@ -4,7 +4,7 @@ namespace esphome {
 namespace mitsubishi_uart {
 
 Packet::Packet(uint8_t packet_type, uint8_t payload_size)
-    : length{payload_size + PACKET_HEADER_SIZE + 1}, checksumIndex{length - 1} {
+    : length{(uint8_t)(payload_size + PACKET_HEADER_SIZE + 1)}, checksumIndex{(uint8_t)(length - 1)} {
   memcpy(packetBytes, EMPTY_PACKET, length);
   packetBytes[PACKET_HEADER_INDEX_PACKET_TYPE] = packet_type;
   packetBytes[PACKET_HEADER_INDEX_PAYLOAD_SIZE] = payload_size;
@@ -12,11 +12,9 @@ Packet::Packet(uint8_t packet_type, uint8_t payload_size)
   updateChecksum();
 }
 
-Packet::Packet(uint8_t packet_header[PACKET_HEADER_SIZE], uint8_t payload[], uint8_t payload_size, uint8_t checksum)
-    : length{payload_size + PACKET_HEADER_SIZE + 1}, checksumIndex{length - 1} {
-  memcpy(packetBytes, packet_header, PACKET_HEADER_SIZE);
-  memcpy(packetBytes + PACKET_HEADER_SIZE, payload, payload_size);
-  packetBytes[checksumIndex] = checksum;
+Packet::Packet(const uint8_t packet_bytes[], const uint8_t packet_length)
+    : length{(uint8_t) packet_length}, checksumIndex{(uint8_t)(packet_length - 1)} {
+  memcpy(packetBytes, packet_bytes, packet_length);
 
   if (!this->isChecksumValid()) {
     ESP_LOGI(PTAG, "Packet of type %x has invalid checksum!", this->getPacketType());
