@@ -38,7 +38,7 @@ void MitsubishiUART::loop() {
   // If we're idle...
   else if (this->current_loop_state == LS_IDLE) {
     // Try reading from the thermostat (to give it priority)
-    if (!(tstat_uart && readPacket(tstat_uart))) {
+    if (!(tstat_uart && readPacket(tstat_uart, true))) {
       // But if we didn't, see if there are any heatpump packets to send
       if (!this->hp_queue_.empty()) {
         // If there are any packets in the ts_queue_
@@ -70,8 +70,6 @@ void MitsubishiUART::loop() {
 
 void MitsubishiUART::update() {
   ESP_LOGV(TAG, "Update called.");
-
-  int packetsRead = 0;
 
   /**
    * For whatever reason:
@@ -105,11 +103,7 @@ void MitsubishiUART::update() {
   }
 
   if (!passive_mode) {
-    if (packetsRead > 0) {
-      updatesSinceLastPacket = 0;
-    } else {
-      updatesSinceLastPacket++;
-    }
+    updatesSinceLastPacket++;
 
     if (updatesSinceLastPacket > 10) {
       ESP_LOGI(TAG, "No packets received in %d updates, connection down.", updatesSinceLastPacket);
@@ -137,9 +131,8 @@ void MitsubishiUART::connect() {
 }
 
 void logPacket(const char *direction, const Packet &packet) {
-  // ESP_LOGD(TAG, "%s [%02x] %s", direction, packet.getPacketType(),
-  //          format_hex_pretty(&packet.getBytes()[PACKET_HEADER_SIZE], packet.getLength() -
-  //          PACKET_HEADER_SIZE).c_str());
+  ESP_LOGD(TAG, "%s [%02x] %s", direction, packet.getPacketType(),
+           format_hex_pretty(&packet.getBytes()[0], packet.getLength()).c_str());
 }
 
 // Send packet on designated UART interface (as long as it exists, regardless of connection state)
@@ -148,6 +141,7 @@ bool MitsubishiUART::sendPacket(Packet packet, uart::UARTComponent *uart) {
     return false;
   }
   uart->write_array(packet.getBytes(), packet.getLength());
+  logPacket(uart == hp_uart ? "MC->HP" : "TS<-MC", packet);
   return true;  // I don't think there's anyway to confirm this was actually sent, if the UART exists, assume it was.
 }
 
@@ -168,6 +162,7 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool isExternalPacket
   while (uart->available() > PACKET_HEADER_SIZE && uart->read_byte(&packetBytes[0])) {
     if (packetBytes[0] == BYTE_CONTROL) {
       ESP_LOGV(TAG, "Found a packet.");
+      this->updatesSinceLastPacket = 0;
       break;
     }
   }
@@ -193,6 +188,8 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool isExternalPacket
 
     // Construct a packet
     Packet receivedPacket = Packet(packetBytes, payloadSize + PACKET_HEADER_SIZE + 1);
+    receivedPacket.isExternal = isExternalPacket;
+    logPacket(uart == hp_uart ? "MC<-HP" : "TS->MC", receivedPacket);
 
     // If the checksum is valid...
     if (receivedPacket.isChecksumValid()) {
