@@ -16,6 +16,8 @@ static const char *MUART_VERSION = "0.2.0";
 const int LOOP_STATE_TIMEOUT = 500;  // Maximum amount of time to wait in one loop state for an action to complete.
 
 enum LOOP_STATE { LS_IDLE, LS_AWAIT_MC_RESPONSE, LS_AWAIT_THERMOSTAT_RESPONSE };
+enum CONNECT_STATE { CS_DISCONNECTED, CS_CONNECTING, CS_CONNECTED };
+enum STATUS_CURRENT_FLAG { SCF_SETTINGS = 0x01, SCF_ROOM_TEMP = 0x02, SCF_STANDBY = 0x04, SCF_STATUS = 0x08 };
 
 class MitsubishiUART;
 
@@ -84,7 +86,8 @@ class MitsubishiUART : public PollingComponent {
   std::deque<Packet> ts_queue_;
 
   uint8_t updatesSinceLastPacket = 0;
-  uint8_t connectState = 0;
+  CONNECT_STATE connect_state = CS_DISCONNECTED;
+  uint8_t status_current = 0;  // Flag field denoting which Get commands are current since the last connect.
 
   // If true, MUART will not generate any packets of its own, only listen and forward them between
   // the heat pump and thermostat.  NOTE: This *only* works if a thermostat is being used, since the
@@ -120,7 +123,7 @@ class MitsubishiUART : public PollingComponent {
   PacketGetResponseStandby hResGetStandby(const PacketGetResponseStandby &packet);
 
   // Packet request handling (most requests just get forwarded and don't need any processing)
-  PacketSetSettingsRequest hReqSetSettings(const PacketSetSettingsRequest &packet);
+  // PacketSetSettingsRequest hReqSetSettings(const PacketSetSettingsRequest &packet);
   PacketSetRemoteTemperatureRequest hReqSetRemoteTemperature(const PacketSetRemoteTemperatureRequest &packet);
 
   MUARTComponent<climate::Climate, void *> *climate_{};

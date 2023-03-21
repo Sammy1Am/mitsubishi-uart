@@ -3,13 +3,10 @@
 namespace esphome {
 namespace mitsubishi_uart {
 
-
-
 ////
 // Structure Comparison
 // Allows for quick state comparisons (this might get unwieldy eventually)
 ////
-
 
 ////
 // MitsubishiUART
@@ -39,7 +36,7 @@ ClimateState MUARTClimate::getCurrentState() {
   return currentState;
 }
 
-void MUARTClimate::lazy_publish_state(void *ignored){
+void MUARTClimate::lazy_publish_state(void *ignored) {
   ClimateState currentState = getCurrentState();
   if (lastPublishedState_ != currentState) {
     this->publish_state();

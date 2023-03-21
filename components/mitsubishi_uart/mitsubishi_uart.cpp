@@ -73,22 +73,14 @@ void MitsubishiUART::loop() {
 void MitsubishiUART::update() {
   ESP_LOGV(TAG, "Update called.");
 
-  /**
-   * For whatever reason:
-   * - Sending multiple request packets very quickly will result in only a response to the first one.  It seems
-   * like the heat pump may not be entirely breaking communications by control byte (or possibly it empties the
-   * input buffer between requests?)
-   *
-   * - Sending multiple request packets sort of quickly results in multiple responses, but the first responses
-   * are missing their checksums.
-   *
-   * As a result, we blocking-read for a response as part of sendPacket()
-   */
-  if (connectState == 2) {
+  // Only publish state if we've received one of each type of update since our last disconnect
+  if (this->status_current >= ((SCF_SETTINGS | SCF_ROOM_TEMP | SCF_STANDBY) | (this->passive_mode ? 0 : SCF_STATUS))) {
     // This will publish the state IFF something has changed. Only called if connected
-    // so any updates to connection status will need to be done outside this.
+    //  and current, so any updates to connection status will need to be done outside this.
     this->climate_->lazy_publish_state(nullptr);
+  }
 
+  if (this->connect_state >= CS_CONNECTED) {
     if (!passive_mode) {
       // Check size just for some sort of sanity check
       if (hp_queue_.size() < 6) {
@@ -104,29 +96,28 @@ void MitsubishiUART::update() {
     }
   }
 
-  if (!passive_mode) {
-    updatesSinceLastPacket++;
+  updatesSinceLastPacket++;
 
-    if (updatesSinceLastPacket > 10) {
-      ESP_LOGI(TAG, "No packets received in %d updates, connection down.", updatesSinceLastPacket);
-      connectState = 0;
-    }
+  if (updatesSinceLastPacket > 10) {
+    ESP_LOGI(TAG, "No packets received in %d updates, connection down.", updatesSinceLastPacket);
+    this->status_current = 0;  // Reset received updates until we're connected again
+    this->connect_state = CS_DISCONNECTED;
+  }
 
-    // If we're not connected (or have become unconnected) try to send a connect packet again
-    if (connectState < 2) {
-      connect();
-    }
+  // If we're not connected (or have become unconnected) try to send a connect packet again
+  if (this->connect_state < CS_CONNECTED && !this->passive_mode) {
+    connect();
   }
 }
 
 void MitsubishiUART::dump_config() {
   ESP_LOGCONFIG(TAG, "Mitsubishi UART v%s", MUART_VERSION);
   ESP_LOGCONFIG(TAG, "Passive: %s Forwarding: %s", YESNO(passive_mode), YESNO(forwarding_));
-  ESP_LOGCONFIG(TAG, "Connection state: %d", connectState);
+  ESP_LOGCONFIG(TAG, "Connection state: %d", connect_state);
 }
 
 void MitsubishiUART::connect() {
-  connectState = 1;  // Connecting...
+  this->connect_state = CS_CONNECTING;  // Connecting...
   if (hp_queue_.size() < 6) {
     hp_queue_.push_back(PACKET_CONNECT_REQ);
   }
@@ -299,7 +290,7 @@ void MitsubishiUART::processPacket(Packet &packetToProcess) {
 
 PacketConnectResponse MitsubishiUART::hResConnect(const PacketConnectResponse &packet) {
   // Not sure there's any info in the response.
-  connectState = 2;
+  this->connect_state = CS_CONNECTED;
   ESP_LOGI(TAG, "Connected to heatpump.");
 
   return packet;
@@ -307,7 +298,7 @@ PacketConnectResponse MitsubishiUART::hResConnect(const PacketConnectResponse &p
 
 PacketExtendedConnectResponse MitsubishiUART::hResExtendedConnect(const PacketExtendedConnectResponse &packet) {
   // TODO : Don't know what's in these
-  connectState = 2;
+  this->connect_state = CS_CONNECTED;
   ESP_LOGI(TAG, "Connected to heatpump.");
 
   return packet;
@@ -371,6 +362,8 @@ PacketGetResponseSettings MitsubishiUART::hResGetSettings(const PacketGetRespons
   const uint8_t h_vane = packet.getHorizontalVane();
   ESP_LOGD(TAG, "HVane set to: %x", h_vane);
 
+  this->status_current |= STATUS_CURRENT_FLAG::SCF_SETTINGS;
+
   return packet;
 }
 
@@ -380,6 +373,7 @@ PacketGetResponseRoomTemp MitsubishiUART::hResGetRoomTemp(const PacketGetRespons
   this->sensor_internal_temperature->lazy_publish_state(packet.getRoomTemp());
   ESP_LOGV(TAG, "Room temp: %.1f", this->climate_->current_temperature);
 
+  this->status_current |= STATUS_CURRENT_FLAG::SCF_ROOM_TEMP;
   return packet;
 }
 
@@ -442,6 +436,7 @@ PacketGetResponseStatus MitsubishiUART::hResGetStatus(const PacketGetResponseSta
 
   ESP_LOGD(TAG, "Operating: %s", YESNO(operating));
 
+  this->status_current |= STATUS_CURRENT_FLAG::SCF_STATUS;
   return packet;
 }
 
@@ -452,6 +447,7 @@ PacketGetResponseStandby MitsubishiUART::hResGetStandby(const PacketGetResponseS
   // 1 to 5, lowest to highest power
   this->sensor_stage->lazy_publish_state(packet.getStage());
 
+  this->status_current |= STATUS_CURRENT_FLAG::SCF_STANDBY;
   return packet;
 }
 
