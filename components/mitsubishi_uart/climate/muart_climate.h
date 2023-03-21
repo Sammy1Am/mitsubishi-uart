@@ -12,14 +12,17 @@ const float MUART_TEMPERATURE_STEP = 0.5;
 
 struct ClimateState {
   climate::ClimateMode c_mode;
-  float c_target_temperature;
-  climate::ClimateFanMode c_fan_mode;
-  float c_current_temperature;
+  float c_target_temperature = NAN;  // Initialize to NAN to differentiate between 0 which is a valid value.
+  esphome::optional<climate::ClimateFanMode> c_fan_mode;
+  float c_current_temperature = NAN;
   climate::ClimateAction c_action;
 
   const bool operator!=(ClimateState &rhs) const {
-    return c_action != rhs.c_action || c_current_temperature != rhs.c_current_temperature ||
-           c_fan_mode != rhs.c_fan_mode || c_mode != rhs.c_mode || c_target_temperature != rhs.c_target_temperature;
+    return c_action != rhs.c_action || c_fan_mode != rhs.c_fan_mode || c_mode != rhs.c_mode ||
+           // clang-format off
+           ((!std::isnan(c_current_temperature) || !std::isnan(rhs.c_current_temperature)) && (c_current_temperature != rhs.c_current_temperature)) ||
+           ((!std::isnan(c_target_temperature) || !std::isnan(rhs.c_target_temperature)) && (c_target_temperature != rhs.c_target_temperature));
+    // clang-format on
   }
 };
 
@@ -41,7 +44,7 @@ class MUARTClimate : public MUARTComponent<climate::Climate, void *> {
  private:
   climate::ClimateTraits traits_;
   ClimateState getCurrentState();
-  ClimateState lastPublishedState_;
+  ClimateState lastPublishedState_{};
 };
 
 }  // namespace mitsubishi_uart

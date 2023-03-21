@@ -17,7 +17,6 @@ const int LOOP_STATE_TIMEOUT = 500;  // Maximum amount of time to wait in one lo
 
 enum LOOP_STATE { LS_IDLE, LS_AWAIT_MC_RESPONSE, LS_AWAIT_THERMOSTAT_RESPONSE };
 enum CONNECT_STATE { CS_DISCONNECTED, CS_CONNECTING, CS_CONNECTED };
-enum STATUS_CURRENT_FLAG { SCF_SETTINGS = 0x01, SCF_ROOM_TEMP = 0x02, SCF_STANDBY = 0x04, SCF_STATUS = 0x08 };
 
 class MitsubishiUART;
 
@@ -87,7 +86,6 @@ class MitsubishiUART : public PollingComponent {
 
   uint8_t updatesSinceLastPacket = 0;
   CONNECT_STATE connect_state = CS_DISCONNECTED;
-  uint8_t status_current = 0;  // Flag field denoting which Get commands are current since the last connect.
 
   // If true, MUART will not generate any packets of its own, only listen and forward them between
   // the heat pump and thermostat.  NOTE: This *only* works if a thermostat is being used, since the

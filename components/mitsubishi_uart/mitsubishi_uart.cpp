@@ -73,14 +73,11 @@ void MitsubishiUART::loop() {
 void MitsubishiUART::update() {
   ESP_LOGV(TAG, "Update called.");
 
-  // Only publish state if we've received one of each type of update since our last disconnect
-  if (this->status_current >= ((SCF_SETTINGS | SCF_ROOM_TEMP | SCF_STANDBY) | (this->passive_mode ? 0 : SCF_STATUS))) {
+  if (this->connect_state >= CS_CONNECTED) {
     // This will publish the state IFF something has changed. Only called if connected
     //  and current, so any updates to connection status will need to be done outside this.
     this->climate_->lazy_publish_state(nullptr);
-  }
 
-  if (this->connect_state >= CS_CONNECTED) {
     if (!passive_mode) {
       // Check size just for some sort of sanity check
       if (hp_queue_.size() < 6) {
@@ -100,7 +97,6 @@ void MitsubishiUART::update() {
 
   if (updatesSinceLastPacket > 10) {
     ESP_LOGI(TAG, "No packets received in %d updates, connection down.", updatesSinceLastPacket);
-    this->status_current = 0;  // Reset received updates until we're connected again
     this->connect_state = CS_DISCONNECTED;
   }
 
@@ -362,8 +358,6 @@ PacketGetResponseSettings MitsubishiUART::hResGetSettings(const PacketGetRespons
   const uint8_t h_vane = packet.getHorizontalVane();
   ESP_LOGD(TAG, "HVane set to: %x", h_vane);
 
-  this->status_current |= STATUS_CURRENT_FLAG::SCF_SETTINGS;
-
   return packet;
 }
 
@@ -373,7 +367,6 @@ PacketGetResponseRoomTemp MitsubishiUART::hResGetRoomTemp(const PacketGetRespons
   this->sensor_internal_temperature->lazy_publish_state(packet.getRoomTemp());
   ESP_LOGV(TAG, "Room temp: %.1f", this->climate_->current_temperature);
 
-  this->status_current |= STATUS_CURRENT_FLAG::SCF_ROOM_TEMP;
   return packet;
 }
 
@@ -436,7 +429,6 @@ PacketGetResponseStatus MitsubishiUART::hResGetStatus(const PacketGetResponseSta
 
   ESP_LOGD(TAG, "Operating: %s", YESNO(operating));
 
-  this->status_current |= STATUS_CURRENT_FLAG::SCF_STATUS;
   return packet;
 }
 
@@ -447,7 +439,6 @@ PacketGetResponseStandby MitsubishiUART::hResGetStandby(const PacketGetResponseS
   // 1 to 5, lowest to highest power
   this->sensor_stage->lazy_publish_state(packet.getStage());
 
-  this->status_current |= STATUS_CURRENT_FLAG::SCF_STANDBY;
   return packet;
 }
 
