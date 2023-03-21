@@ -30,31 +30,32 @@ MitsubishiUART::MitsubishiUART(uart::UARTComponent *uart_comp) : hp_uart{uart_co
 void MitsubishiUART::loop() {
   // Regardless of what we're doing, if there's a queued packet to send to the thermostat, send it
   if (!this->ts_queue_.empty()) {
-    // If there are any packets in the ts_queue_
+    // If there are any packets in the ts_queue_, send it and pop it
     sendPacket(ts_queue_.front(), tstat_uart);
     ts_queue_.pop_front();
   }
 
   // If we're idle...
   else if (this->current_loop_state == LS_IDLE) {
+    // Start timing loop state (for timing within readPacket below)
+    this->loop_state_start = millis();
     // Try reading from the thermostat (to give it priority)
     if (!(tstat_uart && readPacket(tstat_uart, true))) {
       // But if we didn't, see if there are any heatpump packets to send
       if (!this->hp_queue_.empty()) {
-        // If there are any packets in the ts_queue_
+        // If there are any packets in the hp_queue_, send it (but don't remove it from the queue yet)
         sendPacket(hp_queue_.front(), hp_uart);
         // Set the current loop state based on if we're waiting on a response for a thermostat packet or
         // heatpump packet
         this->current_loop_state = hp_queue_.front().isExternal ? LS_AWAIT_THERMOSTAT_RESPONSE : LS_AWAIT_MC_RESPONSE;
-        this->loop_state_start = millis();
-        hp_queue_.pop_front();
       }
     }
   }
 
   // If we've been waiting too long for a response from the heatpump, go back to idle
   else if (millis() - loop_state_start > LOOP_STATE_TIMEOUT) {
-    ESP_LOGW(TAG, "Loop state timeout waiting for response");
+    ESP_LOGW(TAG, "Loop state timeout waiting for response from type %02x packet", hp_queue_.front().getPacketType());
+    hp_queue_.pop_front();  // TODO: We could retry by not removing this, but we should count retries
     this->current_loop_state = LS_IDLE;
   }
 
@@ -62,7 +63,8 @@ void MitsubishiUART::loop() {
   // from the thermostat)
   else {
     if (readPacket(hp_uart, this->current_loop_state == LS_AWAIT_THERMOSTAT_RESPONSE)) {
-      // If a packet was read, go back to IDLE
+      // If a packet was read, pop it and go back to IDLE
+      hp_queue_.pop_front();
       this->current_loop_state = LS_IDLE;
     }
   }
@@ -167,7 +169,9 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool isExternalPacket
   while (uart->available() > PACKET_HEADER_SIZE && uart->read_byte(&packetBytes[0])) {
     if (packetBytes[0] == BYTE_CONTROL) {
       ESP_LOGV(TAG, "Found a packet.");
-      this->updatesSinceLastPacket = 0;
+      if (uart == hp_uart) {
+        this->updatesSinceLastPacket = 0;
+      }
       break;
     }
   }
@@ -177,6 +181,7 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool isExternalPacket
     // Read the rest of the header
     if (!uart->read_array(&packetBytes[1], PACKET_HEADER_SIZE - 1)) {
       // If it doesn't work, abort read
+      ESP_LOGW(TAG, "Failed to read packet header.");
       return true;
     }
 
@@ -196,6 +201,7 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool isExternalPacket
     // Read the payload + checksum
     if (!uart->read_array(&packetBytes[PACKET_HEADER_SIZE], payloadSize + 1)) {
       // If it doesn't work, abort read
+      ESP_LOGW(TAG, "Failed to read packet type %02x payload.", packetBytes[PACKET_HEADER_INDEX_PACKET_TYPE]);
       return true;
     }
 
