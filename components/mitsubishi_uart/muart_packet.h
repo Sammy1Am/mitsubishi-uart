@@ -178,10 +178,72 @@ class PacketGetResponseStandby : public Packet {
 ////
 
 class PacketSetSettingsRequest : public Packet {
+  static const int PAYLOAD_INDEX_POWER = 3;
+  static const int PAYLOAD_INDEX_MODE = 4;
+  static const int PAYLOAD_INDEX_TARGET_TEMPERATURE_CODE = 6;
+  static const int PAYLOAD_INDEX_FAN = 6;
+  static const int PAYLOAD_INDEX_VANE = 7;
+  static const int PAYLOAD_INDEX_HORIZONTAL_VANE = 13;
+  static const int PAYLOAD_INDEX_TARGET_TEMPERATURE = 14;
+
+  enum SETTING_FLAG : uint8_t {
+    SF_POWER = 0x01,
+    SF_MODE = 0x02,
+    SF_TARGET_TEMPERATURE = 0x04,
+    SF_FAN = 0x08,
+    SF_VANE = 0x10
+  };
+
+  enum MODE_BYTE : uint8_t {
+    MODE_BYTE_HEAT = 0x01,
+    MODE_BYTE_DRY = 0x02,
+    MODE_BYTE_COOL = 0x03,
+    MODE_BYTE_FAN = 0x07,
+    MODE_BYTE_AUTO = 0x08,
+  };
+
+  enum FAN_BYTE : uint8_t {
+    FAN_AUTO = 0x00,
+    FAN_QUIET = 0x01,
+    FAN_1 = 0x02,
+    FAN_2 = 0x03,
+    FAN_3 = 0x05,
+    FAN_4 = 0x06,
+  };
+
+  enum VANE_BYTE : uint8_t {
+    VANE_AUTO = 0x00,
+    VANE_1 = 0x01,
+    VANE_2 = 0x02,
+    VANE_3 = 0x03,
+    VANE_4 = 0x04,
+    VANE_5 = 0x05,
+    VANE_SWING = 0x07,
+  };
+
+  enum HORIZONTAL_VANE_BYTE : uint8_t {
+    HV_LEFT_FULL = 0x01,
+    HV_LEFT = 0x02,
+    HV_CENTER = 0x03,
+    HV_RIGHT = 0x04,
+    HV_RIGHT_FULL = 0x05,
+    HV_SPLIT = 0x08,
+    HV_SWING = 0x0c,
+  };
+
  public:
   PacketSetSettingsRequest() : Packet(PacketType::set_request, 16) { setPayloadByte(0, PacketSetCommand::sc_settings); }
   using Packet::Packet;
-  // TODO: Add setters for various settings
+
+  PacketSetSettingsRequest &setPower(const bool isOn);
+  PacketSetSettingsRequest &setMode(const MODE_BYTE mode);
+  PacketSetSettingsRequest &setTargetTemperature(const float temperatureDegressC);
+  PacketSetSettingsRequest &setFan(const FAN_BYTE fan);
+  PacketSetSettingsRequest &setVane(const VANE_BYTE vane);
+  PacketSetSettingsRequest &setHorizontalVane(const HORIZONTAL_VANE_BYTE horizontal_vane);
+
+ private:
+  void addFlag(const SETTING_FLAG flagToAdd);
 };
 
 class PacketSetRemoteTemperatureRequest : public Packet {

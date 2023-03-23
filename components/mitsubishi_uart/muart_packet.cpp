@@ -43,6 +43,10 @@ Packet &Packet::setPayloadByte(uint8_t payload_byte_index, uint8_t value) {
   return *this;
 }
 
+void PacketSetSettingsRequest::addFlag(const SETTING_FLAG flagToAdd) {
+  setPayloadByte(PAYLOAD_INDEX_FLAGS, getPayloadByte(PAYLOAD_INDEX_FLAGS) | flagToAdd);
+}
+
 PacketSetRemoteTemperatureRequest &PacketSetRemoteTemperatureRequest::setRemoteTemperature(float temperatureDegressC) {
   if (temperatureDegressC < 63.5 && temperatureDegressC > -64.0) {
     setPayloadByte(PAYLOAD_INDEX_REMOTE_TEMPERATURE, round(temperatureDegressC * 2) + 128);
