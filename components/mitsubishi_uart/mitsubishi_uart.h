@@ -112,17 +112,17 @@ class MitsubishiUART : public PollingComponent {
   void postprocessPacket(uart::UARTComponent *sourceUART, const Packet &packet, bool forwardPacket);
 
   // Packet response handling
-  PacketConnectResponse hResConnect(const PacketConnectResponse &packet);
-  PacketExtendedConnectResponse hResExtendedConnect(const PacketExtendedConnectResponse &packet);
-  PacketGetResponseSettings hResGetSettings(const PacketGetResponseSettings &packet);
-  PacketGetResponseRoomTemp hResGetRoomTemp(const PacketGetResponseRoomTemp &packet);
-  Packet hResGetFour(const Packet &packet);
-  PacketGetResponseStatus hResGetStatus(const PacketGetResponseStatus &packet);
-  PacketGetResponseStandby hResGetStandby(const PacketGetResponseStandby &packet);
+  const PacketConnectResponse &hResConnect(const PacketConnectResponse &packet);
+  const PacketExtendedConnectResponse &hResExtendedConnect(const PacketExtendedConnectResponse &packet);
+  const PacketGetResponseSettings &hResGetSettings(const PacketGetResponseSettings &packet);
+  const PacketGetResponseRoomTemp &hResGetRoomTemp(const PacketGetResponseRoomTemp &packet);
+  const Packet &hResGetFour(const Packet &packet);
+  const PacketGetResponseStatus &hResGetStatus(const PacketGetResponseStatus &packet);
+  const PacketGetResponseStandby &hResGetStandby(const PacketGetResponseStandby &packet);
 
   // Packet request handling (most requests just get forwarded and don't need any processing)
   // PacketSetSettingsRequest hReqSetSettings(const PacketSetSettingsRequest &packet);
-  PacketSetRemoteTemperatureRequest hReqSetRemoteTemperature(const PacketSetRemoteTemperatureRequest &packet);
+  const PacketSetRemoteTemperatureRequest &hReqSetRemoteTemperature(const PacketSetRemoteTemperatureRequest &packet);
 
   MUARTComponent<climate::Climate, void *> *climate_{};
   MUARTComponent<select::Select, const std::string &> *select_vane_direction{};

@@ -48,7 +48,7 @@ PacketSetRemoteTemperatureRequest &PacketSetRemoteTemperatureRequest::setRemoteT
     setPayloadByte(PAYLOAD_INDEX_REMOTE_TEMPERATURE, round(temperatureDegressC * 2) + 128);
     setPayloadByte(Packet::PAYLOAD_INDEX_FLAGS, 0x01);  // Set flags to say we're providing the temperature
   } else {
-    ESP_LOGW(TAG, "Remote temp %f is outside valid range.", temperatureDegressC);
+    ESP_LOGW(PTAG, "Remote temp %f is outside valid range.", temperatureDegressC);
   }
   return *this;
 }

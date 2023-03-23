@@ -284,7 +284,7 @@ void MitsubishiUART::processPacket(Packet &packetToProcess) {
 // Response Handlers
 ////
 
-PacketConnectResponse MitsubishiUART::hResConnect(const PacketConnectResponse &packet) {
+const PacketConnectResponse &MitsubishiUART::hResConnect(const PacketConnectResponse &packet) {
   // Not sure there's any info in the response.
   this->connect_state = CS_CONNECTED;
   ESP_LOGI(TAG, "Connected to heatpump.");
@@ -292,7 +292,7 @@ PacketConnectResponse MitsubishiUART::hResConnect(const PacketConnectResponse &p
   return packet;
 }
 
-PacketExtendedConnectResponse MitsubishiUART::hResExtendedConnect(const PacketExtendedConnectResponse &packet) {
+const PacketExtendedConnectResponse &MitsubishiUART::hResExtendedConnect(const PacketExtendedConnectResponse &packet) {
   // TODO : Don't know what's in these
   this->connect_state = CS_CONNECTED;
   ESP_LOGI(TAG, "Connected to heatpump.");
@@ -300,7 +300,7 @@ PacketExtendedConnectResponse MitsubishiUART::hResExtendedConnect(const PacketEx
   return packet;
 }
 
-PacketGetResponseSettings MitsubishiUART::hResGetSettings(const PacketGetResponseSettings &packet) {
+const PacketGetResponseSettings &MitsubishiUART::hResGetSettings(const PacketGetResponseSettings &packet) {
   const bool power = packet.getPower();
   if (power) {
     switch (packet.getMode()) {
@@ -361,7 +361,7 @@ PacketGetResponseSettings MitsubishiUART::hResGetSettings(const PacketGetRespons
   return packet;
 }
 
-PacketGetResponseRoomTemp MitsubishiUART::hResGetRoomTemp(const PacketGetResponseRoomTemp &packet) {
+const PacketGetResponseRoomTemp &MitsubishiUART::hResGetRoomTemp(const PacketGetResponseRoomTemp &packet) {
   this->climate_->current_temperature = packet.getRoomTemp();
   // I'm starting to suspect that this will always be the same as the remote temperature
   this->sensor_internal_temperature->lazy_publish_state(packet.getRoomTemp());
@@ -370,7 +370,7 @@ PacketGetResponseRoomTemp MitsubishiUART::hResGetRoomTemp(const PacketGetRespons
   return packet;
 }
 
-Packet MitsubishiUART::hResGetFour(const Packet &packet) {
+const Packet &MitsubishiUART::hResGetFour(const Packet &packet) {
   // This one is mysterious, keep an eye on it (might just be a ping?)
   int bytesSum = 0;
   for (int i = 6; i < packet.getLength() - 7; i++) {
@@ -383,7 +383,7 @@ Packet MitsubishiUART::hResGetFour(const Packet &packet) {
   return packet;
 }
 
-PacketGetResponseStatus MitsubishiUART::hResGetStatus(const PacketGetResponseStatus &packet) {
+const PacketGetResponseStatus &MitsubishiUART::hResGetStatus(const PacketGetResponseStatus &packet) {
   const bool operating = packet.getOperating();
   this->sensor_compressor_frequency->lazy_publish_state(packet.getCompressorFrequency());
 
@@ -432,7 +432,7 @@ PacketGetResponseStatus MitsubishiUART::hResGetStatus(const PacketGetResponseSta
   return packet;
 }
 
-PacketGetResponseStandby MitsubishiUART::hResGetStandby(const PacketGetResponseStandby &packet) {
+const PacketGetResponseStandby &MitsubishiUART::hResGetStandby(const PacketGetResponseStandby &packet) {
   // TODO these are a little uncertain
   // 0x04 = pre-heat, 0x08 = standby
   this->sensor_loop_status->lazy_publish_state(packet.getLoopStatus());
@@ -445,7 +445,7 @@ PacketGetResponseStandby MitsubishiUART::hResGetStandby(const PacketGetResponseS
 ////
 //  Handle Requests (received from thermostat)
 ////
-PacketSetRemoteTemperatureRequest MitsubishiUART::hReqSetRemoteTemperature(
+const PacketSetRemoteTemperatureRequest &MitsubishiUART::hReqSetRemoteTemperature(
     const PacketSetRemoteTemperatureRequest &packet) {
   this->sensor_thermostat_temperature->lazy_publish_state(packet.getRemoteTemperature());
   return packet;
