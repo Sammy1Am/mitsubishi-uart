@@ -37,9 +37,23 @@ Packet &Packet::updateChecksum() {
 
 bool Packet::isChecksumValid() const { return packetBytes[checksumIndex] == calculateChecksum(); }
 
-Packet &Packet::setPayloadByte(int payload_byte_index, uint8_t value) {
+Packet &Packet::setPayloadByte(uint8_t payload_byte_index, uint8_t value) {
   packetBytes[PACKET_HEADER_SIZE + payload_byte_index] = value;
   updateChecksum();
+  return *this;
+}
+
+PacketSetRemoteTemperatureRequest &PacketSetRemoteTemperatureRequest::setRemoteTemperature(float temperatureDegressC) {
+  if (temperatureDegressC < 63.5 && temperatureDegressC > -64.0) {
+    setPayloadByte(PAYLOAD_INDEX_REMOTE_TEMPERATURE, round(temperatureDegressC * 2) + 128);
+    setPayloadByte(Packet::PAYLOAD_INDEX_FLAGS, 0x01);  // Set flags to say we're providing the temperature
+  } else {
+    ESP_LOGW(TAG, "Remote temp %f is outside valid range.", temperatureDegressC);
+  }
+  return *this;
+}
+PacketSetRemoteTemperatureRequest &PacketSetRemoteTemperatureRequest::useInternalTemperature() {
+  setPayloadByte(Packet::PAYLOAD_INDEX_FLAGS, 0x01);  // Set flags to say to use internal temperature
   return *this;
 }
 

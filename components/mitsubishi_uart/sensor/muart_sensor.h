@@ -12,7 +12,7 @@ class MUARTSensor : public MUARTComponent<sensor::Sensor, float> {
   void lazy_publish_state(float value);
 
  private:
-  // Since 0 is often a valid state, intialize to NAN so that first publish will show as different
+  // Since 0 is often a valid state, intialize to NAN so that first lazy publish will show as different
   float lastPublishedState_{NAN};
 };
 

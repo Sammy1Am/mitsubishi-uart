@@ -33,6 +33,7 @@ enum PacketGetCommand : uint8_t {
   gc_status = 0x06,
   gc_standby = 0x09
 };
+
 enum PacketSetCommand : uint8_t { sc_settings = 0x01, sc_remote_temperature = 0x07 };
 
 static const uint8_t EMPTY_PACKET[PACKET_MAX_SIZE] = {BYTE_CONTROL,        // Sync
@@ -44,8 +45,6 @@ static const uint8_t EMPTY_PACKET[PACKET_MAX_SIZE] = {BYTE_CONTROL,        // Sy
                                                       0x00};                                             // Checksum
 
 class Packet {
-  static const int PAYLOAD_INDEX_COMMAND = 5;
-
  public:
   Packet(const uint8_t packet_bytes[], const uint8_t packet_length);  // For reading or copying packets
   virtual ~Packet() {}
@@ -58,13 +57,21 @@ class Packet {
 
   bool isChecksumValid() const;
 
-  // Packet information getters
+  // Returns the packet type byte
   uint8_t getPacketType() const { return packetBytes[PACKET_HEADER_INDEX_PACKET_TYPE]; };
-  uint8_t getCommand() const { return packetBytes[PAYLOAD_INDEX_COMMAND]; };
+  // Returns the first byte of the payload, often used as a command
+  uint8_t getCommand() const { return packetBytes[PACKET_HEADER_SIZE + PAYLOAD_INDEX_COMMAND]; };
 
  protected:
+  static const int PAYLOAD_INDEX_COMMAND = 0;
+  static const int PAYLOAD_INDEX_FLAGS = 1;
+
   Packet(uint8_t packet_type, uint8_t payload_size);  // For building packets
-  Packet &setPayloadByte(int payload_byte_index, uint8_t value);
+
+  Packet &setPayloadByte(uint8_t payload_byte_index, uint8_t value);
+  uint8_t getPayloadByte(uint8_t payload_byte_index) const {
+    return packetBytes[PACKET_HEADER_SIZE + payload_byte_index];
+  };
 
  private:
   uint8_t length;
@@ -178,7 +185,7 @@ class PacketSetSettingsRequest : public Packet {
 };
 
 class PacketSetRemoteTemperatureRequest : public Packet {
-  static const int INDEX_REMOTE_TEMPERATURE = 8;
+  static const uint8_t PAYLOAD_INDEX_REMOTE_TEMPERATURE = 3;
 
  public:
   PacketSetRemoteTemperatureRequest() : Packet(PacketType::set_request, 4) {
@@ -186,18 +193,11 @@ class PacketSetRemoteTemperatureRequest : public Packet {
   }
   using Packet::Packet;
 
-  float getRemoteTemperature() const { return ((int) this->getBytes()[INDEX_REMOTE_TEMPERATURE] - 128) / 2.0f; }
+  PacketSetRemoteTemperatureRequest &setRemoteTemperature(const float temperatureDegressC);
+  PacketSetRemoteTemperatureRequest &useInternalTemperature();
+
+  float getRemoteTemperature() const { return ((int) getPayloadByte(PAYLOAD_INDEX_REMOTE_TEMPERATURE) - 128) / 2.0f; }
 };
-
-// class PacketSetRequest : public Packet {
-//   public:
-//     PacketSetRequest() : Packet(PKTTYPE, //TODO) {
-//     }
-// };
-
-// class PacketConnectResponse : public Packet {
-//   using Packet::Packet;
-// };
 
 }  // namespace mitsubishi_uart
 }  // namespace esphome
