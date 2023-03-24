@@ -33,7 +33,7 @@ MUARTClimate::MUARTClimate() {
 climate::ClimateTraits MUARTClimate::traits() { return traits_; }
 climate::ClimateTraits &MUARTClimate::config_traits() { return traits_; }
 
-void MUARTClimate::control(const climate::ClimateCall &call) {}
+void MUARTClimate::control(const climate::ClimateCall &call) { this->parent_->call_climate(call); }
 
 ClimateState MUARTClimate::getCurrentState() {
   ClimateState currentState{};

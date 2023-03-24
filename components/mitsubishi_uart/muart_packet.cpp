@@ -51,9 +51,42 @@ void PacketSetSettingsRequest::addFlag2(const SETTING_FLAG2 flag2ToAdd) {
   setPayloadByte(PAYLOAD_INDEX_FLAGS2, getPayloadByte(PAYLOAD_INDEX_FLAGS2) | flag2ToAdd);
 }
 
+PacketSetSettingsRequest &PacketSetSettingsRequest::setPower(const bool isOn) {
+  setPayloadByte(PAYLOAD_INDEX_POWER, isOn ? 0x01 : 0x00);
+  addFlag(SF_POWER);
+  return *this;
+}
+
+PacketSetSettingsRequest &PacketSetSettingsRequest::setMode(const MODE_BYTE mode) {
+  setPayloadByte(PAYLOAD_INDEX_MODE, mode);
+  addFlag(SF_MODE);
+  return *this;
+}
+
+PacketSetSettingsRequest &PacketSetSettingsRequest::setTargetTemperature(const float temperatureDegressC) {
+  if (temperatureDegressC < 63.5 && temperatureDegressC > -64.0) {
+    setPayloadByte(PAYLOAD_INDEX_TARGET_TEMPERATURE, round(temperatureDegressC * 2) + 128);
+    addFlag(SF_TARGET_TEMPERATURE);
+  } else {
+    ESP_LOGW(PTAG, "Target temp %f is outside valid range.", temperatureDegressC);
+  }
+  return *this;
+}
+PacketSetSettingsRequest &PacketSetSettingsRequest::setFan(const FAN_BYTE fan) {
+  setPayloadByte(PAYLOAD_INDEX_FAN, fan);
+  addFlag(SF_FAN);
+  return *this;
+}
+
 PacketSetSettingsRequest &PacketSetSettingsRequest::setVane(const VANE_BYTE vane) {
   setPayloadByte(PAYLOAD_INDEX_VANE, vane);
   addFlag(SF_VANE);
+  return *this;
+}
+
+PacketSetSettingsRequest &PacketSetSettingsRequest::setHorizontalVane(const HORIZONTAL_VANE_BYTE horizontal_vane) {
+  setPayloadByte(PAYLOAD_INDEX_HORIZONTAL_VANE, horizontal_vane);
+  addFlag2(SF2_HORIZONTAL_VANE);
   return *this;
 }
 

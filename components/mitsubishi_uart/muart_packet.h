@@ -240,12 +240,12 @@ class PacketSetSettingsRequest : public Packet {
   PacketSetSettingsRequest() : Packet(PacketType::set_request, 16) { setPayloadByte(0, PacketSetCommand::sc_settings); }
   using Packet::Packet;
 
-  // PacketSetSettingsRequest &setPower(const bool isOn);
-  // PacketSetSettingsRequest &setMode(const MODE_BYTE mode);
-  // PacketSetSettingsRequest &setTargetTemperature(const float temperatureDegressC);
-  // PacketSetSettingsRequest &setFan(const FAN_BYTE fan);
+  PacketSetSettingsRequest &setPower(const bool isOn);
+  PacketSetSettingsRequest &setMode(const MODE_BYTE mode);
+  PacketSetSettingsRequest &setTargetTemperature(const float temperatureDegressC);
+  PacketSetSettingsRequest &setFan(const FAN_BYTE fan);
   PacketSetSettingsRequest &setVane(const VANE_BYTE vane);
-  // PacketSetSettingsRequest &setHorizontalVane(const HORIZONTAL_VANE_BYTE horizontal_vane);
+  PacketSetSettingsRequest &setHorizontalVane(const HORIZONTAL_VANE_BYTE horizontal_vane);
 
  private:
   void addFlag(const SETTING_FLAG flagToAdd);

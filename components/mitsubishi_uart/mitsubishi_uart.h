@@ -78,6 +78,8 @@ class MitsubishiUART : public PollingComponent {
                    const std::string &new_selection);
   void call_select_vane_direction(const std::string &new_selection);
 
+  void call_climate(const climate::ClimateCall &climate_call);
+
  private:
   uart::UARTComponent *hp_uart;
   uart::UARTComponent *tstat_uart{nullptr};

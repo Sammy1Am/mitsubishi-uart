@@ -487,5 +487,71 @@ void MitsubishiUART::call_select_vane_direction(const std::string &new_selection
   hp_queue_.push_back(PACKET_SETTINGS_REQ);
 }
 
+void MitsubishiUART::call_climate(const climate::ClimateCall &climate_call) {
+  PacketSetSettingsRequest packet = PacketSetSettingsRequest();
+  bool change_made = false;
+  if (climate_call.get_mode().has_value()) {
+    switch (climate_call.get_mode().value()) {
+      case climate::CLIMATE_MODE_HEAT:
+        packet.setPower(true).setMode(PacketSetSettingsRequest::MODE_BYTE_HEAT);
+        break;
+      case climate::CLIMATE_MODE_DRY:
+        packet.setPower(true).setMode(PacketSetSettingsRequest::MODE_BYTE_DRY);
+        break;
+      case climate::CLIMATE_MODE_COOL:
+        packet.setPower(true).setMode(PacketSetSettingsRequest::MODE_BYTE_COOL);
+        break;
+      case climate::CLIMATE_MODE_FAN_ONLY:
+        packet.setPower(true).setMode(PacketSetSettingsRequest::MODE_BYTE_FAN);
+        break;
+      case climate::CLIMATE_MODE_HEAT_COOL:
+        packet.setPower(true).setMode(PacketSetSettingsRequest::MODE_BYTE_AUTO);
+        break;
+      case climate::CLIMATE_MODE_OFF:
+      default:
+        packet.setPower(false);
+        break;
+    }
+    change_made = true;
+  }
+
+  if (climate_call.get_fan_mode().has_value()) {
+    switch (climate_call.get_fan_mode().value()) {
+      case climate::CLIMATE_FAN_QUIET:
+        packet.setFan(PacketSetSettingsRequest::FAN_QUIET);
+        break;
+      case climate::CLIMATE_FAN_LOW:
+        packet.setFan(PacketSetSettingsRequest::FAN_1);
+        break;
+      case climate::CLIMATE_FAN_MIDDLE:
+        packet.setFan(PacketSetSettingsRequest::FAN_2);
+        break;
+      case climate::CLIMATE_FAN_MEDIUM:
+        packet.setFan(PacketSetSettingsRequest::FAN_3);
+        break;
+      case climate::CLIMATE_FAN_HIGH:
+        packet.setFan(PacketSetSettingsRequest::FAN_4);
+        break;
+      case climate::CLIMATE_FAN_AUTO:
+      default:
+        packet.setFan(PacketSetSettingsRequest::FAN_AUTO);
+        break;
+    }
+    change_made = true;
+  }
+
+  if (climate_call.get_target_temperature().has_value()) {
+    packet.setTargetTemperature(climate_call.get_target_temperature().value());
+    change_made = true;
+  }
+
+  if (!passive_mode && change_made) {
+    hp_queue_.push_back(packet);
+    // Immediately ask for a relevant updates
+    hp_queue_.push_back(PACKET_SETTINGS_REQ);
+    hp_queue_.push_back(PACKET_STATUS_REQ);
+  }
+}
+
 }  // namespace mitsubishi_uart
 }  // namespace esphome
