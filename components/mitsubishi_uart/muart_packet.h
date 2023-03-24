@@ -178,6 +178,7 @@ class PacketGetResponseStandby : public Packet {
 ////
 
 class PacketSetSettingsRequest : public Packet {
+  static const int PAYLOAD_INDEX_FLAGS2 = 2;
   static const int PAYLOAD_INDEX_POWER = 3;
   static const int PAYLOAD_INDEX_MODE = 4;
   static const int PAYLOAD_INDEX_TARGET_TEMPERATURE_CODE = 6;
@@ -194,6 +195,11 @@ class PacketSetSettingsRequest : public Packet {
     SF_VANE = 0x10
   };
 
+  enum SETTING_FLAG2 : uint8_t {
+    SF2_HORIZONTAL_VANE = 0x01,
+  };
+
+ public:
   enum MODE_BYTE : uint8_t {
     MODE_BYTE_HEAT = 0x01,
     MODE_BYTE_DRY = 0x02,
@@ -231,19 +237,19 @@ class PacketSetSettingsRequest : public Packet {
     HV_SWING = 0x0c,
   };
 
- public:
   PacketSetSettingsRequest() : Packet(PacketType::set_request, 16) { setPayloadByte(0, PacketSetCommand::sc_settings); }
   using Packet::Packet;
 
-  PacketSetSettingsRequest &setPower(const bool isOn);
-  PacketSetSettingsRequest &setMode(const MODE_BYTE mode);
-  PacketSetSettingsRequest &setTargetTemperature(const float temperatureDegressC);
-  PacketSetSettingsRequest &setFan(const FAN_BYTE fan);
+  // PacketSetSettingsRequest &setPower(const bool isOn);
+  // PacketSetSettingsRequest &setMode(const MODE_BYTE mode);
+  // PacketSetSettingsRequest &setTargetTemperature(const float temperatureDegressC);
+  // PacketSetSettingsRequest &setFan(const FAN_BYTE fan);
   PacketSetSettingsRequest &setVane(const VANE_BYTE vane);
-  PacketSetSettingsRequest &setHorizontalVane(const HORIZONTAL_VANE_BYTE horizontal_vane);
+  // PacketSetSettingsRequest &setHorizontalVane(const HORIZONTAL_VANE_BYTE horizontal_vane);
 
  private:
   void addFlag(const SETTING_FLAG flagToAdd);
+  void addFlag2(const SETTING_FLAG2 flag2ToAdd);
 };
 
 class PacketSetRemoteTemperatureRequest : public Packet {

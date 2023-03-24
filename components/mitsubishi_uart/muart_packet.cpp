@@ -47,6 +47,16 @@ void PacketSetSettingsRequest::addFlag(const SETTING_FLAG flagToAdd) {
   setPayloadByte(PAYLOAD_INDEX_FLAGS, getPayloadByte(PAYLOAD_INDEX_FLAGS) | flagToAdd);
 }
 
+void PacketSetSettingsRequest::addFlag2(const SETTING_FLAG2 flag2ToAdd) {
+  setPayloadByte(PAYLOAD_INDEX_FLAGS2, getPayloadByte(PAYLOAD_INDEX_FLAGS2) | flag2ToAdd);
+}
+
+PacketSetSettingsRequest &PacketSetSettingsRequest::setVane(const VANE_BYTE vane) {
+  setPayloadByte(PAYLOAD_INDEX_VANE, vane);
+  addFlag(SF_VANE);
+  return *this;
+}
+
 PacketSetRemoteTemperatureRequest &PacketSetRemoteTemperatureRequest::setRemoteTemperature(float temperatureDegressC) {
   if (temperatureDegressC < 63.5 && temperatureDegressC > -64.0) {
     setPayloadByte(PAYLOAD_INDEX_REMOTE_TEMPERATURE, round(temperatureDegressC * 2) + 128);

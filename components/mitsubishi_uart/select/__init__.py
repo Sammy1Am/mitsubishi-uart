@@ -15,11 +15,9 @@ DEPENDENCIES = ["mitsubishi_uart"]
 
 
 CONF_VANE_DIRECTION = "vane_direction"
-CONF_TEMP_SOURCE = "temp_source"
 
 SELECTS = {
     CONF_VANE_DIRECTION: ("Vane Direction", ["Auto", "1", "2", "3", "4", "5", "Swing"]),
-    # CONF_TEMP_SOURCE: (["Internal", "Thermostat"]),
 }
 
 MUARTSelect = mitsubishi_uart_ns.class_("MUARTSelect", MUARTComponent)

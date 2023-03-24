@@ -451,5 +451,41 @@ const PacketSetRemoteTemperatureRequest &MitsubishiUART::hReqSetRemoteTemperatur
   return packet;
 }
 
+////
+// Calls
+////
+
+void MitsubishiUART::call_select(const MUARTComponent<select::Select, const std::string &> &called_select_component,
+                                 const std::string &new_selection) {
+  if (!passive_mode) {
+    if (&called_select_component == select_vane_direction) {
+      call_select_vane_direction(new_selection);
+    }
+  }
+}
+
+void MitsubishiUART::call_select_vane_direction(const std::string &new_selection) {
+  // TODO: Don't like just comparing strings here, wish there was a better way to do this.
+  if (new_selection == "Auto") {
+    hp_queue_.push_back(PacketSetSettingsRequest().setVane(PacketSetSettingsRequest::VANE_AUTO));
+  } else if (new_selection == "1") {
+    hp_queue_.push_back(PacketSetSettingsRequest().setVane(PacketSetSettingsRequest::VANE_1));
+  } else if (new_selection == "2") {
+    hp_queue_.push_back(PacketSetSettingsRequest().setVane(PacketSetSettingsRequest::VANE_2));
+  } else if (new_selection == "3") {
+    hp_queue_.push_back(PacketSetSettingsRequest().setVane(PacketSetSettingsRequest::VANE_3));
+  } else if (new_selection == "4") {
+    hp_queue_.push_back(PacketSetSettingsRequest().setVane(PacketSetSettingsRequest::VANE_4));
+  } else if (new_selection == "5") {
+    hp_queue_.push_back(PacketSetSettingsRequest().setVane(PacketSetSettingsRequest::VANE_5));
+  } else if (new_selection == "Swing") {
+    hp_queue_.push_back(PacketSetSettingsRequest().setVane(PacketSetSettingsRequest::VANE_SWING));
+  } else {
+    ESP_LOGW(TAG, "Unknown vane position %s", new_selection.c_str());
+  }
+  // Immediately ask for a relevant update
+  hp_queue_.push_back(PACKET_SETTINGS_REQ);
+}
+
 }  // namespace mitsubishi_uart
 }  // namespace esphome

@@ -74,6 +74,10 @@ class MitsubishiUART : public PollingComponent {
     this->sensor_compressor_frequency = s;
   }
 
+  void call_select(const MUARTComponent<select::Select, const std::string &> &called_select_component,
+                   const std::string &new_selection);
+  void call_select_vane_direction(const std::string &new_selection);
+
  private:
   uart::UARTComponent *hp_uart;
   uart::UARTComponent *tstat_uart{nullptr};
