@@ -136,7 +136,7 @@ bool MitsubishiUART::sendPacket(Packet packet, uart::UARTComponent *uart) {
 
 /**
  * Attempt to read a packet from the specified UART, process it, and queue for forwarding (if needed).
- * Returns true if a packet was read REGARDLESS OF SUCCESS.
+ * Returns true if a packet was read REGARDLESS OF SUCCESS (we can't retry a failed read).
  *
  * NOTE: SoftwareSerial (at least on the ESP8266, and this might apply to HardwareSerial as well) appears to sometimes
  * return a number of available() bytes, but then timeout while reading that number of bytes.  Adding some delay seems
@@ -155,7 +155,7 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool isExternalPacket
   // Look for a control byte
   while (uart->available() > PACKET_HEADER_SIZE && uart->read_byte(&packetBytes[0])) {
     if (packetBytes[0] == BYTE_CONTROL) {
-      ESP_LOGV(TAG, "Found a packet.");
+      ESP_LOGV(TAG, "Found a packet on %s.", uart == hp_uart ? "HP" : "TS");
       if (uart == hp_uart) {
         this->updatesSinceLastPacket = 0;
       }
@@ -179,6 +179,7 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool isExternalPacket
     // Delay a little first just for good measure (2400 baud is *slow*)
     do {
       if (millis() - loop_state_start > LOOP_STATE_TIMEOUT) {
+        ESP_LOGW(TAG, "Waited too long for payload.");
         return true;  // We waited too long, just give up.
       }
       // Occastionally seeing timeouts as early as byte 13 of 17.  4 bytes at 2400 baud is 13.3ms.
@@ -199,8 +200,6 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool isExternalPacket
 
     // If the checksum is valid...
     if (receivedPacket.isChecksumValid()) {
-      // TODO: This is an okay place for logging probably
-
       // Process it
       processPacket(receivedPacket);
 
