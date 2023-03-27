@@ -547,6 +547,7 @@ void MitsubishiUART::call_climate(const climate::ClimateCall &climate_call) {
   if (!passive_mode && change_made) {
     hp_queue_.push_back(packet);
     // Immediately ask for a relevant updates
+    hp_queue_.push_back(PACKET_TEMP_REQ);
     hp_queue_.push_back(PACKET_SETTINGS_REQ);
     hp_queue_.push_back(PACKET_STATUS_REQ);
   }
