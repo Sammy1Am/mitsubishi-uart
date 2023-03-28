@@ -1,6 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import sensor
+from esphome.core import CORE
 from esphome.const import (
     CONF_ID,
     UNIT_CELSIUS,
@@ -53,7 +54,10 @@ SENSORS = {
 
 CONFIG_SCHEMA = MUART_COMPONENT_SCHEMA.extend(
     {
-        cv.Optional(sensor_type, default={"name": sensor_name}): sensor_schema
+        cv.Optional(
+            sensor_type,
+            default={"name": f"{CORE.name or 'mUART'} {sensor_name}"},
+        ): sensor_schema
         for sensor_type, (sensor_name, sensor_schema) in SENSORS.items()
     }
 )

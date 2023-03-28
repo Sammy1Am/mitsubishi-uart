@@ -1,9 +1,8 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import select
-from esphome.const import (
-    CONF_ID,
-)
+from esphome.core import CORE
+from esphome.const import CONF_ID, CONF_NAME, CONF_ESPHOME
 from .. import (
     CONF_MUART_ID,
     MUART_COMPONENT_SCHEMA,
@@ -28,7 +27,10 @@ MUARTSELECT_SCHEMA = select.SELECT_SCHEMA.extend(cv.COMPONENT_SCHEMA).extend(
 
 CONFIG_SCHEMA = MUART_COMPONENT_SCHEMA.extend(
     {
-        cv.Optional(select_type, default={"name": select_name}): MUARTSELECT_SCHEMA
+        cv.Optional(
+            select_type,
+            default={"name": f"{CORE.name or 'mUART'} {select_name}"},
+        ): MUARTSELECT_SCHEMA
         for select_type, (select_name, select_options) in SELECTS.items()
     }
 )
