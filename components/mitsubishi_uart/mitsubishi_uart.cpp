@@ -74,6 +74,8 @@ void MitsubishiUART::update() {
   ESP_LOGV(TAG, "Update called.");
 
   if (this->connect_state >= CS_CONNECTED) {
+    ESP_LOGI(TAG, "Temperature source is %s", temperature_source_->get_name().c_str());
+
     // This will publish the state IFF something has changed. Only called if connected
     //  and current, so any updates to connection status will need to be done outside this.
     this->climate_->lazy_publish_state(nullptr);
@@ -459,6 +461,8 @@ void MitsubishiUART::call_select(const MUARTComponent<select::Select, const std:
   if (!passive_mode) {
     if (&called_select_component == select_vane_direction) {
       call_select_vane_direction(new_selection);
+    } else if (&called_select_component == select_temperature_source) {
+      call_select_temperature_source(new_selection);
     }
   }
 }
@@ -484,6 +488,15 @@ void MitsubishiUART::call_select_vane_direction(const std::string &new_selection
   }
   // Immediately ask for a relevant update
   hp_queue_.push_back(PACKET_SETTINGS_REQ);
+}
+
+void MitsubishiUART::call_select_temperature_source(const std::string &new_selection) {
+  std::vector<const sensor::Sensor*>::iterator it = std::find_if(temperature_sources.begin(), temperature_sources.end(),[new_selection] (const sensor::Sensor* s){return s->get_name() == new_selection;});
+  if (it != temperature_sources.end()) {
+    temperature_source_ = *it;
+  } else {
+    temperature_source_ = &SENSOR_TEMPERATURE_THERMOSTAT;
+  }
 }
 
 void MitsubishiUART::call_climate(const climate::ClimateCall &climate_call) {

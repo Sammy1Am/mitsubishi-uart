@@ -18,6 +18,12 @@ const int LOOP_STATE_TIMEOUT = 500;  // Maximum amount of time to wait in one lo
 enum LOOP_STATE { LS_IDLE, LS_AWAIT_MC_RESPONSE, LS_AWAIT_THERMOSTAT_RESPONSE };
 enum CONNECT_STATE { CS_DISCONNECTED, CS_CONNECTING, CS_CONNECTED };
 
+static const char *SENSOR_TEMPERATURE_INTERNAL_NAME = "Internal Temperature";
+static const char *SENSOR_TEMPERATURE_THERMOSTAT_NAME = "Thermostat";
+
+static const sensor::Sensor SENSOR_TEMPERATURE_INTERNAL = sensor::Sensor(SENSOR_TEMPERATURE_INTERNAL_NAME);
+static const sensor::Sensor SENSOR_TEMPERATURE_THERMOSTAT = sensor::Sensor(SENSOR_TEMPERATURE_THERMOSTAT_NAME);
+
 class MitsubishiUART;
 
 /**
@@ -61,6 +67,9 @@ class MitsubishiUART : public PollingComponent {
   void set_select_vane_direction(MUARTComponent<select::Select, const std::string &> *svd) {
     this->select_vane_direction = svd;
   }
+  void set_select_temperature_source(MUARTComponent<select::Select, const std::string &> *sts) {
+    this->select_temperature_source = sts;
+  }
 
   void set_sensor_internal_temperature(MUARTComponent<sensor::Sensor, float> *s) {
     this->sensor_internal_temperature = s;
@@ -77,8 +86,11 @@ class MitsubishiUART : public PollingComponent {
   void call_select(const MUARTComponent<select::Select, const std::string &> &called_select_component,
                    const std::string &new_selection);
   void call_select_vane_direction(const std::string &new_selection);
+  void call_select_temperature_source(const std::string &new_selection);
 
   void call_climate(const climate::ClimateCall &climate_call);
+
+  void poll_temperature_sensor();
 
  private:
   uart::UARTComponent *hp_uart;
@@ -130,8 +142,14 @@ class MitsubishiUART : public PollingComponent {
   // PacketSetSettingsRequest hReqSetSettings(const PacketSetSettingsRequest &packet);
   const PacketSetRemoteTemperatureRequest &hReqSetRemoteTemperature(const PacketSetRemoteTemperatureRequest &packet);
 
+  sensor::Sensor const *temperature_source_ = &SENSOR_TEMPERATURE_THERMOSTAT;
+  std::vector<const sensor::Sensor*> temperature_sources {&SENSOR_TEMPERATURE_INTERNAL, &SENSOR_TEMPERATURE_THERMOSTAT};
+  // Called by update() to pull latest temperature from selected temperature source
+  void poll_temperature_source(){};
+
   MUARTComponent<climate::Climate, void *> *climate_{};
   MUARTComponent<select::Select, const std::string &> *select_vane_direction{};
+  MUARTComponent<select::Select, const std::string &> *select_temperature_source{};
 
   MUARTComponent<sensor::Sensor, float> *sensor_internal_temperature{};
   MUARTComponent<sensor::Sensor, float> *sensor_thermostat_temperature{};
