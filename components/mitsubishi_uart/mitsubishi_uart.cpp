@@ -75,6 +75,8 @@ void MitsubishiUART::update() {
 
   if (this->connect_state >= CS_CONNECTED) {
     ESP_LOGI(TAG, "Temperature source is %s", temperature_source_->get_name().c_str());
+    // This will very rarely change, but put here so it's not "unknown" for very long after startup
+    select_temperature_source->lazy_publish_state(temperature_source_->get_name());
 
     // This will publish the state IFF something has changed. Only called if connected
     //  and current, so any updates to connection status will need to be done outside this.
