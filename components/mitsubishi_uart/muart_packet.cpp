@@ -100,7 +100,7 @@ PacketSetRemoteTemperatureRequest &PacketSetRemoteTemperatureRequest::setRemoteT
   return *this;
 }
 PacketSetRemoteTemperatureRequest &PacketSetRemoteTemperatureRequest::useInternalTemperature() {
-  setPayloadByte(Packet::PAYLOAD_INDEX_FLAGS, 0x01);  // Set flags to say to use internal temperature
+  setPayloadByte(Packet::PAYLOAD_INDEX_FLAGS, 0x00);  // Set flags to say to use internal temperature
   return *this;
 }
 

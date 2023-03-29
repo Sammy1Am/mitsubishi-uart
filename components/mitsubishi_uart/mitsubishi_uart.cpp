@@ -448,7 +448,9 @@ const PacketGetResponseStandby &MitsubishiUART::hResGetStandby(const PacketGetRe
 ////
 const PacketSetRemoteTemperatureRequest &MitsubishiUART::hReqSetRemoteTemperature(
     const PacketSetRemoteTemperatureRequest &packet) {
-  this->sensor_thermostat_temperature->lazy_publish_state(packet.getRemoteTemperature());
+      if (packet.getFlags() > 0){
+        this->sensor_thermostat_temperature->lazy_publish_state(packet.getRemoteTemperature());
+      }
   return packet;
 }
 

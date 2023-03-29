@@ -264,6 +264,7 @@ class PacketSetRemoteTemperatureRequest : public Packet {
   PacketSetRemoteTemperatureRequest &setRemoteTemperature(const float temperatureDegressC);
   PacketSetRemoteTemperatureRequest &useInternalTemperature();
 
+  uint8_t getFlags() const {return getPayloadByte(PAYLOAD_INDEX_FLAGS);}
   float getRemoteTemperature() const { return ((int) getPayloadByte(PAYLOAD_INDEX_REMOTE_TEMPERATURE) - 128) / 2.0f; }
 };
 
