@@ -71,8 +71,8 @@ class MitsubishiUART : public PollingComponent {
     this->select_temperature_source = sts;
   }
 
-  void set_sensor_internal_temperature(MUARTComponent<sensor::Sensor, float> *s) {
-    this->sensor_internal_temperature = s;
+  void set_sensor_room_temperature(MUARTComponent<sensor::Sensor, float> *s) {
+    this->sensor_room_temperature = s;
   }
   void set_sensor_thermostat_temperature(MUARTComponent<sensor::Sensor, float> *s) {
     this->sensor_thermostat_temperature = s;
@@ -152,7 +152,7 @@ class MitsubishiUART : public PollingComponent {
   MUARTComponent<select::Select, const std::string &> *select_vane_direction{};
   MUARTComponent<select::Select, const std::string &> *select_temperature_source{};
 
-  MUARTComponent<sensor::Sensor, float> *sensor_internal_temperature{};
+  MUARTComponent<sensor::Sensor, float> *sensor_room_temperature{};
   MUARTComponent<sensor::Sensor, float> *sensor_thermostat_temperature{};
   MUARTComponent<sensor::Sensor, float> *sensor_loop_status{};
   MUARTComponent<sensor::Sensor, float> *sensor_stage{};

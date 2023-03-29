@@ -379,8 +379,8 @@ const PacketGetResponseSettings &MitsubishiUART::hResGetSettings(const PacketGet
 
 const PacketGetResponseRoomTemp &MitsubishiUART::hResGetRoomTemp(const PacketGetResponseRoomTemp &packet) {
   this->climate_->current_temperature = packet.getRoomTemp();
-  // I'm starting to suspect that this will always be the same as the remote temperature
-  this->sensor_internal_temperature->lazy_publish_state(packet.getRoomTemp());
+  // This will be the same as the remote temperature if we're using remote, otherwise the internal temp
+  this->sensor_room_temperature->lazy_publish_state(packet.getRoomTemp());
   ESP_LOGV(TAG, "Room temp: %.1f", this->climate_->current_temperature);
 
   return packet;
