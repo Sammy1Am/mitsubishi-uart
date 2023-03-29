@@ -140,7 +140,7 @@ class MitsubishiUART : public PollingComponent {
 
   // Packet request handling (most requests just get forwarded and don't need any processing)
   // PacketSetSettingsRequest hReqSetSettings(const PacketSetSettingsRequest &packet);
-  const PacketSetRemoteTemperatureRequest &hReqSetRemoteTemperature(const PacketSetRemoteTemperatureRequest &packet);
+  const void hReqSetRemoteTemperature(Packet &packet);
 
   sensor::Sensor const *temperature_source_ = &SENSOR_TEMPERATURE_THERMOSTAT;
   std::vector<const sensor::Sensor*> temperature_sources {&SENSOR_TEMPERATURE_INTERNAL, &SENSOR_TEMPERATURE_THERMOSTAT};

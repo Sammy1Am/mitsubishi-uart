@@ -74,7 +74,6 @@ void MitsubishiUART::update() {
   ESP_LOGV(TAG, "Update called.");
 
   if (this->connect_state >= CS_CONNECTED) {
-    ESP_LOGI(TAG, "Temperature source is %s", temperature_source_->get_name().c_str());
     // This will very rarely change, but put here so it's not "unknown" for very long after startup
     select_temperature_source->lazy_publish_state(temperature_source_->get_name());
 
@@ -208,7 +207,7 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool isExternalPacket
       processPacket(receivedPacket);
 
       // If we're forwarding, forward it
-      if (this->forwarding_ && isExternalPacket) {
+      if (this->forwarding_ && receivedPacket.isExternal) {
         if (uart == hp_uart) {
           ts_queue_.push_back(receivedPacket);
         } else if (uart == tstat_uart) {
@@ -271,8 +270,7 @@ void MitsubishiUART::processPacket(Packet &packetToProcess) {
           // Nothing to do for this
           break;
         case PacketSetCommand::sc_remote_temperature:
-          hReqSetRemoteTemperature(
-              PacketSetRemoteTemperatureRequest(packetToProcess.getBytes(), packetToProcess.getLength()));
+          hReqSetRemoteTemperature(packetToProcess);
           break;
         default:
           ESP_LOGI(TAG, "Unknown set request command %x received.", packetToProcess.getCommand());
@@ -448,12 +446,15 @@ const PacketGetResponseStandby &MitsubishiUART::hResGetStandby(const PacketGetRe
 ////
 //  Handle Requests (received from thermostat)
 ////
-const PacketSetRemoteTemperatureRequest &MitsubishiUART::hReqSetRemoteTemperature(
-    const PacketSetRemoteTemperatureRequest &packet) {
-      if (packet.getFlags() > 0){
-        this->sensor_thermostat_temperature->lazy_publish_state(packet.getRemoteTemperature());
+const void MitsubishiUART::hReqSetRemoteTemperature(Packet &packet) {
+      PacketSetRemoteTemperatureRequest psrtr = PacketSetRemoteTemperatureRequest(packet.getBytes(), packet.getLength());
+      if (this->temperature_source_ != &SENSOR_TEMPERATURE_THERMOSTAT) {
+        packet.isExternal = false; // Don't forward this packet to the heat pump if we're not using the thermostat
+        ts_queue_.push_back(PacketSetRemoteTemperatureResponse()); // Tell the thermostat we received the temperature
       }
-  return packet;
+      if (psrtr.getFlags() > 0){
+        this->sensor_thermostat_temperature->lazy_publish_state(psrtr.getRemoteTemperature());
+      }
 }
 
 ////
@@ -500,6 +501,11 @@ void MitsubishiUART::call_select_temperature_source(const std::string &new_selec
     temperature_source_ = *it;
   } else {
     temperature_source_ = &SENSOR_TEMPERATURE_THERMOSTAT;
+  }
+
+  if (this->temperature_source_ == &SENSOR_TEMPERATURE_INTERNAL) {
+    // Tell the heat pump to use the internal temperature
+    hp_queue_.push_back(PacketSetRemoteTemperatureRequest().useInternalTemperature());
   }
 }
 
