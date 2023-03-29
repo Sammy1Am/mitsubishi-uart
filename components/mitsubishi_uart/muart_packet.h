@@ -268,5 +268,10 @@ class PacketSetRemoteTemperatureRequest : public Packet {
   float getRemoteTemperature() const { return ((int) getPayloadByte(PAYLOAD_INDEX_REMOTE_TEMPERATURE) - 128) / 2.0f; }
 };
 
+class PacketSetRemoteTemperatureResponse : public Packet {
+  public:
+    PacketSetRemoteTemperatureResponse() : Packet(PacketType::set_response, 16){}
+};
+
 }  // namespace mitsubishi_uart
 }  // namespace esphome
