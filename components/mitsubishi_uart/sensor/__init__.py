@@ -34,6 +34,7 @@ SENSORS = {
             unit_of_measurement=UNIT_CELSIUS,
             device_class=DEVICE_CLASS_TEMPERATURE,
             state_class=STATE_CLASS_MEASUREMENT,
+            accuracy_decimals=1,
         ).extend(MUARTSENSOR_SCHEMA),
     ),
     THERMOSTAT_TEMPERATURE: (
@@ -42,6 +43,7 @@ SENSORS = {
             unit_of_measurement=UNIT_CELSIUS,
             device_class=DEVICE_CLASS_TEMPERATURE,
             state_class=STATE_CLASS_MEASUREMENT,
+            accuracy_decimals=1,
         ).extend(MUARTSENSOR_SCHEMA),
     ),
     LOOP_STATUS: ("Loop Status", sensor.sensor_schema().extend(MUARTSENSOR_SCHEMA)),
