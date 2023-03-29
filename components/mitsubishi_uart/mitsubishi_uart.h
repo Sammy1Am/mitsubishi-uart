@@ -103,6 +103,7 @@ class MitsubishiUART : public PollingComponent {
   std::deque<Packet> ts_queue_;
 
   uint8_t updatesSinceLastPacket = 0;
+  uint32_t last_remote_temperature_update = millis();
   CONNECT_STATE connect_state = CS_DISCONNECTED;
 
   // If true, MUART will not generate any packets of its own, only listen and forward them between

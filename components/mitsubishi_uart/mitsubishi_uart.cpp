@@ -77,6 +77,21 @@ void MitsubishiUART::update() {
     // This will very rarely change, but put here so it's not "unknown" for very long after startup
     select_temperature_source->lazy_publish_state(temperature_source_->get_name());
 
+    if (this->temperature_source_ != &SENSOR_TEMPERATURE_INTERNAL){
+      if (millis() - this->last_remote_temperature_update > 600000) {
+        // If we haven't heard from a remote sensor in 10 minutes, switch back to internal
+        ESP_LOGW(TAG, "No remote temperature reported in %d updates, reverting to internal temperature");
+        call_select_temperature_source(SENSOR_TEMPERATURE_INTERNAL_NAME);
+      }
+
+      if (this->temperature_source_ != &SENSOR_TEMPERATURE_THERMOSTAT) {
+        // Poll temperature
+      }
+    }
+
+
+
+
     // This will publish the state IFF something has changed. Only called if connected
     //  and current, so any updates to connection status will need to be done outside this.
     this->climate_->lazy_publish_state(nullptr);
@@ -451,6 +466,9 @@ const void MitsubishiUART::hReqSetRemoteTemperature(Packet &packet) {
       if (this->temperature_source_ != &SENSOR_TEMPERATURE_THERMOSTAT) {
         packet.isExternal = false; // Don't forward this packet to the heat pump if we're not using the thermostat
         ts_queue_.push_back(PacketSetRemoteTemperatureResponse()); // Tell the thermostat we received the temperature
+      } else {
+        // Update last_remote_temperature_update to let us know we sent an update to the heat pump
+        this->last_remote_temperature_update = millis();
       }
       if (psrtr.getFlags() > 0){
         this->sensor_thermostat_temperature->lazy_publish_state(psrtr.getRemoteTemperature());
