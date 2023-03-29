@@ -90,7 +90,9 @@ class MitsubishiUART : public PollingComponent {
 
   void call_climate(const climate::ClimateCall &climate_call);
 
-  void poll_temperature_sensor();
+
+  void add_temperature_source(sensor::Sensor* source_sensor){temperature_sources.push_back(source_sensor);}
+  void report_remote_temperature(const std::string &sensor_name, const float temperatureInCelcius);
 
  private:
   uart::UARTComponent *hp_uart;

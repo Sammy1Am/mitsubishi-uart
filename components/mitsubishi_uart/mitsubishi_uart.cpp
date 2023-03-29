@@ -83,14 +83,7 @@ void MitsubishiUART::update() {
         ESP_LOGW(TAG, "No remote temperature reported in %d updates, reverting to internal temperature");
         call_select_temperature_source(SENSOR_TEMPERATURE_INTERNAL_NAME);
       }
-
-      if (this->temperature_source_ != &SENSOR_TEMPERATURE_THERMOSTAT) {
-        // Poll temperature
-      }
     }
-
-
-
 
     // This will publish the state IFF something has changed. Only called if connected
     //  and current, so any updates to connection status will need to be done outside this.
@@ -591,6 +584,14 @@ void MitsubishiUART::call_climate(const climate::ClimateCall &climate_call) {
     hp_queue_.push_back(PACKET_TEMP_REQ);
     hp_queue_.push_back(PACKET_SETTINGS_REQ);
     hp_queue_.push_back(PACKET_STATUS_REQ);
+  }
+}
+
+void MitsubishiUART::report_remote_temperature(const std::string &sensor_name, const float temperatureDegreesCelcius) {
+  if (this->temperature_source_->get_name() == sensor_name){
+    ESP_LOGD(TAG, "Remote sensor reported %f", temperatureDegreesCelcius);
+    hp_queue_.push_back(PacketSetRemoteTemperatureRequest().setRemoteTemperature(temperatureDegreesCelcius));
+    last_remote_temperature_update = millis();
   }
 }
 
