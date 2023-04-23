@@ -21,9 +21,11 @@ class MUARTSelect : public MUARTComponent<select::Select, const std::string &> {
  public:
   void control(const std::string &value) override;
   void lazy_publish_state(const std::string &value);
+  void restore_state();
 
  private:
   std::string lastPublishedState_{};
+  ESPPreferenceObject prefs_;
 };
 
 }  // namespace mitsubishi_uart

@@ -38,6 +38,8 @@ template<typename BASECOMPONENT, typename STATETYPE> class MUARTComponent : publ
   void set_parent(MitsubishiUART *parent) { this->parent_ = parent; }
   // Determines if new provided state differs from current state, and then publishes IFF it is.
   virtual void lazy_publish_state(STATETYPE new_state) = 0;
+  // If implemented, will restore previous state
+  virtual void restore_state(){};
 
  protected:
   MitsubishiUART *parent_;
@@ -49,6 +51,8 @@ class MitsubishiUART : public PollingComponent {
    * Create a new MitsubishiUART with the specified esphome::uart::UARTComponent.
    */
   MitsubishiUART(uart::UARTComponent *hp_uart_comp);
+
+  void setup() override;
 
   // Called repeatedly (used for UART receiving/forwarding)
   void loop() override;

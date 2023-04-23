@@ -22,6 +22,13 @@ const Packet PACKET_STANDBY_REQ = PacketGetRequest(PacketGetCommand::gc_standby)
 
 MitsubishiUART::MitsubishiUART(uart::UARTComponent *uart_comp) : hp_uart{uart_comp} {}
 
+void MitsubishiUART::setup() {
+  // Tell temperature source selector to restore to previously saved state
+  if (this->select_temperature_source){
+    this->select_temperature_source->restore_state(); // This will call call_select_temperature_source if something is loaded
+  }
+}
+
 /**
  * UART communications (especially software UART) seem very sensitive to long loops (and we know
  * WiFi is as well), so the goal in the loop here is to perform one smaller operation at a time.
