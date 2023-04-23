@@ -56,7 +56,7 @@ async def to_code(config):
         cg.add(
             getattr(sens, "add_on_raw_state_callback")(
                 cg.RawExpression(
-                    "[](float s){heat_pump->report_remote_temperature(fake_temp->get_name(), s);}"
+                    f"[](float s){{heat_pump->report_remote_temperature({sens.get_name()}, s);}}"
                 )
             )
         )
