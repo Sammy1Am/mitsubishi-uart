@@ -12,13 +12,16 @@ void MUARTSelect::control(const std::string &value) {
 void MUARTSelect::lazy_publish_state(const std::string &value) {
   if (value != lastPublishedState_) {
     this->publish_state(value);
-    lastPublishedState_ = value;
-    size_t index = this->active_index().value();
-    this->prefs_.save(&index);
   }
 }
 
-//TODO Probably override publish_state to automatically save lastPublishedState_ and write preferences;
+// Calls Select::publish_state, and also keeps track of previously published state and preferences
+void MUARTSelect::publish_state(const std::string &value) {
+  this->Select::publish_state(value);
+  lastPublishedState_ = value;
+  size_t index = this->active_index().value();
+  this->prefs_.save(&index);
+}
 
 // Random 32bit value; If this changes existing restore preferences are invalidated
 static const uint32_t RESTORE_STATE_VERSION = 0x847EA6ADUL;

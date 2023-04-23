@@ -20,6 +20,7 @@ namespace mitsubishi_uart {
 class MUARTSelect : public MUARTComponent<select::Select, const std::string &> {
  public:
   void control(const std::string &value) override;
+  void publish_state(const std::string &value);
   void lazy_publish_state(const std::string &value);
   void restore_state();
 
