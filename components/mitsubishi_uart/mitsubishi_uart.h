@@ -21,8 +21,16 @@ enum CONNECT_STATE { CS_DISCONNECTED, CS_CONNECTING, CS_CONNECTED };
 static const char *SENSOR_TEMPERATURE_INTERNAL_NAME = "Internal Temperature";
 static const char *SENSOR_TEMPERATURE_THERMOSTAT_NAME = "Thermostat";
 
-static const sensor::Sensor SENSOR_TEMPERATURE_INTERNAL = sensor::Sensor(SENSOR_TEMPERATURE_INTERNAL_NAME);
-static const sensor::Sensor SENSOR_TEMPERATURE_THERMOSTAT = sensor::Sensor(SENSOR_TEMPERATURE_THERMOSTAT_NAME);
+static const sensor::Sensor SENSOR_TEMPERATURE_INTERNAL = []() -> sensor::Sensor {
+  sensor::Sensor s = sensor::Sensor();
+  s.set_name(SENSOR_TEMPERATURE_INTERNAL_NAME);
+  return s;
+}();
+static const sensor::Sensor SENSOR_TEMPERATURE_THERMOSTAT = []() -> sensor::Sensor {
+  sensor::Sensor s = sensor::Sensor();
+  s.set_name(SENSOR_TEMPERATURE_THERMOSTAT_NAME);
+  return s;
+}();
 
 class MitsubishiUART;
 
