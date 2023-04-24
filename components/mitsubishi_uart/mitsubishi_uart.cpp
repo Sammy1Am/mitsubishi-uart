@@ -524,6 +524,9 @@ void MitsubishiUART::call_select_temperature_source(const std::string &new_selec
   if (this->temperature_source_ == &SENSOR_TEMPERATURE_INTERNAL) {
     // Tell the heat pump to use the internal temperature
     hp_queue_.push_back(PacketSetRemoteTemperatureRequest().useInternalTemperature());
+  } else {
+    // Reset last update so this doesn't immediately timeout
+    this->last_remote_temperature_update = millis();
   }
 }
 
