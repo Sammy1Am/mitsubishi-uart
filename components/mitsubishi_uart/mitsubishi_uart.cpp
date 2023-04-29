@@ -87,7 +87,7 @@ void MitsubishiUART::update() {
     if (this->temperature_source_ != &SENSOR_TEMPERATURE_INTERNAL){
       if (millis() - this->last_remote_temperature_update > 600000) {
         // If we haven't heard from a remote sensor in 10 minutes, switch back to internal
-        ESP_LOGW(TAG, "No remote temperature reported in %d updates, reverting to internal temperature");
+        ESP_LOGW(TAG, "No remote temperature reported in 10 minutes, reverting to internal temperature");
         call_select_temperature_source(SENSOR_TEMPERATURE_INTERNAL_NAME);
       }
     }
