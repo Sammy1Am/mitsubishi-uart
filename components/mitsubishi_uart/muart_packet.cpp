@@ -8,7 +8,7 @@ Packet::Packet(PacketType packet_type, uint8_t payload_size)
     : length{(uint8_t)(payload_size + PACKET_HEADER_SIZE + 1)}, checksumIndex{(uint8_t)(length - 1)} {
   memcpy(packetBytes, EMPTY_PACKET, length);
   packetBytes[PACKET_HEADER_INDEX_PACKET_TYPE] = packet_type;
-  packetBytes[PACKET_HEADER_INDEX_PAYLOAD_SIZE] = payload_size;
+  packetBytes[PACKET_HEADER_INDEX_PAYLOAD_LENGTH] = payload_size;
 
   updateChecksum();
 }

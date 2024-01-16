@@ -11,55 +11,31 @@ namespace esphome {
 namespace mitsubishi_uart {
 
 static const char *TAG = "mitsubishi_uart";
-static const char *MUART_VERSION = "0.2.0";
+static const char *MUART_VERSION = "0.3.0";
 
-const int LOOP_STATE_TIMEOUT = 500;  // Maximum amount of time to wait in one loop state for an action to complete.
+const uint8_t MUART_MIN_TEMP = 16;  // Degrees C
+const uint8_t MUART_MAX_TEMP = 31;  // Degrees C
+const float MUART_TEMPERATURE_STEP = 0.5;
 
-enum LOOP_STATE { LS_IDLE, LS_AWAIT_MC_RESPONSE, LS_AWAIT_THERMOSTAT_RESPONSE };
-enum CONNECT_STATE { CS_DISCONNECTED, CS_CONNECTING, CS_CONNECTED };
 
-static const char *SENSOR_TEMPERATURE_INTERNAL_NAME = "Internal Temperature";
-static const char *SENSOR_TEMPERATURE_THERMOSTAT_NAME = "Thermostat";
-
-static const sensor::Sensor SENSOR_TEMPERATURE_INTERNAL = []() -> sensor::Sensor {
-  sensor::Sensor s = sensor::Sensor();
-  s.set_name(SENSOR_TEMPERATURE_INTERNAL_NAME);
-  return s;
-}();
-static const sensor::Sensor SENSOR_TEMPERATURE_THERMOSTAT = []() -> sensor::Sensor {
-  sensor::Sensor s = sensor::Sensor();
-  s.set_name(SENSOR_TEMPERATURE_THERMOSTAT_NAME);
-  return s;
-}();
-
-class MitsubishiUART;
-
-/**
- * A wrapper for components to provide a set_parent(MitsubishiUART) method, and lazy_publish_state(state).
- * The latter is provided because the heat pump does not support "pushing" changes to the microcontroller,
- * so we're polling every few seconds; but don't need to provide published updates quite that often.
- */
-template<typename BASECOMPONENT, typename STATETYPE> class MUARTComponent : public BASECOMPONENT {
-  // static_assert(std::is_base_of<Component, BASECOMPONENT>::value, "BASECOMPONENT must derive from Component");
- public:
-  // Sets parent MitsubishiUART where control commands will be sent (only really needed for controls, not sensors)
-  void set_parent(MitsubishiUART *parent) { this->parent_ = parent; }
-  // Determines if new provided state differs from current state, and then publishes IFF it is.
-  virtual void lazy_publish_state(STATETYPE new_state) = 0;
-  // If implemented, will restore previous state
-  virtual void restore_state(){};
-
- protected:
-  MitsubishiUART *parent_;
-};
-
-class MitsubishiUART : public PollingComponent {
+class MitsubishiUART : public PollingComponent, public climate::Climate, public PacketProcessor {
  public:
   /**
    * Create a new MitsubishiUART with the specified esphome::uart::UARTComponent.
    */
-  MitsubishiUART(uart::UARTComponent *hp_uart_comp);
+  MitsubishiUART(uart::UARTComponent *hp_uart_comp) {
+    /**
+     * Climate pushes all its data to Home Assistant immediately when the API connects, this causes
+     * the default 0 to be sent as temperatures, but since this is a valid value (0 deg C), it
+     * can cause confusion and mess with graphs when looking at the state in HA.  Setting this to
+     * NAN gets HA to treat this value as "unavailable" until we have a real value to publish.
+     */
+    this->target_temperature = NAN;
+    this->current_temperature = NAN;
+  }
 
+  // Used to restore state of previous MUART-specific settings (like temperature source or pass-thru mode)
+  // Most other climate-state is preserved by the heatpump itself and will be retrieved after connection
   void setup() override;
 
   // Called repeatedly (used for UART receiving/forwarding)
@@ -68,109 +44,36 @@ class MitsubishiUART : public PollingComponent {
   // Called periodically as PollingComponent (used for UART sending periodically)
   void update() override;
 
-  void dump_config() override;
+  // Returns default traits for MUART
+  climate::ClimateTraits traits() override { return climate_traits_; }
 
-  void set_tstat_uart(uart::UARTComponent *tstat_uart_comp) { this->tstat_uart = tstat_uart_comp; }
+  // Returns a reference to traits for MUART to be used during configuration
+  // TODO: Maybe replace this with specific functions for the traits needed in configuration (a la the override fuctions)
+  climate::ClimateTraits &config_traits() { return climate_traits_; }
 
-  void set_passive_mode(bool enable) { this->passive_mode = enable; }
-  void set_forwarding(bool enable) { this->forwarding_ = enable; }
+  // Called to instruct a change of the climate controls
+  void control(const climate::ClimateCall &call) override;
 
-  void set_climate(MUARTComponent<climate::Climate, void *> *c) { this->climate_ = c; }
-  void set_select_vane_direction(MUARTComponent<select::Select, const std::string &> *svd) {
-    this->select_vane_direction = svd;
-  }
-  void set_select_temperature_source(MUARTComponent<select::Select, const std::string &> *sts) {
-    this->select_temperature_source = sts;
-  }
+  protected:
+    void processConnectResponsePacket(const ConnectResponsePacket packet);
 
-  void set_sensor_room_temperature(MUARTComponent<sensor::Sensor, float> *s) {
-    this->sensor_room_temperature = s;
-  }
-  void set_sensor_thermostat_temperature(MUARTComponent<sensor::Sensor, float> *s) {
-    this->sensor_thermostat_temperature = s;
-  }
-  void set_sensor_loop_status(MUARTComponent<sensor::Sensor, float> *s) { this->sensor_loop_status = s; }
-  void set_sensor_stage(MUARTComponent<sensor::Sensor, float> *s) { this->sensor_stage = s; }
-  void set_sensor_compressor_frequency(MUARTComponent<sensor::Sensor, float> *s) {
-    this->sensor_compressor_frequency = s;
-  }
+  private:
+    // Default climate_traits for MUART
+    climate::ClimateTraits climate_traits_ = []() -> climate::ClimateTraits {
+      climate::ClimateTraits ct = climate::ClimateTraits();
 
-  void call_select(const MUARTComponent<select::Select, const std::string &> &called_select_component,
-                   const std::string &new_selection);
-  void call_select_vane_direction(const std::string &new_selection);
-  void call_select_temperature_source(const std::string &new_selection);
+      ct.set_supports_action(true);
+      ct.set_supports_current_temperature(true);
+      ct.set_supports_two_point_target_temperature(false);
+      ct.set_visual_min_temperature(MUART_MIN_TEMP);
+      ct.set_visual_max_temperature(MUART_MAX_TEMP);
+      ct.set_visual_temperature_step(MUART_TEMPERATURE_STEP);
 
-  void call_climate(const climate::ClimateCall &climate_call);
+      return ct;
+    }();
 
-
-  void add_temperature_source(sensor::Sensor* source_sensor){temperature_sources.push_back(source_sensor);}
-  void report_remote_temperature(const std::string &sensor_name, const float temperatureInCelcius);
-
- private:
-  uart::UARTComponent *hp_uart;
-  uart::UARTComponent *tstat_uart{nullptr};
-
-  LOOP_STATE current_loop_state = LOOP_STATE::LS_IDLE;
-  uint32_t loop_state_start = 0;
-
-  std::deque<Packet> hp_queue_;
-  std::deque<Packet> ts_queue_;
-
-  uint8_t updatesSinceLastPacket = 0;
-  uint32_t last_remote_temperature_update = millis();
-  CONNECT_STATE connect_state = CS_DISCONNECTED;
-
-  // If true, MUART will not generate any packets of its own, only listen and forward them between
-  // the heat pump and thermostat.  NOTE: This *only* works if a thermostat is being used, since the
-  // heat pump will not send out packets on its own.
-  bool passive_mode = false;
-
-  // Should MUART forward thermostat packets (and heat pump responses)
-  bool forwarding_ = true;
-
-  void connect();
-
-  /**
-   * Sends a packet to the specified UART.  Returns true if successfully sent.
-   */
-  bool sendPacket(Packet packet, uart::UARTComponent *uart);
-  /**
-   * Reads a packet from the specified UART.  If waitForPacket, will block for PACKET_RECEIVE_TIMEOUT
-   * before giving up and returning.  If fowardPacket, will attempt to forward the packet to whichever
-   * UART interface the packet wasn't received on (e.g. if it came from the heat pump, we'll forward it
-   * to the thermostat).
-   */
-  bool readPacket(uart::UARTComponent *uart, bool isExternalPacket = false);
-  void processPacket(Packet &packetToProcess);
-  void postprocessPacket(uart::UARTComponent *sourceUART, const Packet &packet, bool forwardPacket);
-
-  // Packet response handling
-  const PacketConnectResponse &hResConnect(const PacketConnectResponse &packet);
-  const PacketExtendedConnectResponse &hResExtendedConnect(const PacketExtendedConnectResponse &packet);
-  const PacketGetResponseSettings &hResGetSettings(const PacketGetResponseSettings &packet);
-  const PacketGetResponseRoomTemp &hResGetRoomTemp(const PacketGetResponseRoomTemp &packet);
-  const Packet &hResGetFour(const Packet &packet);
-  const PacketGetResponseStatus &hResGetStatus(const PacketGetResponseStatus &packet);
-  const PacketGetResponseStandby &hResGetStandby(const PacketGetResponseStandby &packet);
-
-  // Packet request handling (most requests just get forwarded and don't need any processing)
-  // PacketSetSettingsRequest hReqSetSettings(const PacketSetSettingsRequest &packet);
-  const void hReqSetRemoteTemperature(Packet &packet);
-
-  sensor::Sensor const *temperature_source_ = &SENSOR_TEMPERATURE_THERMOSTAT;
-  std::vector<const sensor::Sensor*> temperature_sources {&SENSOR_TEMPERATURE_INTERNAL, &SENSOR_TEMPERATURE_THERMOSTAT};
-  // Called by update() to pull latest temperature from selected temperature source
-  void poll_temperature_source(){};
-
-  MUARTComponent<climate::Climate, void *> *climate_{};
-  MUARTComponent<select::Select, const std::string &> *select_vane_direction{};
-  MUARTComponent<select::Select, const std::string &> *select_temperature_source{};
-
-  MUARTComponent<sensor::Sensor, float> *sensor_room_temperature{};
-  MUARTComponent<sensor::Sensor, float> *sensor_thermostat_temperature{};
-  MUARTComponent<sensor::Sensor, float> *sensor_loop_status{};
-  MUARTComponent<sensor::Sensor, float> *sensor_stage{};
-  MUARTComponent<sensor::Sensor, float> *sensor_compressor_frequency{};
+    // UARTComponent connected to heatpump
+    uart::UARTComponent *hp_uart;
 };
 
 }  // namespace mitsubishi_uart

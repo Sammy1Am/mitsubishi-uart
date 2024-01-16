@@ -3,6 +3,30 @@
 namespace esphome {
 namespace mitsubishi_uart {
 
+
+
+
+
+
+/*
+To send and receive, call bridge->SendAndReceive(packet, this) which will call appropriate processing function
+
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // TODO (Can I move these into the packets files?)
 // Pre-built packets
 const Packet PACKET_CONNECT_REQ = PacketConnectRequest();
@@ -191,7 +215,7 @@ bool MitsubishiUART::readPacket(uart::UARTComponent *uart, bool isExternalPacket
     }
 
     // Find the payload size
-    const int payloadSize = packetBytes[PACKET_HEADER_INDEX_PAYLOAD_SIZE];
+    const int payloadSize = packetBytes[PACKET_HEADER_INDEX_PAYLOAD_LENGTH];
 
     // Wait until all the incoming bytes are here (or timeout) see note at top of function.
     // Delay a little first just for good measure (2400 baud is *slow*)

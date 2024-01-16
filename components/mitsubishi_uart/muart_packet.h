@@ -13,7 +13,7 @@ const uint8_t BYTE_CONTROL = 0xfc;
 const uint8_t PACKET_MAX_SIZE = 22;  // Used to intialize empty packet
 const uint8_t PACKET_HEADER_SIZE = 5;
 const uint8_t PACKET_HEADER_INDEX_PACKET_TYPE = 1;
-const uint8_t PACKET_HEADER_INDEX_PAYLOAD_SIZE = 4;
+const uint8_t PACKET_HEADER_INDEX_PAYLOAD_LENGTH = 4;
 
 enum PacketType : uint8_t {
   connect_request = 0x5a,
@@ -47,6 +47,19 @@ static const uint8_t EMPTY_PACKET[PACKET_MAX_SIZE] = {BYTE_CONTROL,        // Sy
                                                       0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Payload
                                                       0x00};               // Checksum
 
+class PacketProcessor {
+  public:
+    virtual void processGenericPacket(const Packet *packet) const = 0;
+    virtual void processConnectResponsePacket(const ConnectResponsePacket *packet) {};
+    virtual void processExtendedConnectResponsePacket(const ExtendedConnectResponsePacket *packet) {};
+    virtual void processSettingsGetResponsePacket(const SettingsGetResponsePacket *packet) {};
+    virtual void processRoomTempGetResponsePacket(const RoomTempGetResponsePacket *packet) {};
+    virtual void processStatusGetResponsePacket(const StatusGetResponsePacket *packet) {};
+    virtual void processStandbyGetResponsePacket(const StandbyGetResponsePacket *packet) {};
+    virtual void processRemoteTemperatureSetResponsePacket(const RemoteTemperatureSetResponsePacket *packet) {};
+
+};
+
 class Packet {
  public:
   Packet(const uint8_t packet_bytes[], const uint8_t packet_length);  // For reading or copying packets
@@ -61,6 +74,7 @@ class Packet {
   // Returns the first byte of the payload, often used as a command
   uint8_t getCommand() const { return packetBytes[PACKET_HEADER_SIZE + PLINDEX_COMMAND]; };
 
+  virtual void process(PacketProcessor *pp) {pp->processGenericPacket(this);};
  protected:
   static const int PLINDEX_COMMAND = 0;
   static const int PLINDEX_FLAGS = 1;
@@ -96,6 +110,7 @@ class ConnectRequestPacket : public Packet {
 
 class ConnectResponsePacket : public Packet {
   using Packet::Packet;
+  void process(PacketProcessor *pp) override {pp->processConnectResponsePacket(this);};
 };
 
 ////
@@ -112,6 +127,7 @@ class ExtendedConnectRequestPacket : public Packet {
 
 class ExtendedConnectResponsePacket : public Packet {
   using Packet::Packet;
+  void process(PacketProcessor *pp) override {pp->processExtendedConnectResponsePacket(this);};
 };
 
 ////
@@ -133,6 +149,7 @@ class SettingsGetResponsePacket : public Packet {
   static const int PLINDEX_VANE = 7;
   static const int PLINDEX_HVANE = 10;
   using Packet::Packet;
+  void process(PacketProcessor *pp) override {pp->processSettingsGetResponsePacket(this);};
 
  public:
   bool getPower() const { return this->getPayloadByte(PLINDEX_POWER); }
@@ -147,6 +164,7 @@ class RoomTempGetResponsePacket : public Packet {
   static const int PLINDEX_ROOMTEMP_CODE = 3;  // TODO: I don't know why I would use this instead of the one below...
   static const int PLINDEX_ROOMTEMP = 6;
   using Packet::Packet;
+  void process(PacketProcessor *pp) override {pp->processRoomTempGetResponsePacket(this);};
 
  public:
   float getRoomTemp() const { return ((int) this->getPayloadByte(PLINDEX_ROOMTEMP) - 128) / 2.0f; }
@@ -157,6 +175,7 @@ class StatusGetResponsePacket : public Packet {
   static const int PLINDEX_OPERATING = 4;
 
   using Packet::Packet;
+  void process(PacketProcessor *pp) override {pp->processStatusGetResponsePacket(this);};
 
  public:
   uint8_t getCompressorFrequency() const { return this->getPayloadByte(PLINDEX_COMPRESSOR_FREQUENCY); }
@@ -167,6 +186,7 @@ class StandbyGetResponsePacket : public Packet {
   static const int PLINDEX_LOOPSTATUS = 3;
   static const int PLINDEX_STAGE = 4;
   using Packet::Packet;
+  void process(PacketProcessor *pp) override {pp->processStandbyGetResponsePacket(this);};
 
  public:
   uint8_t getLoopStatus() const { return this->getPayloadByte(PLINDEX_LOOPSTATUS); }
@@ -271,6 +291,8 @@ class RemoteTemperatureSetRequestPacket : public Packet {
 class RemoteTemperatureSetResponsePacket : public Packet {
  public:
   RemoteTemperatureSetResponsePacket() : Packet(PacketType::set_response, 16) {}
+  using Packet::Packet;
+  void process(PacketProcessor *pp) override {pp->processRemoteTemperatureSetResponsePacket(this);};
 };
 
 }  // namespace mitsubishi_uart
