@@ -74,7 +74,7 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     // UARTComponent connected to heatpump
     const uart::UARTComponent &hp_uart;
     // UART packet wrapper for heatpump
-    const MUARTBridge hp_bridge;
+    MUARTBridge hp_bridge;
     // Are we connected to the heatpump?
     bool hpConnected = false;
 };
