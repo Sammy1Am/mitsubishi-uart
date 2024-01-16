@@ -24,6 +24,11 @@ Packet::Packet(const uint8_t packet_bytes[], const uint8_t packet_length)
   }
 }
 
+// Creates an empty packet
+Packet::Packet() {
+  // TODO: Is this okay?
+}
+
 uint8_t Packet::calculateChecksum() const {
   uint8_t sum = 0;
   for (int i = 0; i < checksumIndex; i++) {
@@ -47,7 +52,16 @@ Packet &Packet::setPayloadByte(uint8_t payload_byte_index, uint8_t value) {
   return *this;
 }
 
-// TODO: Are there function implementations for packets in the .h file?  Should they be here?
+void Packet::process(PacketProcessor &pp) {pp.processGenericPacket(*this);};
+void ConnectResponsePacket::process(PacketProcessor &pp) {pp.processConnectResponsePacket(*this);};
+void ExtendedConnectResponsePacket::process(PacketProcessor &pp) {pp.processExtendedConnectResponsePacket(*this);};
+void SettingsGetResponsePacket::process(PacketProcessor &pp) {pp.processSettingsGetResponsePacket(*this);};
+void RoomTempGetResponsePacket::process(PacketProcessor &pp) {pp.processRoomTempGetResponsePacket(*this);};
+void StatusGetResponsePacket::process(PacketProcessor &pp) {pp.processStatusGetResponsePacket(*this);};
+void StandbyGetResponsePacket::process(PacketProcessor &pp) {pp.processStandbyGetResponsePacket(*this);};
+void RemoteTemperatureSetResponsePacket::process(PacketProcessor &pp) {pp.processRemoteTemperatureSetResponsePacket(*this);};
+
+// TODO: Are there function implementations for packets in the .h file? (Yes)  Should they be here?
 
 // SettingsSetRequestPacket functions
 

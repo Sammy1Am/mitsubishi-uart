@@ -11,17 +11,17 @@ static void logPacket(const char *direction, const Packet &packet) {
 
 // TODO: Can we move these to the packet files?
 // Static packets for set requests
-const static Packet PACKET_CONNECT_REQ = PacketConnectRequest();
-const static Packet PACKET_SETTINGS_REQ = PacketGetRequest(GetCommand::settings);
-const static Packet PACKET_TEMP_REQ = PacketGetRequest(GetCommand::room_temp);
-const static Packet PACKET_STATUS_REQ = PacketGetRequest(GetCommand::status);
-const static Packet PACKET_STANDBY_REQ = PacketGetRequest(GetCommand::standby);
+const static Packet PACKET_CONNECT_REQ = ConnectRequestPacket();
+const static Packet PACKET_SETTINGS_REQ = GetRequestPacket(GetCommand::gc_settings);
+const static Packet PACKET_TEMP_REQ = GetRequestPacket(GetCommand::gc_room_temp);
+const static Packet PACKET_STATUS_REQ = GetRequestPacket(GetCommand::gc_status);
+const static Packet PACKET_STANDBY_REQ = GetRequestPacket(GetCommand::gc_standby);
 
 ////
 // MitsubishiUART
 ////
 
-MitsubishiUART::MitsubishiUART(uart::UARTComponent &hp_uart_comp) : hp_uart{hp_uart_comp}, hp_bridge{MUARTBridge(hp_uart_comp, *this)} {
+MitsubishiUART::MitsubishiUART(uart::UARTComponent *hp_uart_comp) : hp_uart{*hp_uart_comp}, hp_bridge{MUARTBridge(*hp_uart_comp, *this)} {
 
   /**
    * Climate pushes all its data to Home Assistant immediately when the API connects, this causes
@@ -70,6 +70,11 @@ void MitsubishiUART::update() {
   // TODO: Alternatively, make these just send() methods and do the receving in the loop() method??  Then check and publish just in here
 }
 
+// Called to instruct a change of the climate controls
+void MitsubishiUART::control(const climate::ClimateCall &call) {
+  // TODO: Actually do stuff
+  ESP_LOGI(TAG, "Climate call received");
+};
 
 // Packet Handlers
 void MitsubishiUART::processGenericPacket(const Packet &packet) {

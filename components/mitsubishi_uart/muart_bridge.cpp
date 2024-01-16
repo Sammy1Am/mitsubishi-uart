@@ -5,7 +5,7 @@ namespace mitsubishi_uart {
 
 // TODO: This should probably live somewhere common eventually (maybe in MUARTBridge where it'll inherently know the direction)
 static void logPacket(const char *direction, const Packet &packet) {
-  ESP_LOGD(TAG, "%s [%02x] %s", direction, packet.getPacketType(),
+  ESP_LOGD(BRIDGE_TAG, "%s [%02x] %s", direction, packet.getPacketType(),
            format_hex_pretty(&packet.getBytes()[0], packet.getLength()).c_str());
 }
 
@@ -16,7 +16,7 @@ const void MUARTBridge::sendAndReceive(const Packet &packetToSend) {
   if (optional<Packet> pkt = receivePacket()) {
     pkt.value().process(pkt_processor);
   } else {
-    ESP_LOGW(TAG, "No response to %x type packet received.", packetToSend.getPacketType());
+    ESP_LOGW(BRIDGE_TAG, "No response to %x type packet received.", packetToSend.getPacketType());
   }
 }
 
@@ -59,7 +59,7 @@ const optional<Packet> MUARTBridge::receivePacket() {
   // If the checksum is invalid, don't return this packet
   // TODO: Add an override option here if we're expecting bad checksums
   if (!returnPacket.isChecksumValid()) {
-    ESP_LOGW(TAG, "Invalid packet checksum!");
+    ESP_LOGW(BRIDGE_TAG, "Invalid packet checksum!");
     logPacket("<-HP", returnPacket);
     return nullopt;
   }
@@ -79,16 +79,16 @@ const Packet MUARTBridge::deserializePacket(uint8_t packetBytes[], uint8_t lengt
   case PacketType::get_response :
     // The first byte of the payload is the "command"
     switch(packetBytes[PACKET_HEADER_SIZE + 1]) {
-      case GetCommand::room_temp :
+      case GetCommand::gc_room_temp :
         return RoomTempGetResponsePacket(packetBytes,length);
         break;
-      case GetCommand::settings :
+      case GetCommand::gc_settings :
         return SettingsGetResponsePacket(packetBytes,length);
         break;
-      case GetCommand::standby :
+      case GetCommand::gc_standby :
         return StandbyGetResponsePacket(packetBytes,length);
         break;
-      case GetCommand::status :
+      case GetCommand::gc_status :
         return StatusGetResponsePacket(packetBytes,length);
         break;
       default:
@@ -98,7 +98,7 @@ const Packet MUARTBridge::deserializePacket(uint8_t packetBytes[], uint8_t lengt
   case PacketType::set_response :
     // The first byte of the payload is the "command"
     switch(packetBytes[PACKET_HEADER_SIZE + 1]) {
-      case SetCommand::remote_temperature :
+      case SetCommand::sc_remote_temperature :
         return RemoteTemperatureSetResponsePacket(packetBytes,length);
         break;
       default:

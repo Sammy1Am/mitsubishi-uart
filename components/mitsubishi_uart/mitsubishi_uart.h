@@ -24,7 +24,7 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   /**
    * Create a new MitsubishiUART with the specified esphome::uart::UARTComponent.
    */
-  MitsubishiUART(uart::UARTComponent &hp_uart_comp);
+  MitsubishiUART(uart::UARTComponent *hp_uart_comp);
 
   // Used to restore state of previous MUART-specific settings (like temperature source or pass-thru mode)
   // Most other climate-state is preserved by the heatpump itself and will be retrieved after connection
@@ -47,14 +47,14 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   void control(const climate::ClimateCall &call) override;
 
   protected:
-    void processGenericPacket(const Packet &packet) {};
-    void processConnectResponsePacket(const ConnectResponsePacket &packet) {};
-    void processExtendedConnectResponsePacket(const ExtendedConnectResponsePacket &packet) {};
-    void processSettingsGetResponsePacket(const SettingsGetResponsePacket &packet) {};
-    void processRoomTempGetResponsePacket(const RoomTempGetResponsePacket &packet) {};
-    void processStatusGetResponsePacket(const StatusGetResponsePacket &packet) {};
-    void processStandbyGetResponsePacket(const StandbyGetResponsePacket &packet) {};
-    void processRemoteTemperatureSetResponsePacket(const RemoteTemperatureSetResponsePacket &packet) {};
+    void processGenericPacket(const Packet &packet);
+    void processConnectResponsePacket(const ConnectResponsePacket &packet);
+    void processExtendedConnectResponsePacket(const ExtendedConnectResponsePacket &packet);
+    void processSettingsGetResponsePacket(const SettingsGetResponsePacket &packet);
+    void processRoomTempGetResponsePacket(const RoomTempGetResponsePacket &packet);
+    void processStatusGetResponsePacket(const StatusGetResponsePacket &packet);
+    void processStandbyGetResponsePacket(const StandbyGetResponsePacket &packet);
+    void processRemoteTemperatureSetResponsePacket(const RemoteTemperatureSetResponsePacket &packet);
 
   private:
     // Default climate_traits for MUART

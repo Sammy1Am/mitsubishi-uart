@@ -28,16 +28,16 @@ enum PacketType : uint8_t {
 
 // Used to specify
 enum GetCommand : uint8_t {
-  settings = 0x02,
-  room_temp = 0x03,
-  four = 0x04,
-  status = 0x06,
-  standby = 0x09
+  gc_settings = 0x02,
+  gc_room_temp = 0x03,
+  gc_four = 0x04,
+  gc_status = 0x06,
+  gc_standby = 0x09
 };
 
 enum SetCommand : uint8_t {
-  settings = 0x01,
-  remote_temperature = 0x07
+  sc_settings = 0x01,
+  sc_remote_temperature = 0x07
 };
 
 static const uint8_t EMPTY_PACKET[PACKET_MAX_SIZE] = {BYTE_CONTROL,        // Sync
@@ -47,22 +47,13 @@ static const uint8_t EMPTY_PACKET[PACKET_MAX_SIZE] = {BYTE_CONTROL,        // Sy
                                                       0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Payload
                                                       0x00};               // Checksum
 
-class PacketProcessor {
-  public:
-    virtual void processGenericPacket(const Packet &packet) const = 0;
-    virtual void processConnectResponsePacket(const ConnectResponsePacket &packet) {};
-    virtual void processExtendedConnectResponsePacket(const ExtendedConnectResponsePacket &packet) {};
-    virtual void processSettingsGetResponsePacket(const SettingsGetResponsePacket &packet) {};
-    virtual void processRoomTempGetResponsePacket(const RoomTempGetResponsePacket &packet) {};
-    virtual void processStatusGetResponsePacket(const StatusGetResponsePacket &packet) {};
-    virtual void processStandbyGetResponsePacket(const StandbyGetResponsePacket &packet) {};
-    virtual void processRemoteTemperatureSetResponsePacket(const RemoteTemperatureSetResponsePacket &packet) {};
-
-};
+class PacketProcessor;
 
 class Packet {
  public:
   Packet(const uint8_t packet_bytes[], const uint8_t packet_length);  // For reading or copying packets
+  // TODO: Can I hide this constructor except from optional?
+  Packet(); // For optional<Packet> construction
   virtual ~Packet() {}
   const uint8_t getLength() const { return length; };
   const uint8_t *getBytes() const { return packetBytes; };  // Primarily for sending packets
@@ -74,7 +65,7 @@ class Packet {
   // Returns the first byte of the payload, often used as a command
   uint8_t getCommand() const { return packetBytes[PACKET_HEADER_SIZE + PLINDEX_COMMAND]; };
 
-  virtual void process(PacketProcessor &pp) {pp.processGenericPacket(*this);};
+  virtual void process(PacketProcessor &pp);
  protected:
   static const int PLINDEX_COMMAND = 0;
   static const int PLINDEX_FLAGS = 1;
@@ -110,7 +101,7 @@ class ConnectRequestPacket : public Packet {
 
 class ConnectResponsePacket : public Packet {
   using Packet::Packet;
-  void process(PacketProcessor &pp) override {pp.processConnectResponsePacket(*this);};
+  void process(PacketProcessor &pp) override;
 };
 
 ////
@@ -127,7 +118,7 @@ class ExtendedConnectRequestPacket : public Packet {
 
 class ExtendedConnectResponsePacket : public Packet {
   using Packet::Packet;
-  void process(PacketProcessor &pp) override {pp.processExtendedConnectResponsePacket(*this);};
+  void process(PacketProcessor &pp) override;
 };
 
 ////
@@ -149,7 +140,7 @@ class SettingsGetResponsePacket : public Packet {
   static const int PLINDEX_VANE = 7;
   static const int PLINDEX_HVANE = 10;
   using Packet::Packet;
-  void process(PacketProcessor &pp) override {pp.processSettingsGetResponsePacket(*this);};
+  void process(PacketProcessor &pp) override;
 
  public:
   bool getPower() const { return this->getPayloadByte(PLINDEX_POWER); }
@@ -164,7 +155,7 @@ class RoomTempGetResponsePacket : public Packet {
   static const int PLINDEX_ROOMTEMP_CODE = 3;  // TODO: I don't know why I would use this instead of the one below...
   static const int PLINDEX_ROOMTEMP = 6;
   using Packet::Packet;
-  void process(PacketProcessor &pp) override {pp.processRoomTempGetResponsePacket(*this);};
+  void process(PacketProcessor &pp) override;
 
  public:
   float getRoomTemp() const { return ((int) this->getPayloadByte(PLINDEX_ROOMTEMP) - 128) / 2.0f; }
@@ -175,7 +166,7 @@ class StatusGetResponsePacket : public Packet {
   static const int PLINDEX_OPERATING = 4;
 
   using Packet::Packet;
-  void process(PacketProcessor &pp) override {pp.processStatusGetResponsePacket(*this);};
+  void process(PacketProcessor &pp) override;
 
  public:
   uint8_t getCompressorFrequency() const { return this->getPayloadByte(PLINDEX_COMPRESSOR_FREQUENCY); }
@@ -186,7 +177,7 @@ class StandbyGetResponsePacket : public Packet {
   static const int PLINDEX_LOOPSTATUS = 3;
   static const int PLINDEX_STAGE = 4;
   using Packet::Packet;
-  void process(PacketProcessor &pp) override {pp.processStandbyGetResponsePacket(*this);};
+  void process(PacketProcessor &pp) override;
 
  public:
   uint8_t getLoopStatus() const { return this->getPayloadByte(PLINDEX_LOOPSTATUS); }
@@ -257,7 +248,7 @@ class SettingsSetRequestPacket : public Packet {
     HV_SWING = 0x0c,
   };
 
-  SettingsSetRequestPacket() : Packet(PacketType::set_request, 16) { setPayloadByte(0, SetCommand::settings); }
+  SettingsSetRequestPacket() : Packet(PacketType::set_request, 16) { setPayloadByte(0, SetCommand::sc_settings); }
   using Packet::Packet;
 
   SettingsSetRequestPacket &setPower(const bool isOn);
@@ -277,7 +268,7 @@ class RemoteTemperatureSetRequestPacket : public Packet {
 
  public:
   RemoteTemperatureSetRequestPacket() : Packet(PacketType::set_request, 4) {
-    setPayloadByte(0, SetCommand::remote_temperature);
+    setPayloadByte(0, SetCommand::sc_remote_temperature);
   }
   using Packet::Packet;
 
@@ -292,7 +283,20 @@ class RemoteTemperatureSetResponsePacket : public Packet {
  public:
   RemoteTemperatureSetResponsePacket() : Packet(PacketType::set_response, 16) {}
   using Packet::Packet;
-  void process(PacketProcessor &pp) override {pp.processRemoteTemperatureSetResponsePacket(*this);};
+  void process(PacketProcessor &pp) override;
+};
+
+class PacketProcessor {
+  public:
+    virtual void processGenericPacket(const Packet &packet) {};
+    virtual void processConnectResponsePacket(const ConnectResponsePacket &packet) {};
+    virtual void processExtendedConnectResponsePacket(const ExtendedConnectResponsePacket &packet) {};
+    virtual void processSettingsGetResponsePacket(const SettingsGetResponsePacket &packet) {};
+    virtual void processRoomTempGetResponsePacket(const RoomTempGetResponsePacket &packet) {};
+    virtual void processStatusGetResponsePacket(const StatusGetResponsePacket &packet) {};
+    virtual void processStandbyGetResponsePacket(const StandbyGetResponsePacket &packet) {};
+    virtual void processRemoteTemperatureSetResponsePacket(const RemoteTemperatureSetResponsePacket &packet) {};
+
 };
 
 }  // namespace mitsubishi_uart

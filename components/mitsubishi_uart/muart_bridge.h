@@ -6,7 +6,7 @@
 namespace esphome {
 namespace mitsubishi_uart {
 
-static const char *TAG = "muart_bridge";
+static const char *BRIDGE_TAG = "muart_bridge";
 
 // A UARTComponent wrapper to send and receieve packets
 class MUARTBridge  {
