@@ -78,7 +78,7 @@ void MitsubishiUART::control(const climate::ClimateCall &call) {
 
 // Packet Handlers
 void MitsubishiUART::processGenericPacket(const Packet &packet) {
-  ESP_LOGI(TAG, "Unhandled packet type %x received.", packet.getPacketType());
+  ESP_LOGI(TAG, "Generic unhandled packet type %x received.", packet.getPacketType());
   logPacket("<-HP", packet);
 };
 
@@ -125,19 +125,19 @@ void MitsubishiUART::processSettingsGetResponsePacket(const SettingsGetResponseP
   logPacket("<-HP", packet);
 };
 void MitsubishiUART::processRoomTempGetResponsePacket(const RoomTempGetResponsePacket &packet) {
-  ESP_LOGI(TAG, "Unhandled packet type %x received.", packet.getPacketType());
+  ESP_LOGI(TAG, "Unhandled packet RoomTempGetResponsePacket received.");
   logPacket("<-HP", packet);
 };
 void MitsubishiUART::processStatusGetResponsePacket(const StatusGetResponsePacket &packet) {
-  ESP_LOGI(TAG, "Unhandled packet type %x received.", packet.getPacketType());
+  ESP_LOGI(TAG, "Unhandled packet StatusGetResponsePacket received.");
   logPacket("<-HP", packet);
 };
 void MitsubishiUART::processStandbyGetResponsePacket(const StandbyGetResponsePacket &packet) {
-  ESP_LOGI(TAG, "Unhandled packet type %x received.", packet.getPacketType());
+  ESP_LOGI(TAG, "Unhandled packet StandbyGetResponsePacket received.");
   logPacket("<-HP", packet);
 };
 void MitsubishiUART::processRemoteTemperatureSetResponsePacket(const RemoteTemperatureSetResponsePacket &packet) {
-  ESP_LOGI(TAG, "Unhandled packet type %x received.", packet.getPacketType());
+  ESP_LOGI(TAG, "Unhandled packet RemoteTemperatureSetResponsePacket received.");
   logPacket("<-HP", packet);
 };
 

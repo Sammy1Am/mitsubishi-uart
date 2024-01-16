@@ -14,7 +14,7 @@ MUARTBridge::MUARTBridge(uart::UARTComponent &uart_component, PacketProcessor &p
 const void MUARTBridge::sendAndReceive(const Packet &packetToSend) {
   sendPacket(packetToSend);
   if (optional<Packet> pkt = receivePacket()) {
-    pkt.value().process(pkt_processor);
+    processPacket(pkt.value());
   } else {
     ESP_LOGW(BRIDGE_TAG, "No response to %x type packet received.", packetToSend.getPacketType());
   }
@@ -26,7 +26,7 @@ const void MUARTBridge::sendPacket(const Packet &packetToSend) {
 
 const void MUARTBridge::receivePackets() {
   while (optional<Packet> pkt = receivePacket()) {
-    pkt.value().process(pkt_processor);
+    processPacket(pkt.value());
   }
 }
 
@@ -37,6 +37,7 @@ const optional<Packet> MUARTBridge::receivePacket() {
   // Drain UART until we see a control byte (times out after 100ms in UARTComponent)
   while (uart_comp.read_byte(&packetBytes[0])) {
     if (packetBytes[0] == BYTE_CONTROL) break;
+    yield();
     // TODO: If the serial is all garbage, this may never stop-- we should have our own timeout
   }
 
@@ -53,8 +54,11 @@ const optional<Packet> MUARTBridge::receivePacket() {
   uint8_t payloadSize = packetBytes[PACKET_HEADER_INDEX_PAYLOAD_LENGTH];
   uart_comp.read_array(&packetBytes[PACKET_HEADER_SIZE], payloadSize + 1);
 
-  // TODO: Somewhere we should check the checksum.  Is it here?  Is it in the processor??
-  Packet returnPacket = deserializePacket(packetBytes, PACKET_HEADER_SIZE + payloadSize + 1);
+  return deserializePacket(packetBytes, PACKET_HEADER_SIZE + payloadSize + 1);
+}
+
+const optional<Packet> MUARTBridge::deserializePacket(uint8_t packetBytes[], uint8_t length) {
+  Packet returnPacket = Packet(packetBytes, length);
 
   // If the checksum is invalid, don't return this packet
   // TODO: Add an override option here if we're expecting bad checksums
@@ -67,47 +71,46 @@ const optional<Packet> MUARTBridge::receivePacket() {
   return returnPacket;
 }
 
-const Packet MUARTBridge::deserializePacket(uint8_t packetBytes[], uint8_t length) {
-  switch (packetBytes[PACKET_HEADER_INDEX_PACKET_TYPE])
+// TODO: Any way to dynamic_cast?
+const void MUARTBridge::processPacket(Packet &packet) {
+  switch (packet.getPacketType())
   {
   case PacketType::connect_response :
-    return ConnectResponsePacket(packetBytes,length);
+    pkt_processor.processConnectResponsePacket(static_cast<ConnectResponsePacket&>(packet));
     break;
   case PacketType::extended_connect_response :
-    return ConnectResponsePacket(packetBytes,length);
+    pkt_processor.processExtendedConnectResponsePacket(static_cast<ExtendedConnectResponsePacket&>(packet));
     break;
   case PacketType::get_response :
-    // The first byte of the payload is the "command"
-    switch(packetBytes[PACKET_HEADER_SIZE + 1]) {
+    switch(packet.getCommand()) {
       case GetCommand::gc_room_temp :
-        return RoomTempGetResponsePacket(packetBytes,length);
+       pkt_processor.processRoomTempGetResponsePacket(static_cast<RoomTempGetResponsePacket&>(packet));
         break;
       case GetCommand::gc_settings :
-        return SettingsGetResponsePacket(packetBytes,length);
+       pkt_processor.processSettingsGetResponsePacket(static_cast<SettingsGetResponsePacket&>(packet));
         break;
       case GetCommand::gc_standby :
-        return StandbyGetResponsePacket(packetBytes,length);
+       pkt_processor.processStandbyGetResponsePacket(static_cast<StandbyGetResponsePacket&>(packet));
         break;
       case GetCommand::gc_status :
-        return StatusGetResponsePacket(packetBytes,length);
+        pkt_processor.processStatusGetResponsePacket(static_cast<StatusGetResponsePacket&>(packet));
         break;
       default:
-        return Packet(packetBytes,length);
+        pkt_processor.processGenericPacket(packet);
     }
     break;
   case PacketType::set_response :
-    // The first byte of the payload is the "command"
-    switch(packetBytes[PACKET_HEADER_SIZE + 1]) {
+    switch(packet.getCommand()) {
       case SetCommand::sc_remote_temperature :
-        return RemoteTemperatureSetResponsePacket(packetBytes,length);
+        pkt_processor.processRemoteTemperatureSetResponsePacket(static_cast<RemoteTemperatureSetResponsePacket&>(packet));
         break;
       default:
-        return Packet(packetBytes,length);
+        pkt_processor.processGenericPacket(packet);
     }
     break;
 
   default:
-    return Packet(packetBytes,length);
+    pkt_processor.processGenericPacket(packet);
   }
 }
 

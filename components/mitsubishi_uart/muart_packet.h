@@ -65,7 +65,6 @@ class Packet {
   // Returns the first byte of the payload, often used as a command
   uint8_t getCommand() const { return packetBytes[PACKET_HEADER_SIZE + PLINDEX_COMMAND]; };
 
-  virtual void process(PacketProcessor &pp);
  protected:
   static const int PLINDEX_COMMAND = 0;
   static const int PLINDEX_FLAGS = 1;
@@ -101,7 +100,6 @@ class ConnectRequestPacket : public Packet {
 
 class ConnectResponsePacket : public Packet {
   using Packet::Packet;
-  void process(PacketProcessor &pp) override;
 };
 
 ////
@@ -118,7 +116,6 @@ class ExtendedConnectRequestPacket : public Packet {
 
 class ExtendedConnectResponsePacket : public Packet {
   using Packet::Packet;
-  void process(PacketProcessor &pp) override;
 };
 
 ////
@@ -140,7 +137,6 @@ class SettingsGetResponsePacket : public Packet {
   static const int PLINDEX_VANE = 7;
   static const int PLINDEX_HVANE = 10;
   using Packet::Packet;
-  void process(PacketProcessor &pp) override;
 
  public:
   bool getPower() const { return this->getPayloadByte(PLINDEX_POWER); }
@@ -155,7 +151,6 @@ class RoomTempGetResponsePacket : public Packet {
   static const int PLINDEX_ROOMTEMP_CODE = 3;  // TODO: I don't know why I would use this instead of the one below...
   static const int PLINDEX_ROOMTEMP = 6;
   using Packet::Packet;
-  void process(PacketProcessor &pp) override;
 
  public:
   float getRoomTemp() const { return ((int) this->getPayloadByte(PLINDEX_ROOMTEMP) - 128) / 2.0f; }
@@ -166,7 +161,7 @@ class StatusGetResponsePacket : public Packet {
   static const int PLINDEX_OPERATING = 4;
 
   using Packet::Packet;
-  void process(PacketProcessor &pp) override;
+
 
  public:
   uint8_t getCompressorFrequency() const { return this->getPayloadByte(PLINDEX_COMPRESSOR_FREQUENCY); }
@@ -177,7 +172,6 @@ class StandbyGetResponsePacket : public Packet {
   static const int PLINDEX_LOOPSTATUS = 3;
   static const int PLINDEX_STAGE = 4;
   using Packet::Packet;
-  void process(PacketProcessor &pp) override;
 
  public:
   uint8_t getLoopStatus() const { return this->getPayloadByte(PLINDEX_LOOPSTATUS); }
@@ -280,10 +274,9 @@ class RemoteTemperatureSetRequestPacket : public Packet {
 };
 
 class RemoteTemperatureSetResponsePacket : public Packet {
+  using Packet::Packet;
  public:
   RemoteTemperatureSetResponsePacket() : Packet(PacketType::set_response, 16) {}
-  using Packet::Packet;
-  void process(PacketProcessor &pp) override;
 };
 
 class PacketProcessor {

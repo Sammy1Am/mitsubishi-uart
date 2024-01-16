@@ -24,7 +24,8 @@ class MUARTBridge  {
 
   private:
     const optional<Packet> receivePacket();
-    const Packet deserializePacket(uint8_t packetBytes[], uint8_t length);
+    const optional<Packet> deserializePacket(uint8_t packetBytes[], uint8_t length);
+    const void processPacket(Packet &packet);
 
     uart::UARTComponent &uart_comp;
     PacketProcessor &pkt_processor;

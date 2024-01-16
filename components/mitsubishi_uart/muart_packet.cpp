@@ -52,15 +52,6 @@ Packet &Packet::setPayloadByte(uint8_t payload_byte_index, uint8_t value) {
   return *this;
 }
 
-void Packet::process(PacketProcessor &pp) {pp.processGenericPacket(*this);};
-void ConnectResponsePacket::process(PacketProcessor &pp) {pp.processConnectResponsePacket(*this);};
-void ExtendedConnectResponsePacket::process(PacketProcessor &pp) {pp.processExtendedConnectResponsePacket(*this);};
-void SettingsGetResponsePacket::process(PacketProcessor &pp) {pp.processSettingsGetResponsePacket(*this);};
-void RoomTempGetResponsePacket::process(PacketProcessor &pp) {pp.processRoomTempGetResponsePacket(*this);};
-void StatusGetResponsePacket::process(PacketProcessor &pp) {pp.processStatusGetResponsePacket(*this);};
-void StandbyGetResponsePacket::process(PacketProcessor &pp) {pp.processStandbyGetResponsePacket(*this);};
-void RemoteTemperatureSetResponsePacket::process(PacketProcessor &pp) {pp.processRemoteTemperatureSetResponsePacket(*this);};
-
 // TODO: Are there function implementations for packets in the .h file? (Yes)  Should they be here?
 
 // SettingsSetRequestPacket functions
