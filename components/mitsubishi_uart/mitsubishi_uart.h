@@ -6,6 +6,7 @@
 #include "esphome/components/select/select.h"
 #include "esphome/components/sensor/sensor.h"
 #include "muart_packet.h"
+#include "muart_bridge.h"
 
 namespace esphome {
 namespace mitsubishi_uart {
@@ -23,16 +24,7 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   /**
    * Create a new MitsubishiUART with the specified esphome::uart::UARTComponent.
    */
-  MitsubishiUART(uart::UARTComponent *hp_uart_comp) {
-    /**
-     * Climate pushes all its data to Home Assistant immediately when the API connects, this causes
-     * the default 0 to be sent as temperatures, but since this is a valid value (0 deg C), it
-     * can cause confusion and mess with graphs when looking at the state in HA.  Setting this to
-     * NAN gets HA to treat this value as "unavailable" until we have a real value to publish.
-     */
-    this->target_temperature = NAN;
-    this->current_temperature = NAN;
-  }
+  MitsubishiUART(uart::UARTComponent &hp_uart_comp);
 
   // Used to restore state of previous MUART-specific settings (like temperature source or pass-thru mode)
   // Most other climate-state is preserved by the heatpump itself and will be retrieved after connection
@@ -55,7 +47,14 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   void control(const climate::ClimateCall &call) override;
 
   protected:
-    void processConnectResponsePacket(const ConnectResponsePacket packet);
+    void processGenericPacket(const Packet &packet) {};
+    void processConnectResponsePacket(const ConnectResponsePacket &packet) {};
+    void processExtendedConnectResponsePacket(const ExtendedConnectResponsePacket &packet) {};
+    void processSettingsGetResponsePacket(const SettingsGetResponsePacket &packet) {};
+    void processRoomTempGetResponsePacket(const RoomTempGetResponsePacket &packet) {};
+    void processStatusGetResponsePacket(const StatusGetResponsePacket &packet) {};
+    void processStandbyGetResponsePacket(const StandbyGetResponsePacket &packet) {};
+    void processRemoteTemperatureSetResponsePacket(const RemoteTemperatureSetResponsePacket &packet) {};
 
   private:
     // Default climate_traits for MUART
@@ -73,7 +72,11 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     }();
 
     // UARTComponent connected to heatpump
-    uart::UARTComponent *hp_uart;
+    const uart::UARTComponent &hp_uart;
+    // UART packet wrapper for heatpump
+    const MUARTBridge hp_bridge;
+    // Are we connected to the heatpump?
+    bool hpConnected = false;
 };
 
 }  // namespace mitsubishi_uart

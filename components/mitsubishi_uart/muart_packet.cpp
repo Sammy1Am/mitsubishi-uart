@@ -47,6 +47,8 @@ Packet &Packet::setPayloadByte(uint8_t payload_byte_index, uint8_t value) {
   return *this;
 }
 
+// TODO: Are there function implementations for packets in the .h file?  Should they be here?
+
 // SettingsSetRequestPacket functions
 
 void SettingsSetRequestPacket::addFlag(const SETTING_FLAG flagToAdd) {

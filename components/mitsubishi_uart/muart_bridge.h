@@ -11,17 +11,17 @@ static const char *TAG = "muart_bridge";
 // A UARTComponent wrapper to send and receieve packets
 class MUARTBridge  {
   public:
-    MUARTBridge(uart::UARTComponent *hp_uart_comp, PacketProcessor *packet_processor);
+    MUARTBridge(uart::UARTComponent &uart_component, PacketProcessor &packet_processor);
 
     // Sends a packet, waits for a response, and processes it using the specified PacketProcessor
-    void sendAndReceive(Packet *packetToSend);
-    void sendPacket(Packet *packetToSend);
+    void sendAndReceive(Packet &packetToSend);
+    void sendPacket(Packet &packetToSend);
     Packet receivePacket();
   private:
     Packet deserializePacket(uint8_t packetBytes[], uint8_t length);
 
-    uart::UARTComponent *hp_uart;
-    PacketProcessor *pkt_processor;
+    uart::UARTComponent &uart_comp;
+    PacketProcessor &pkt_processor;
 };
 
 }  // namespace mitsubishi_uart
