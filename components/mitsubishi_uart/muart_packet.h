@@ -65,6 +65,10 @@ class Packet {
   // Returns the first byte of the payload, often used as a command
   uint8_t getCommand() const { return packetBytes[PACKET_HEADER_SIZE + PLINDEX_COMMAND]; };
 
+  // Is a response packet expected when this packet is sent.  Defaults to true since
+  // most requests receive a response.
+  const bool isResponseExpected() {return responseExpected;};
+
  protected:
   static const int PLINDEX_COMMAND = 0;
   static const int PLINDEX_FLAGS = 1;
@@ -80,6 +84,8 @@ class Packet {
   uint8_t length;
   uint8_t checksumIndex;
   uint8_t packetBytes[PACKET_MAX_SIZE]{};
+  bool responseExpected = true;
+
   uint8_t calculateChecksum() const;
   Packet &updateChecksum();
 };

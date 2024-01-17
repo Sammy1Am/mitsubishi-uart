@@ -39,35 +39,40 @@ void MitsubishiUART::setup() {
 
 }
 
-// Previously used for receiving and forwarding UART-- depending on buffer-size, this functionality might be
-// better suited in update()
-// On the otherhand, the thermostat gets grumpy if it has to wait too long, and with "passthru" as an option
-// we may not want to be proxying all thermostat calls
+/* Used for receiving and acting on incoming packets as soon as they're available.
+  Because packet processing happens as part of the receiving process, packet processing
+  should not block for very long (e.g. no publishing inside the packet processing)
+*/
 void MitsubishiUART::loop() {
-
+  // Loop bridge to handle sending and receiving packets
+  hp_bridge.loop();
 }
 
-// Called periodically as PollingComponent (used for UART sending periodically)
-// Possibly used for receiving and forwarding from thermostat (if latency isn't too bad / buffers hold up)
+/* Called periodically as PollingComponent; used to send packets to connect or request updates.
+
+Possible TODO: If we only publish during updates, since data is received during loop, updates will always
+be about `update_interval` late from their actual time.  Generally the update interval should be low enough
+(default is 5seconds) this won't pose a practical problem.
+*/
 void MitsubishiUART::update() {
 
-  // Receieve and process any packets that are waiting just in case?
-  hp_bridge.receivePackets();
-
-  if (!hpConnected) {
-    hp_bridge.sendAndReceive(PACKET_CONNECT_REQ);
-    if (!hpConnected) {
-      ESP_LOGW(TAG, "Connecting failed...");
-      return;
-    }
+  // TODO: Temporarily wait 5 seconds on startup to help with viewing logs
+  if (millis() < 5000) {
+    return;
   }
 
-  // TODO: For now, just check on temp
-  hp_bridge.sendAndReceive(PACKET_SETTINGS_REQ);
-  // TODO: maybe yield(); in between requests?
+  // If we're not yet connected, send off a connection request (we'll check again next update)
+  if (!hpConnected) {
+    hp_bridge.sendPacket(PACKET_CONNECT_REQ);
+    return;
+  }
+
+  hp_bridge.sendPacket(PACKET_SETTINGS_REQ); // Needs to be done before status packet for mode logic to work
+  hp_bridge.sendPacket(PACKET_STANDBY_REQ);
+  hp_bridge.sendPacket(PACKET_STATUS_REQ);
+  hp_bridge.sendPacket(PACKET_TEMP_REQ);
 
   // TODO: Check and do publishing just once here, rather than for each update.
-  // TODO: Alternatively, make these just send() methods and do the receving in the loop() method??  Then check and publish just in here
 }
 
 // Called to instruct a change of the climate controls
@@ -95,6 +100,7 @@ void MitsubishiUART::processExtendedConnectResponsePacket(const ExtendedConnectR
 };
 
 void MitsubishiUART::processSettingsGetResponsePacket(const SettingsGetResponsePacket &packet) {
+  ESP_LOGD(TAG, "Processing settings packet...");
   if (packet.getPower()) {
     switch (packet.getMode()) {
       case 0x01:
@@ -120,9 +126,6 @@ void MitsubishiUART::processSettingsGetResponsePacket(const SettingsGetResponseP
   }
 
   target_temperature = packet.getTargetTemp();
-
-  ESP_LOGI(TAG, "Settings packet");
-  logPacket("<-HP", packet);
 };
 void MitsubishiUART::processRoomTempGetResponsePacket(const RoomTempGetResponsePacket &packet) {
   ESP_LOGI(TAG, "Unhandled packet RoomTempGetResponsePacket received.");
