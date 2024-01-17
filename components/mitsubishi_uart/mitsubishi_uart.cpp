@@ -13,7 +13,7 @@ static void logPacket(const char *direction, const Packet &packet) {
 // Static packets for set requests
 const static Packet PACKET_CONNECT_REQ = ConnectRequestPacket();
 const static Packet PACKET_SETTINGS_REQ = GetRequestPacket(GetCommand::gc_settings);
-const static Packet PACKET_TEMP_REQ = GetRequestPacket(GetCommand::gc_room_temp);
+const static Packet PACKET_TEMP_REQ = GetRequestPacket(GetCommand::gc_current_temp);
 const static Packet PACKET_STATUS_REQ = GetRequestPacket(GetCommand::gc_status);
 const static Packet PACKET_STANDBY_REQ = GetRequestPacket(GetCommand::gc_standby);
 
@@ -142,10 +142,10 @@ void MitsubishiUART::processSettingsGetResponsePacket(const SettingsGetResponseP
   publishOnUpdate |= (old_target_temperature != target_temperature);
 };
 
-void MitsubishiUART::processRoomTempGetResponsePacket(const RoomTempGetResponsePacket &packet) {
+void MitsubishiUART::processCurrentTempGetResponsePacket(const CurrentTempGetResponsePacket &packet) {
   // This will be the same as the remote temperature if we're using a remote sensor, otherwise the internal temp
   const float old_current_temperature = current_temperature;
-  current_temperature = packet.getRoomTemp();
+  current_temperature = packet.getCurrentTemp();
   publishOnUpdate |= (old_current_temperature != current_temperature);
 };
 

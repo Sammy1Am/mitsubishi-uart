@@ -10,7 +10,7 @@ from esphome.core import coroutine
 AUTO_LOAD = ["climate", "select", "sensor"]
 DEPENDENCIES = ["uart", "climate"]
 
-CONF_HP_UART = "hp_uart"
+CONF_HP_UART = "heatpump_uart"
 
 DEFAULT_POLLING_INTERVAL = "5s"
 

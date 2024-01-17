@@ -107,8 +107,8 @@ const void MUARTBridge::processPacket(Packet &packet) {
     break;
   case PacketType::get_response :
     switch(packet.getCommand()) {
-      case GetCommand::gc_room_temp :
-       pkt_processor.processRoomTempGetResponsePacket(static_cast<RoomTempGetResponsePacket&>(packet));
+      case GetCommand::gc_current_temp :
+       pkt_processor.processCurrentTempGetResponsePacket(static_cast<CurrentTempGetResponsePacket&>(packet));
         break;
       case GetCommand::gc_settings :
        pkt_processor.processSettingsGetResponsePacket(static_cast<SettingsGetResponsePacket&>(packet));

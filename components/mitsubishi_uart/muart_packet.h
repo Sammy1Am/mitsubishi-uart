@@ -29,7 +29,7 @@ enum PacketType : uint8_t {
 // Used to specify
 enum GetCommand : uint8_t {
   gc_settings = 0x02,
-  gc_room_temp = 0x03,
+  gc_current_temp = 0x03,
   gc_four = 0x04,
   gc_status = 0x06,
   gc_standby = 0x09
@@ -153,13 +153,13 @@ class SettingsGetResponsePacket : public Packet {
   uint8_t getHorizontalVane() const { return this->getPayloadByte(PLINDEX_HVANE); }
 };
 
-class RoomTempGetResponsePacket : public Packet {
-  static const int PLINDEX_ROOMTEMP_CODE = 3;  // TODO: I don't know why I would use this instead of the one below...
-  static const int PLINDEX_ROOMTEMP = 6;
+class CurrentTempGetResponsePacket : public Packet {
+  static const int PLINDEX_CURRENTTEMP_CODE = 3;  // TODO: I don't know why I would use this instead of the one below...
+  static const int PLINDEX_CURRENTTEMP = 6;
   using Packet::Packet;
 
  public:
-  float getRoomTemp() const { return ((int) this->getPayloadByte(PLINDEX_ROOMTEMP) - 128) / 2.0f; }
+  float getCurrentTemp() const { return ((int) this->getPayloadByte(PLINDEX_CURRENTTEMP) - 128) / 2.0f; }
 };
 
 class StatusGetResponsePacket : public Packet {
@@ -291,7 +291,7 @@ class PacketProcessor {
     virtual void processConnectResponsePacket(const ConnectResponsePacket &packet) {};
     virtual void processExtendedConnectResponsePacket(const ExtendedConnectResponsePacket &packet) {};
     virtual void processSettingsGetResponsePacket(const SettingsGetResponsePacket &packet) {};
-    virtual void processRoomTempGetResponsePacket(const RoomTempGetResponsePacket &packet) {};
+    virtual void processCurrentTempGetResponsePacket(const CurrentTempGetResponsePacket &packet) {};
     virtual void processStatusGetResponsePacket(const StatusGetResponsePacket &packet) {};
     virtual void processStandbyGetResponsePacket(const StandbyGetResponsePacket &packet) {};
     virtual void processRemoteTemperatureSetResponsePacket(const RemoteTemperatureSetResponsePacket &packet) {};
