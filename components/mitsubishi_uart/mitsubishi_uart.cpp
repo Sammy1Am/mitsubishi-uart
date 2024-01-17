@@ -70,6 +70,16 @@ void MitsubishiUART::update() {
   // Before requesting additional updates, publish any changes waiting from packets received
   if (publishOnUpdate){
     publish_state();
+
+    // Check sensors and publish if needed.
+    // This is a bit of a hack to avoid needing to publish sensor data immediately as packets arrive.
+    // Instead, packet data is written directly to `raw_state` (which doesn't update `state`).  If they
+    // differ, calling `publish_state` will update `state` so that it won't be published later
+    if (current_temperature_sensor && (current_temperature_sensor->raw_state != current_temperature_sensor->state)) {
+      ESP_LOGI(TAG, "Current temp differs, do publish");
+      current_temperature_sensor->publish_state(current_temperature_sensor->raw_state);
+    }
+
     publishOnUpdate = false;
   }
 
@@ -146,6 +156,11 @@ void MitsubishiUART::processCurrentTempGetResponsePacket(const CurrentTempGetRes
   // This will be the same as the remote temperature if we're using a remote sensor, otherwise the internal temp
   const float old_current_temperature = current_temperature;
   current_temperature = packet.getCurrentTemp();
+
+  if (current_temperature_sensor) {
+    current_temperature_sensor->raw_state = current_temperature;
+  }
+
   publishOnUpdate |= (old_current_temperature != current_temperature);
 };
 

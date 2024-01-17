@@ -46,6 +46,10 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   // Called to instruct a change of the climate controls
   void control(const climate::ClimateCall &call) override;
 
+  // Sensor setters
+  void set_current_temperature_sensor(sensor::Sensor *sensor) {this->current_temperature_sensor = sensor;};
+
+
   protected:
     void processGenericPacket(const Packet &packet);
     void processConnectResponsePacket(const ConnectResponsePacket &packet);
@@ -79,6 +83,9 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     bool hpConnected = false;
     // Should we call publish on the next update?
     bool publishOnUpdate = false;
+
+    // Internal sensors
+    sensor::Sensor *current_temperature_sensor;
 };
 
 }  // namespace mitsubishi_uart
