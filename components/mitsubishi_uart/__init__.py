@@ -3,6 +3,7 @@ import esphome.config_validation as cv
 from esphome.components import climate, uart
 from esphome.const import (
     CONF_ID,
+    CONF_NAME
 )
 from esphome.core import coroutine
 
@@ -16,11 +17,14 @@ DEFAULT_POLLING_INTERVAL = "5s"
 mitsubishi_uart_ns = cg.esphome_ns.namespace("mitsubishi_uart")
 MitsubishiUART = mitsubishi_uart_ns.class_("MitsubishiUART", cg.PollingComponent, climate.Climate)
 
-CONFIG_SCHEMA = cv.polling_component_schema(DEFAULT_POLLING_INTERVAL).extend(
-    {
+CONFIG_SCHEMA = (
+    cv.polling_component_schema(DEFAULT_POLLING_INTERVAL)
+    .extend(climate.CLIMATE_SCHEMA)
+    .extend({
         cv.GenerateID(CONF_ID): cv.declare_id(MitsubishiUART),
-        cv.Required(CONF_HP_UART): cv.use_id(uart.UARTComponent),  # TODO Set a default?
-    }
+        cv.Required(CONF_HP_UART): cv.use_id(uart.UARTComponent),
+        cv.Optional(CONF_NAME, default="Heat Pump"): cv.string,
+    })
 )
 
 
@@ -30,3 +34,4 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID], hp_uart_component)
 
     await cg.register_component(var, config)
+    await climate.register_climate(var, config)
