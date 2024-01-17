@@ -67,12 +67,17 @@ void MitsubishiUART::update() {
     return;
   }
 
+  // Before requesting additional updates, publish any changes waiting from packets received
+  if (publishOnUpdate){
+    publish_state();
+    publishOnUpdate = false;
+  }
+
+  // Request an update from the heatpump
   hp_bridge.sendPacket(PACKET_SETTINGS_REQ); // Needs to be done before status packet for mode logic to work
   hp_bridge.sendPacket(PACKET_STANDBY_REQ);
   hp_bridge.sendPacket(PACKET_STATUS_REQ);
   hp_bridge.sendPacket(PACKET_TEMP_REQ);
-
-  // TODO: Check and do publishing just once here, rather than for each update.
 }
 
 // Called to instruct a change of the climate controls
@@ -101,6 +106,10 @@ void MitsubishiUART::processExtendedConnectResponsePacket(const ExtendedConnectR
 
 void MitsubishiUART::processSettingsGetResponsePacket(const SettingsGetResponsePacket &packet) {
   ESP_LOGD(TAG, "Processing settings packet...");
+
+  // Mode
+
+  const climate::ClimateMode old_mode = mode;
   if (packet.getPower()) {
     switch (packet.getMode()) {
       case 0x01:
@@ -125,12 +134,21 @@ void MitsubishiUART::processSettingsGetResponsePacket(const SettingsGetResponseP
     mode = climate::CLIMATE_MODE_OFF;
   }
 
+  publishOnUpdate |= (old_mode != mode);
+
+  // Temperature
+  const float old_target_temperature = target_temperature;
   target_temperature = packet.getTargetTemp();
+  publishOnUpdate |= (old_target_temperature != target_temperature);
 };
+
 void MitsubishiUART::processRoomTempGetResponsePacket(const RoomTempGetResponsePacket &packet) {
-  ESP_LOGI(TAG, "Unhandled packet RoomTempGetResponsePacket received.");
-  logPacket("<-HP", packet);
+  // This will be the same as the remote temperature if we're using a remote sensor, otherwise the internal temp
+  const float old_current_temperature = current_temperature;
+  current_temperature = packet.getRoomTemp();
+  publishOnUpdate |= (old_current_temperature != current_temperature);
 };
+
 void MitsubishiUART::processStatusGetResponsePacket(const StatusGetResponsePacket &packet) {
   ESP_LOGI(TAG, "Unhandled packet StatusGetResponsePacket received.");
   logPacket("<-HP", packet);

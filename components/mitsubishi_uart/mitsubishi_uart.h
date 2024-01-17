@@ -77,6 +77,8 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     MUARTBridge hp_bridge;
     // Are we connected to the heatpump?
     bool hpConnected = false;
+    // Should we call publish on the next update?
+    bool publishOnUpdate = false;
 };
 
 }  // namespace mitsubishi_uart
