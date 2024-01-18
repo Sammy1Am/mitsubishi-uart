@@ -9,6 +9,8 @@ namespace mitsubishi_uart {
 
 static const char *PTAG = "mitsubishi_uart.packets";
 
+#define LOGPACKET(packet, direction) ESP_LOGD("mitsubishi_uart.packets", "%s [%02x] %s", direction, packet.getPacketType(), packet.to_string().c_str());
+
 const uint8_t BYTE_CONTROL = 0xfc;
 const uint8_t PACKET_MAX_SIZE = 22;  // Used to intialize empty packet
 const uint8_t PACKET_HEADER_SIZE = 5;
@@ -67,7 +69,9 @@ class Packet {
 
   // Is a response packet expected when this packet is sent.  Defaults to true since
   // most requests receive a response.
-  const bool isResponseExpected() {return responseExpected;};
+  const bool isResponseExpected() const {return responseExpected;};
+
+  std::string to_string() const;
 
  protected:
   static const int PLINDEX_COMMAND = 0;

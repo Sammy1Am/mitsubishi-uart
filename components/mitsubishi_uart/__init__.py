@@ -5,6 +5,8 @@ from esphome.core import CORE
 from esphome.const import (
     CONF_ID,
     CONF_NAME,
+    CONF_CUSTOM_FAN_MODES,
+    CONF_SUPPORTED_FAN_MODES,
     DEVICE_CLASS_TEMPERATURE,
     STATE_CLASS_MEASUREMENT,
     UNIT_CELSIUS,
@@ -24,10 +26,21 @@ DEFAULT_POLLING_INTERVAL = "5s"
 mitsubishi_uart_ns = cg.esphome_ns.namespace("mitsubishi_uart")
 MitsubishiUART = mitsubishi_uart_ns.class_("MitsubishiUART", cg.PollingComponent, climate.Climate)
 
+DEFAULT_FAN_MODES = ["AUTO", "LOW", "MEDIUM", "HIGH"]
+CUSTOM_FAN_MODES = {
+    "QUIET": mitsubishi_uart_ns.FAN_MODE_QUIET,
+    "VERYHIGH": mitsubishi_uart_ns.FAN_MODE_VERYHIGH
+}
+
+validate_custom_fan_modes = cv.enum(CUSTOM_FAN_MODES, upper=True)
+
 BASE_SCHEMA = cv.polling_component_schema(DEFAULT_POLLING_INTERVAL).extend(climate.CLIMATE_SCHEMA).extend({
     cv.GenerateID(CONF_ID): cv.declare_id(MitsubishiUART),
     cv.Required(CONF_HP_UART): cv.use_id(uart.UARTComponent),
-    cv.Optional(CONF_NAME, default="Climate") : cv.string
+    cv.Optional(CONF_NAME, default="Climate") : cv.string,
+
+    cv.Optional(CONF_SUPPORTED_FAN_MODES, default=DEFAULT_FAN_MODES): cv.ensure_list(climate.validate_climate_fan_mode),
+    cv.Optional(CONF_CUSTOM_FAN_MODES, default=["QUIET","VERYHIGH"]) : cv.ensure_list(validate_custom_fan_modes),
     })
 
 SENSORS = {
@@ -59,6 +72,14 @@ async def to_code(config):
 
     await cg.register_component(muart_component, config)
     await climate.register_climate(muart_component, config)
+
+    traits = muart_component.config_traits()
+
+    if CONF_SUPPORTED_FAN_MODES in config:
+        cg.add(traits.set_supported_fan_modes(config[CONF_SUPPORTED_FAN_MODES]))
+
+    if CONF_CUSTOM_FAN_MODES in config:
+        cg.add(traits.set_supported_custom_fan_modes(config[CONF_CUSTOM_FAN_MODES]))
 
     for sensor_designator in SENSORS:
         sensor_conf = config[CONF_SENSORS][sensor_designator]

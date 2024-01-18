@@ -52,6 +52,10 @@ Packet &Packet::setPayloadByte(uint8_t payload_byte_index, uint8_t value) {
   return *this;
 }
 
+std::string Packet::to_string() const {
+  return format_hex_pretty(&getBytes()[0], getLength());
+}
+
 // TODO: Are there function implementations for packets in the .h file? (Yes)  Should they be here?
 
 // SettingsSetRequestPacket functions

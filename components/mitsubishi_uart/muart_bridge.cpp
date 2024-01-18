@@ -56,7 +56,7 @@ void MUARTBridge::sendPacket(const Packet &packetToSend) {
   pkt_queue.push(packetToSend);
 }
 
-const void MUARTBridge::writePacket(const Packet &packetToSend) {
+void MUARTBridge::writePacket(const Packet &packetToSend) const {
   uart_comp.write_array(packetToSend.getBytes(), packetToSend.getLength());
 }
 
@@ -70,7 +70,7 @@ after the first byte has been received though, so currently we're assuming that 
 the header is available, it's safe to call read_array without timing out and severing
 the packet.
 */
-const optional<Packet> MUARTBridge::receivePacket() {
+const optional<Packet> MUARTBridge::receivePacket() const {
   uint8_t packetBytes[PACKET_MAX_SIZE];
   packetBytes[0] = 0;  // Reset control byte before starting
 
@@ -96,7 +96,7 @@ const optional<Packet> MUARTBridge::receivePacket() {
 }
 
 // TODO: Any way to dynamic_cast?
-const void MUARTBridge::processPacket(Packet &packet) {
+void MUARTBridge::processPacket(Packet &packet) const {
   switch (packet.getPacketType())
   {
   case PacketType::connect_response :
