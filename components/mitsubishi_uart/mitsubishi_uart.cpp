@@ -22,8 +22,8 @@ MitsubishiUART::MitsubishiUART(uart::UARTComponent *hp_uart_comp) : hp_uart{*hp_
    * can cause confusion and mess with graphs when looking at the state in HA.  Setting this to
    * NAN gets HA to treat this value as "unavailable" until we have a real value to publish.
    */
-  this->target_temperature = NAN;
-  this->current_temperature = NAN;
+  target_temperature = NAN;
+  current_temperature = NAN;
 }
 
 // Used to restore state of previous MUART-specific settings (like temperature source or pass-thru mode)
@@ -62,16 +62,7 @@ void MitsubishiUART::update() {
 
   // Before requesting additional updates, publish any changes waiting from packets received
   if (publishOnUpdate){
-    publish_state();
-
-    // Check sensors and publish if needed.
-    // This is a bit of a hack to avoid needing to publish sensor data immediately as packets arrive.
-    // Instead, packet data is written directly to `raw_state` (which doesn't update `state`).  If they
-    // differ, calling `publish_state` will update `state` so that it won't be published later
-    if (current_temperature_sensor && (current_temperature_sensor->raw_state != current_temperature_sensor->state)) {
-      ESP_LOGI(TAG, "Current temp differs, do publish");
-      current_temperature_sensor->publish_state(current_temperature_sensor->raw_state);
-    }
+    doPublish();
 
     publishOnUpdate = false;
   }
@@ -81,6 +72,19 @@ void MitsubishiUART::update() {
   hp_bridge.sendPacket(PACKET_STANDBY_REQ);
   hp_bridge.sendPacket(PACKET_STATUS_REQ);
   hp_bridge.sendPacket(PACKET_TEMP_REQ);
+}
+
+void MitsubishiUART::doPublish() {
+  publish_state();
+
+  // Check sensors and publish if needed.
+  // This is a bit of a hack to avoid needing to publish sensor data immediately as packets arrive.
+  // Instead, packet data is written directly to `raw_state` (which doesn't update `state`).  If they
+  // differ, calling `publish_state` will update `state` so that it won't be published later
+  if (current_temperature_sensor && (current_temperature_sensor->raw_state != current_temperature_sensor->state)) {
+    ESP_LOGI(TAG, "Current temp differs, do publish");
+    current_temperature_sensor->publish_state(current_temperature_sensor->raw_state);
+  }
 }
 
 }  // namespace mitsubishi_uart

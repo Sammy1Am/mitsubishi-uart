@@ -61,6 +61,8 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     void processStandbyGetResponsePacket(const StandbyGetResponsePacket &packet);
     void processRemoteTemperatureSetResponsePacket(const RemoteTemperatureSetResponsePacket &packet);
 
+    void doPublish();
+
   private:
     // Default climate_traits for MUART
     climate::ClimateTraits climate_traits_ = []() -> climate::ClimateTraits {
