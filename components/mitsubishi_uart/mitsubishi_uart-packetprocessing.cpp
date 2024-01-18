@@ -100,8 +100,50 @@ void MitsubishiUART::processCurrentTempGetResponsePacket(const CurrentTempGetRes
 };
 
 void MitsubishiUART::processStatusGetResponsePacket(const StatusGetResponsePacket &packet) {
-  ESP_LOGI(TAG, "Unhandled packet StatusGetResponsePacket received.");
-  LOGPACKET(packet, "<-HP");
+  const climate::ClimateAction old_action = action;
+
+  // If mode is off, action is off
+  if (mode == climate::CLIMATE_MODE_OFF) {
+    action = climate::CLIMATE_ACTION_OFF;
+  }
+  // If mode is fan only, packet.getOperating() may be false, but the fan is running
+  // TODO: Check that this ^ is true
+  else if (mode == climate::CLIMATE_MODE_FAN_ONLY) {
+    action = climate::CLIMATE_ACTION_FAN;
+  }
+  // If mode is anything other than off or fan, and the unit is operating, determine the action
+  else if (packet.getOperating()) {
+    switch (mode) {
+      case climate::CLIMATE_MODE_HEAT:
+        action = climate::CLIMATE_ACTION_HEATING;
+        break;
+      case climate::CLIMATE_MODE_COOL:
+        action = climate::CLIMATE_ACTION_COOLING;
+        break;
+      case climate::CLIMATE_MODE_DRY:
+        action = climate::CLIMATE_ACTION_DRYING;
+        break;
+      // TODO: This only works if we get an update while the temps are in this configuration
+      // Surely there's some info from the heat pump about which of these modes it's in?
+      case climate::CLIMATE_MODE_HEAT_COOL:
+        if (current_temperature > target_temperature) {
+          action = climate::CLIMATE_ACTION_COOLING;
+        } else if (current_temperature < target_temperature) {
+          action = climate::CLIMATE_ACTION_HEATING;
+        }
+        // When the heat pump *changes* to a new action, these temperature comparisons should be accurate.
+        // If the mode hasn't changed, but the temps are equal, we can assume the same action and make no change.
+        // If the unit overshoots, this still doesn't work.
+        break;
+    }
+  }
+  // If we're not operating (but not off or in fan mode), we're idle
+  // Should be relatively safe to fall through any unknown modes into showing IDLE
+  else {
+    action = climate::CLIMATE_ACTION_IDLE;
+  }
+
+  publishOnUpdate |= (old_action != action);
 };
 void MitsubishiUART::processStandbyGetResponsePacket(const StandbyGetResponsePacket &packet) {
   ESP_LOGI(TAG, "Unhandled packet StandbyGetResponsePacket received.");
