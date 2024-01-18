@@ -64,7 +64,7 @@ void MitsubishiUART::processSettingsGetResponsePacket(const SettingsGetResponseP
       fanChanged = set_fan_mode_(climate::CLIMATE_FAN_AUTO);
       break;
     case 0x01:
-      fanChanged = set_custom_fan_mode_(FAN_MODE_QUIET);
+      fanChanged = set_fan_mode_(climate::CLIMATE_FAN_QUIET);
       break;
     case 0x02:
       fanChanged = set_fan_mode_(climate::CLIMATE_FAN_LOW);

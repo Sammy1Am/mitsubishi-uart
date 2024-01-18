@@ -18,7 +18,6 @@ const uint8_t MUART_MIN_TEMP = 16;  // Degrees C
 const uint8_t MUART_MAX_TEMP = 31;  // Degrees C
 const float MUART_TEMPERATURE_STEP = 0.5;
 
-const std::string FAN_MODE_QUIET = "Quiet";
 const std::string FAN_MODE_VERYHIGH = "Very High";
 
 class MitsubishiUART : public PollingComponent, public climate::Climate, public PacketProcessor {

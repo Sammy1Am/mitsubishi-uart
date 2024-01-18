@@ -28,9 +28,8 @@ mitsubishi_uart_ns = cg.esphome_ns.namespace("mitsubishi_uart")
 MitsubishiUART = mitsubishi_uart_ns.class_("MitsubishiUART", cg.PollingComponent, climate.Climate)
 
 DEFAULT_CLIMATE_MODES = ["OFF", "HEAT", "DRY", "COOL", "FAN_ONLY", "HEAT_COOL"]
-DEFAULT_FAN_MODES = ["AUTO", "LOW", "MEDIUM", "HIGH"]
+DEFAULT_FAN_MODES = ["AUTO", "QUIET", "LOW", "MEDIUM", "HIGH"]
 CUSTOM_FAN_MODES = {
-    "QUIET": mitsubishi_uart_ns.FAN_MODE_QUIET,
     "VERYHIGH": mitsubishi_uart_ns.FAN_MODE_VERYHIGH
 }
 
@@ -43,7 +42,7 @@ BASE_SCHEMA = cv.polling_component_schema(DEFAULT_POLLING_INTERVAL).extend(clima
 
     cv.Optional(CONF_SUPPORTED_MODES, default=DEFAULT_CLIMATE_MODES) : cv.ensure_list(climate.validate_climate_mode),
     cv.Optional(CONF_SUPPORTED_FAN_MODES, default=DEFAULT_FAN_MODES): cv.ensure_list(climate.validate_climate_fan_mode),
-    cv.Optional(CONF_CUSTOM_FAN_MODES, default=["QUIET","VERYHIGH"]) : cv.ensure_list(validate_custom_fan_modes),
+    cv.Optional(CONF_CUSTOM_FAN_MODES, default=["VERYHIGH"]) : cv.ensure_list(validate_custom_fan_modes),
     })
 
 SENSORS = {
