@@ -27,7 +27,7 @@ DEFAULT_POLLING_INTERVAL = "5s"
 mitsubishi_uart_ns = cg.esphome_ns.namespace("mitsubishi_uart")
 MitsubishiUART = mitsubishi_uart_ns.class_("MitsubishiUART", cg.PollingComponent, climate.Climate)
 
-DEFAULT_CLIMATE_MODES = ["HEAT", "DRY", "COOL", "FAN_ONLY", "HEAT_COOL"]
+DEFAULT_CLIMATE_MODES = ["OFF", "HEAT", "DRY", "COOL", "FAN_ONLY", "HEAT_COOL"]
 DEFAULT_FAN_MODES = ["AUTO", "LOW", "MEDIUM", "HIGH"]
 CUSTOM_FAN_MODES = {
     "QUIET": mitsubishi_uart_ns.FAN_MODE_QUIET,
