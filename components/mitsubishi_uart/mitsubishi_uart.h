@@ -20,6 +20,8 @@ const float MUART_TEMPERATURE_STEP = 0.5;
 
 const std::string FAN_MODE_VERYHIGH = "Very High";
 
+const std::string TEMPERATURE_SOURCE_INTERNAL = "Internal";
+
 class MitsubishiUART : public PollingComponent, public climate::Climate, public PacketProcessor {
  public:
   /**
@@ -48,8 +50,14 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   void control(const climate::ClimateCall &call) override;
 
   // Sensor setters
-  void set_current_temperature_sensor(sensor::Sensor *sensor) {this->current_temperature_sensor = sensor;};
+  void set_current_temperature_sensor(sensor::Sensor *sensor) {current_temperature_sensor = sensor;};
 
+  // Select setters
+  void set_temperature_source_select(select::Select *select) {temperature_source_select = select;};
+
+  // Returns true if select was valid (even if not yet successful) to indicate select component
+  // should optimistically publish
+  bool select_temperature_source(const std::string &state);
 
   protected:
     void processGenericPacket(const Packet &packet);
@@ -89,6 +97,10 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
 
     // Internal sensors
     sensor::Sensor *current_temperature_sensor;
+
+    // Selects
+    select::Select *temperature_source_select;
+    std::string currentTemperatureSource = TEMPERATURE_SOURCE_INTERNAL;
 };
 
 }  // namespace mitsubishi_uart

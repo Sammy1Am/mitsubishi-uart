@@ -87,5 +87,10 @@ void MitsubishiUART::doPublish() {
   }
 }
 
+bool MitsubishiUART::select_temperature_source(const std::string &state) {
+  currentTemperatureSource = state;
+  return true;
+}
+
 }  // namespace mitsubishi_uart
 }  // namespace esphome
