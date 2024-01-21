@@ -39,6 +39,10 @@ void MitsubishiUART::setup() {
 void MitsubishiUART::loop() {
   // Loop bridge to handle sending and receiving packets
   hp_bridge.loop();
+
+  // TODO: Check timeout value for received external temps and if exceeded:
+  // temperature_source_select->publish_state(TEMPERATURE_SOURCE_INTERNAL);
+  // Send packet to HP to tell it to use internal temp sensor
 }
 
 /* Called periodically as PollingComponent; used to send packets to connect or request updates.
@@ -90,6 +94,24 @@ void MitsubishiUART::doPublish() {
 bool MitsubishiUART::select_temperature_source(const std::string &state) {
   currentTemperatureSource = state;
   return true;
+}
+
+// Called by temperature_source sensors to report values.  Will only take action if the currentTemperatureSource
+// matches the incoming source.  Specifically this means that we are not storing any values
+// for sensors other than the current source, and selecting a different source won't have any
+// effect until that source reports a temperature.
+// TODO: ? Maybe store all temperatures (and report on them using internal sensors??) so that selecting a new
+// source takes effect immediately?  Only really needed if source sensors are configured with very slow update times.
+void MitsubishiUART::temperature_source_report(const std::string &temperature_source, const float &v) {
+  ESP_LOGI(TAG, "Received temperature from %s of %f.", temperature_source.c_str(), v);
+
+  if (currentTemperatureSource == temperature_source) {
+    // TODO: Set current temperature optimistically
+    // TODO: Send off packet to tell HP what current temperature is
+    if (temperature_source_select->state != temperature_source) {
+      temperature_source_select->publish_state(temperature_source);
+    }
+  }
 }
 
 }  // namespace mitsubishi_uart

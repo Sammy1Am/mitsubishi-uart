@@ -130,6 +130,12 @@ async def to_code(config):
     for ts_id in config[CONF_TEMPERATURE_SOURCES]:
         ts = await cg.get_variable(ts_id)
         SELECTS[CONF_TEMPERATURE_SOURCE_SELECT][2].append(ts.get_name())
+        cg.add(getattr(ts, "add_on_state_callback")(
+            # TODO: Is there anyway to do this without a raw expression?
+            cg.RawExpression(
+                f"[](float v){{{getattr(muart_component, 'temperature_source_report')}({ts.get_name()}, v);}}"
+            )
+        ))
         # TODO: Add callback to sensor pointed to MUART
 
 

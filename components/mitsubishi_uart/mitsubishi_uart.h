@@ -59,6 +59,9 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   // should optimistically publish
   bool select_temperature_source(const std::string &state);
 
+  // Used by external sources to report a temperature
+  void temperature_source_report(const std::string &temperature_source, const float &v);
+
   protected:
     void processGenericPacket(const Packet &packet);
     void processConnectResponsePacket(const ConnectResponsePacket &packet);
