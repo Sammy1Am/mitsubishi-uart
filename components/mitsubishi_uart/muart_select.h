@@ -3,6 +3,7 @@
 #include "esphome/components/select/select.h"
 #include "mitsubishi_uart.h"
 
+
 namespace esphome {
 namespace mitsubishi_uart {
 
@@ -11,7 +12,7 @@ class MUARTSelect : public select::Select, public Parented<MitsubishiUART> {
     MUARTSelect() = default;
     using Parented<MitsubishiUART>::Parented;
   protected:
-    void control(const std::string &value) override;
+    void control(const std::string &value) override = 0;
 };
 
 class TemperatureSourceSelect : public MUARTSelect {

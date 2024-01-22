@@ -1,6 +1,8 @@
 #pragma once
 
+#include "esphome/core/application.h"
 #include "esphome/core/component.h"
+#include "esphome/core/preferences.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/climate/climate.h"
 #include "esphome/components/select/select.h"
@@ -21,6 +23,7 @@ const float MUART_TEMPERATURE_STEP = 0.5;
 const std::string FAN_MODE_VERYHIGH = "Very High";
 
 const std::string TEMPERATURE_SOURCE_INTERNAL = "Internal";
+const uint32_t TEMPERATURE_SOURCE_TIMEOUT_MS = 420000; // (7min) The heatpump will revert on its own in ~10min
 
 class MitsubishiUART : public PollingComponent, public climate::Climate, public PacketProcessor {
  public:
@@ -98,12 +101,24 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     // Should we call publish on the next update?
     bool publishOnUpdate = false;
 
+    // Preferences
+    void save_preferences();
+    void restore_preferences();
+
+    ESPPreferenceObject preferences_;
+
     // Internal sensors
     sensor::Sensor *current_temperature_sensor;
 
     // Selects
     select::Select *temperature_source_select;
     std::string currentTemperatureSource = TEMPERATURE_SOURCE_INTERNAL;
+    uint32_t lastReceivedTemperature = millis();
+};
+
+struct MUARTPreferences {
+  optional<size_t> currentTemperatureSourceIndex = nullopt;  // Index of selected value
+  //optional<uint32_t> currentTemperatureSourceHash = nullopt; // Hash of selected value (to make sure it hasn't changed since last save)
 };
 
 }  // namespace mitsubishi_uart
