@@ -82,6 +82,7 @@ void MitsubishiUART::control(const climate::ClimateCall &call) {
   // We're assuming that every climate call *does* make some change worth sending to the heat pump
   // Queue the packet to be sent first (so any subsequent update packets come *after* our changes)
   hp_bridge.sendPacket(setRequestPacket);
+
   // Publish state and any sensor changes (shouldn't be any a a result of this function, but
   // since they lazy-publish, no harm in trying)
   doPublish();

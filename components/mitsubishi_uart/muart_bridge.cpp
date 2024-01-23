@@ -4,7 +4,7 @@ namespace esphome {
 namespace mitsubishi_uart {
 
 // TODO: This should probably live somewhere common eventually (maybe in MUARTBridge where it'll inherently know the direction)
-static void logPacket(const char *direction, const Packet &packet) {
+static void logPacket(const char *direction, const RawPacket &packet) {
   ESP_LOGD(BRIDGE_TAG, "%s [%02x] %s", direction, packet.getPacketType(),
            format_hex_pretty(&packet.getBytes()[0], packet.getLength()).c_str());
 }
@@ -14,11 +14,11 @@ MUARTBridge::MUARTBridge(uart::UARTComponent &uart_component, PacketProcessor &p
 void MUARTBridge::loop() {
 
   // Try to get a packet
-  if (optional<Packet> pkt = receivePacket()) {
+  if (optional<RawPacket> pkt = receiveRawPacket()) {
     ESP_LOGD(BRIDGE_TAG, "Received %x packet", pkt.value().getPacketType());
     // Check the packet's checksum and either process it, or log an error
     if (pkt.value().isChecksumValid()) {
-      processPacket(pkt.value());
+      processRawPacket(pkt.value());
     } else {
       ESP_LOGW(BRIDGE_TAG, "Invalid packet checksum!");
       logPacket("<-HP", pkt.value());
@@ -39,7 +39,7 @@ void MUARTBridge::loop() {
     }
 
     ESP_LOGD(BRIDGE_TAG, "Sending %x packet", pkt_queue.front().getPacketType());
-    writePacket(pkt_queue.front());
+    writeRawPacket(pkt_queue.front().rawPacket());
     packet_sent_millis = millis();
 
     // Remove packet from queue
@@ -56,7 +56,7 @@ void MUARTBridge::sendPacket(const Packet &packetToSend) {
   pkt_queue.push(packetToSend);
 }
 
-void MUARTBridge::writePacket(const Packet &packetToSend) const {
+void MUARTBridge::writeRawPacket(const RawPacket &packetToSend) const {
   uart_comp.write_array(packetToSend.getBytes(), packetToSend.getLength());
 }
 
@@ -70,7 +70,7 @@ after the first byte has been received though, so currently we're assuming that 
 the header is available, it's safe to call read_array without timing out and severing
 the packet.
 */
-const optional<Packet> MUARTBridge::receivePacket() const {
+const optional<RawPacket> MUARTBridge::receiveRawPacket() const {
   uint8_t packetBytes[PACKET_MAX_SIZE];
   packetBytes[0] = 0;  // Reset control byte before starting
 
@@ -92,49 +92,49 @@ const optional<Packet> MUARTBridge::receivePacket() const {
   uint8_t payloadSize = packetBytes[PACKET_HEADER_INDEX_PAYLOAD_LENGTH];
   uart_comp.read_array(&packetBytes[PACKET_HEADER_SIZE], payloadSize + 1);
 
-  return Packet(packetBytes, PACKET_HEADER_SIZE + payloadSize + 1);
+  return RawPacket(packetBytes, PACKET_HEADER_SIZE + payloadSize + 1);
 }
 
 // TODO: Any way to dynamic_cast?
-void MUARTBridge::processPacket(Packet &packet) const {
-  switch (packet.getPacketType())
+void MUARTBridge::processRawPacket(RawPacket &pkt) const {
+  switch (pkt.getPacketType())
   {
   case PacketType::connect_response :
-    pkt_processor.processConnectResponsePacket(static_cast<ConnectResponsePacket&>(packet));
+    pkt_processor.processConnectResponsePacket(ConnectResponsePacket(std::move(pkt)));
     break;
   case PacketType::extended_connect_response :
-    pkt_processor.processExtendedConnectResponsePacket(static_cast<ExtendedConnectResponsePacket&>(packet));
+    pkt_processor.processExtendedConnectResponsePacket(ExtendedConnectResponsePacket(std::move(pkt)));
     break;
   case PacketType::get_response :
-    switch(packet.getCommand()) {
+    switch(pkt.getCommand()) {
       case GetCommand::gc_current_temp :
-       pkt_processor.processCurrentTempGetResponsePacket(static_cast<CurrentTempGetResponsePacket&>(packet));
+       pkt_processor.processCurrentTempGetResponsePacket(CurrentTempGetResponsePacket(std::move(pkt)));
         break;
       case GetCommand::gc_settings :
-       pkt_processor.processSettingsGetResponsePacket(static_cast<SettingsGetResponsePacket&>(packet));
+       pkt_processor.processSettingsGetResponsePacket(SettingsGetResponsePacket(std::move(pkt)));
         break;
       case GetCommand::gc_standby :
-       pkt_processor.processStandbyGetResponsePacket(static_cast<StandbyGetResponsePacket&>(packet));
+       pkt_processor.processStandbyGetResponsePacket(StandbyGetResponsePacket(std::move(pkt)));
         break;
       case GetCommand::gc_status :
-        pkt_processor.processStatusGetResponsePacket(static_cast<StatusGetResponsePacket&>(packet));
+        pkt_processor.processStatusGetResponsePacket(StatusGetResponsePacket(std::move(pkt)));
         break;
       default:
-        pkt_processor.processGenericPacket(packet);
+        pkt_processor.processGenericPacket(Packet(std::move(pkt)));
     }
     break;
   case PacketType::set_response :
-    switch(packet.getCommand()) {
+    switch(pkt.getCommand()) {
       case SetCommand::sc_remote_temperature :
-        pkt_processor.processRemoteTemperatureSetResponsePacket(static_cast<RemoteTemperatureSetResponsePacket&>(packet));
+        pkt_processor.processRemoteTemperatureSetResponsePacket(RemoteTemperatureSetResponsePacket(std::move(pkt)));
         break;
       default:
-        pkt_processor.processGenericPacket(packet);
+        pkt_processor.processGenericPacket(Packet(std::move(pkt)));
     }
     break;
 
   default:
-    pkt_processor.processGenericPacket(packet);
+    pkt_processor.processGenericPacket(Packet(std::move(pkt)));
   }
 }
 

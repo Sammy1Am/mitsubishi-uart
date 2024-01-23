@@ -22,9 +22,9 @@ class MUARTBridge  {
     void loop();
 
   private:
-    const optional<Packet> receivePacket() const;
-    void writePacket(const Packet &packet) const;
-    void processPacket(Packet &packet) const;
+    const optional<RawPacket> receiveRawPacket() const;
+    void writeRawPacket(const RawPacket &packet) const;
+    void processRawPacket(RawPacket &packet) const;
 
     uart::UARTComponent &uart_comp;
     PacketProcessor &pkt_processor;

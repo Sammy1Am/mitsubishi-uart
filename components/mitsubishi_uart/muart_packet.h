@@ -3,113 +3,62 @@
 #include "esphome/core/component.h"
 #include "esphome/components/climate/climate.h"
 #include "esphome/components/uart/uart.h"
+#include "muart_rawpacket.h"
 
 namespace esphome {
 namespace mitsubishi_uart {
 
-static const char *PTAG = "mitsubishi_uart.packets";
-
 #define LOGPACKET(packet, direction) ESP_LOGD("mitsubishi_uart.packets", "%s [%02x] %s", direction, packet.getPacketType(), packet.to_string().c_str());
 
-const uint8_t BYTE_CONTROL = 0xfc;
-const uint8_t PACKET_MAX_SIZE = 22;  // Used to intialize empty packet
-const uint8_t PACKET_HEADER_SIZE = 5;
-const uint8_t PACKET_HEADER_INDEX_PACKET_TYPE = 1;
-const uint8_t PACKET_HEADER_INDEX_PAYLOAD_LENGTH = 4;
-
-enum PacketType : uint8_t {
-  connect_request = 0x5a,
-  connect_response = 0x7a,
-  get_request = 0x42,
-  get_response = 0x62,
-  set_request = 0x41,
-  set_response = 0x61,
-  extended_connect_request = 0x5b,
-  extended_connect_response = 0x7b
-};
-
-// Used to specify
-enum GetCommand : uint8_t {
-  gc_settings = 0x02,
-  gc_current_temp = 0x03,
-  gc_four = 0x04,
-  gc_status = 0x06,
-  gc_standby = 0x09
-};
-
-enum SetCommand : uint8_t {
-  sc_settings = 0x01,
-  sc_remote_temperature = 0x07
-};
-
-static const uint8_t EMPTY_PACKET[PACKET_MAX_SIZE] = {BYTE_CONTROL,        // Sync
-                                                      0x00,                // Packet type
-                                                      0x01,0x30,           // Unknown
-                                                      0x00,                // Payload Size
-                                                      0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Payload
-                                                      0x00};               // Checksum
+               // Checksum
 
 class PacketProcessor;
 
+// Generic Base Packet wrapper over RawPacket
 class Packet {
- public:
-  Packet(const uint8_t packet_bytes[], const uint8_t packet_length);  // For reading or copying packets
-  // TODO: Can I hide this constructor except from optional?
-  Packet(); // For optional<Packet> construction
-  virtual ~Packet() {}
-  const uint8_t getLength() const { return length; };
-  const uint8_t *getBytes() const { return packetBytes; };  // Primarily for sending packets
+  public:
+    Packet(RawPacket&& pkt) : pkt_(std::move(pkt)) {}; // TODO: Confirm this needs std::move if call to constructor ALSO has move
+    Packet(); // For optional<> construction
 
-  bool isChecksumValid() const;
+    // Returns a (more) human readable string of the packet
+    virtual std::string to_string() const {return format_hex_pretty(&pkt_.getBytes()[0], pkt_.getLength());};
 
-  // Returns the packet type byte
-  uint8_t getPacketType() const { return packetBytes[PACKET_HEADER_INDEX_PACKET_TYPE]; };
-  // Returns the first byte of the payload, often used as a command
-  uint8_t getCommand() const { return packetBytes[PACKET_HEADER_SIZE + PLINDEX_COMMAND]; };
+    // Is a response packet expected when this packet is sent.  Defaults to true since
+    // most requests receive a response.
+    const bool isResponseExpected() const {return responseExpected;};
 
-  // Is a response packet expected when this packet is sent.  Defaults to true since
-  // most requests receive a response.
-  const bool isResponseExpected() const {return responseExpected;};
+    // Passthrough methods to RawPacket
+    RawPacket& rawPacket() {return pkt_;};
+    uint8_t getPacketType() const {return pkt_.getPacketType();}
+    bool isChecksumValid() const {return pkt_.isChecksumValid();};
+    Packet &setPayloadByte(const uint8_t payload_byte_index, const uint8_t value);
+    uint8_t getPayloadByte(const uint8_t payload_byte_index) const {return pkt_.getPayloadByte(payload_byte_index);};
 
-  std::string to_string() const;
-
- protected:
-  static const int PLINDEX_COMMAND = 0;
-  static const int PLINDEX_FLAGS = 1;
-
-  Packet(PacketType packet_type, uint8_t payload_size);  // For building packets
-
-  Packet &setPayloadByte(uint8_t payload_byte_index, uint8_t value);
-  uint8_t getPayloadByte(uint8_t payload_byte_index) const {
-    return packetBytes[PACKET_HEADER_SIZE + payload_byte_index];
-  };
-
- private:
-  uint8_t length;
-  uint8_t checksumIndex;
-  uint8_t packetBytes[PACKET_MAX_SIZE]{};
-  bool responseExpected = true;
-
-  uint8_t calculateChecksum() const;
-  Packet &updateChecksum();
+  protected:
+    RawPacket pkt_;
+  private:
+    bool responseExpected = true;
 };
-
-// TODO Maybe some kind of validation based on packet type in these constructors
 
 ////
 // Connect
 ////
 class ConnectRequestPacket : public Packet {
  public:
-  ConnectRequestPacket() : Packet(PacketType::connect_request, 2) {
-    setPayloadByte(0, 0xca);
-    setPayloadByte(1, 0x01);
+ // TODO: is there a better way to do this Packet(RawPacket()) thing?
+  ConnectRequestPacket() : Packet(RawPacket(PacketType::connect_request, 2)) {
+    pkt_.setPayloadByte(0, 0xca);
+    pkt_.setPayloadByte(1, 0x01);
   }
-  using Packet::Packet;
+
+  std::string to_string() const override;
 };
 
 class ConnectResponsePacket : public Packet {
-  using Packet::Packet;
+
+  public:
+    using Packet::Packet;
+    std::string to_string() const override;
 };
 
 ////
@@ -117,9 +66,9 @@ class ConnectResponsePacket : public Packet {
 ////
 class ExtendedConnectRequestPacket : public Packet {
  public:
-  ExtendedConnectRequestPacket() : Packet(PacketType::extended_connect_request, 2) {
-    setPayloadByte(0, 0xca);
-    setPayloadByte(1, 0x01);
+  ExtendedConnectRequestPacket() : Packet(RawPacket(PacketType::extended_connect_request, 2)) {
+    pkt_.setPayloadByte(0, 0xca);
+    pkt_.setPayloadByte(1, 0x01);
   }
   using Packet::Packet;
 };
@@ -133,8 +82,8 @@ class ExtendedConnectResponsePacket : public Packet {
 ////
 class GetRequestPacket : public Packet {
  public:
-  GetRequestPacket(GetCommand get_command) : Packet(PacketType::get_request, 1) {
-    setPayloadByte(0, get_command);
+  GetRequestPacket(GetCommand get_command) : Packet(RawPacket(PacketType::get_request, 1)) {
+    pkt_.setPayloadByte(0, get_command);
   }
   using Packet::Packet;
 };
@@ -149,12 +98,12 @@ class SettingsGetResponsePacket : public Packet {
   using Packet::Packet;
 
  public:
-  bool getPower() const { return this->getPayloadByte(PLINDEX_POWER); }
-  uint8_t getMode() const { return this->getPayloadByte(PLINDEX_MODE); }
-  float getTargetTemp() const { return ((int) this->getPayloadByte(PLINDEX_TARGETTEMP) - 128) / 2.0f; }
-  uint8_t getFan() const { return this->getPayloadByte(PLINDEX_FAN); }
-  uint8_t getVane() const { return this->getPayloadByte(PLINDEX_VANE); }
-  uint8_t getHorizontalVane() const { return this->getPayloadByte(PLINDEX_HVANE); }
+  bool getPower() const { return pkt_.getPayloadByte(PLINDEX_POWER); }
+  uint8_t getMode() const { return pkt_.getPayloadByte(PLINDEX_MODE); }
+  float getTargetTemp() const { return ((int) pkt_.getPayloadByte(PLINDEX_TARGETTEMP) - 128) / 2.0f; }
+  uint8_t getFan() const { return pkt_.getPayloadByte(PLINDEX_FAN); }
+  uint8_t getVane() const { return pkt_.getPayloadByte(PLINDEX_VANE); }
+  uint8_t getHorizontalVane() const { return pkt_.getPayloadByte(PLINDEX_HVANE); }
 };
 
 class CurrentTempGetResponsePacket : public Packet {
@@ -163,7 +112,8 @@ class CurrentTempGetResponsePacket : public Packet {
   using Packet::Packet;
 
  public:
-  float getCurrentTemp() const { return ((int) this->getPayloadByte(PLINDEX_CURRENTTEMP) - 128) / 2.0f; }
+  float getCurrentTemp() const { return ((int) pkt_.getPayloadByte(PLINDEX_CURRENTTEMP) - 128) / 2.0f; }
+  std::string to_string() const override;
 };
 
 class StatusGetResponsePacket : public Packet {
@@ -174,8 +124,8 @@ class StatusGetResponsePacket : public Packet {
 
 
  public:
-  uint8_t getCompressorFrequency() const { return this->getPayloadByte(PLINDEX_COMPRESSOR_FREQUENCY); }
-  bool getOperating() const { return this->getPayloadByte(PLINDEX_OPERATING); }
+  uint8_t getCompressorFrequency() const { return pkt_.getPayloadByte(PLINDEX_COMPRESSOR_FREQUENCY); }
+  bool getOperating() const { return pkt_.getPayloadByte(PLINDEX_OPERATING); }
 };
 
 class StandbyGetResponsePacket : public Packet {
@@ -184,8 +134,8 @@ class StandbyGetResponsePacket : public Packet {
   using Packet::Packet;
 
  public:
-  uint8_t getLoopStatus() const { return this->getPayloadByte(PLINDEX_LOOPSTATUS); }
-  uint8_t getStage() const { return this->getPayloadByte(PLINDEX_STAGE); }
+  uint8_t getLoopStatus() const { return pkt_.getPayloadByte(PLINDEX_LOOPSTATUS); }
+  uint8_t getStage() const { return pkt_.getPayloadByte(PLINDEX_STAGE); }
 };
 
 ////
@@ -193,7 +143,6 @@ class StandbyGetResponsePacket : public Packet {
 ////
 
 class SettingsSetRequestPacket : public Packet {
-  static const int PLINDEX_FLAGS2 = 2;
   static const int PLINDEX_POWER = 3;
   static const int PLINDEX_MODE = 4;
   static const int PLINDEX_TARGET_TEMPERATURE_CODE = 6;
@@ -252,7 +201,7 @@ class SettingsSetRequestPacket : public Packet {
     HV_SWING = 0x0c,
   };
 
-  SettingsSetRequestPacket() : Packet(PacketType::set_request, 16) { setPayloadByte(0, SetCommand::sc_settings); }
+  SettingsSetRequestPacket() : Packet(RawPacket(PacketType::set_request, 16)) { pkt_.setPayloadByte(0, SetCommand::sc_settings); }
   using Packet::Packet;
 
   SettingsSetRequestPacket &setPower(const bool isOn);
@@ -263,30 +212,30 @@ class SettingsSetRequestPacket : public Packet {
   SettingsSetRequestPacket &setHorizontalVane(const HORIZONTAL_VANE_BYTE horizontal_vane);
 
  private:
-  void addFlag(const SETTING_FLAG flagToAdd);
-  void addFlag2(const SETTING_FLAG2 flag2ToAdd);
+  void addSettingsFlag(const SETTING_FLAG flagToAdd);
+  void addSettingsFlag2(const SETTING_FLAG2 flag2ToAdd);
 };
 
 class RemoteTemperatureSetRequestPacket : public Packet {
   static const uint8_t PLINDEX_REMOTE_TEMPERATURE = 3;
 
  public:
-  RemoteTemperatureSetRequestPacket() : Packet(PacketType::set_request, 4) {
-    setPayloadByte(0, SetCommand::sc_remote_temperature);
+  RemoteTemperatureSetRequestPacket() : Packet(RawPacket(PacketType::set_request, 4)) {
+    pkt_.setPayloadByte(0, SetCommand::sc_remote_temperature);
   }
   using Packet::Packet;
 
   RemoteTemperatureSetRequestPacket &setRemoteTemperature(const float temperatureDegressC);
   RemoteTemperatureSetRequestPacket &useInternalTemperature();
 
-  uint8_t getFlags() const { return getPayloadByte(PLINDEX_FLAGS); }
-  float getRemoteTemperature() const { return ((int) getPayloadByte(PLINDEX_REMOTE_TEMPERATURE) - 128) / 2.0f; }
+  uint8_t getFlags() const { return pkt_.getFlags(); }
+  float getRemoteTemperature() const { return ((int) pkt_.getPayloadByte(PLINDEX_REMOTE_TEMPERATURE) - 128) / 2.0f; }
 };
 
 class RemoteTemperatureSetResponsePacket : public Packet {
   using Packet::Packet;
  public:
-  RemoteTemperatureSetResponsePacket() : Packet(PacketType::set_response, 16) {}
+  RemoteTemperatureSetResponsePacket() : Packet(RawPacket(PacketType::set_response, 16)) {}
 };
 
 class PacketProcessor {
