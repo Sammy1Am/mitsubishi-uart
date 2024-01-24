@@ -53,18 +53,5 @@ RawPacket &RawPacket::setPayloadByte(const uint8_t payload_byte_index, const uin
   return *this;
 }
 
-void RawPacket::setFlags(const uint8_t flagValue) {
-  setPayloadByte(PLINDEX_FLAGS, flagValue);
-}
-
-// Adds a flag (ONLY APPLICABLE FOR SOME COMMANDS)
-RawPacket &RawPacket::addFlag(const uint8_t flagToAdd) {
-  return setPayloadByte(PLINDEX_FLAGS, getPayloadByte(PLINDEX_FLAGS) | flagToAdd);
-}
-// Adds a flag2 (ONLY APPLICABLE FOR SOME COMMANDS)
-RawPacket &RawPacket::addFlag2(const uint8_t flag2ToAdd) {
-  return setPayloadByte(PLINDEX_FLAGS2, getPayloadByte(PLINDEX_FLAGS2) | flag2ToAdd);
-}
-
 }  // namespace mitsubishi_uart
 }  // namespace esphome

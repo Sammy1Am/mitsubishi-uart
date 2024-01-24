@@ -31,10 +31,20 @@ class Packet {
     RawPacket& rawPacket() {return pkt_;};
     uint8_t getPacketType() const {return pkt_.getPacketType();}
     bool isChecksumValid() const {return pkt_.isChecksumValid();};
-    Packet &setPayloadByte(const uint8_t payload_byte_index, const uint8_t value);
-    uint8_t getPayloadByte(const uint8_t payload_byte_index) const {return pkt_.getPayloadByte(payload_byte_index);};
+
+    // Returns flags (ONLY APPLICABLE FOR SOME COMMANDS)
+    uint8_t getFlags() const {return pkt_.getPayloadByte(PLINDEX_FLAGS);}
+    // Sets flags (ONLY APPLICABLE FOR SOME COMMANDS)
+    void setFlags(const uint8_t flagValue);
+    // Adds a flag (ONLY APPLICABLE FOR SOME COMMANDS)
+    void addFlag(const uint8_t flagToAdd);
+    // Adds a flag2 (ONLY APPLICABLE FOR SOME COMMANDS)
+    void addFlag2(const uint8_t flag2ToAdd);
 
   protected:
+    static const int PLINDEX_FLAGS = 1;
+    static const int PLINDEX_FLAGS2 = 2;
+
     RawPacket pkt_;
   private:
     bool responseExpected = true;
@@ -45,13 +55,18 @@ class Packet {
 ////
 class ConnectRequestPacket : public Packet {
  public:
- // TODO: is there a better way to do this Packet(RawPacket()) thing?
+
+  static ConnectRequestPacket& instance() {
+    static ConnectRequestPacket INSTANCE;
+    return INSTANCE;
+  }
+
+  std::string to_string() const override;
+ private:
   ConnectRequestPacket() : Packet(RawPacket(PacketType::connect_request, 2)) {
     pkt_.setPayloadByte(0, 0xca);
     pkt_.setPayloadByte(1, 0x01);
   }
-
-  std::string to_string() const override;
 };
 
 class ConnectResponsePacket : public Packet {
@@ -66,11 +81,16 @@ class ConnectResponsePacket : public Packet {
 ////
 class ExtendedConnectRequestPacket : public Packet {
  public:
+  static ExtendedConnectRequestPacket& instance() {
+    static ExtendedConnectRequestPacket INSTANCE;
+    return INSTANCE;
+  }
+  using Packet::Packet;
+ private:
   ExtendedConnectRequestPacket() : Packet(RawPacket(PacketType::extended_connect_request, 2)) {
     pkt_.setPayloadByte(0, 0xca);
     pkt_.setPayloadByte(1, 0x01);
   }
-  using Packet::Packet;
 };
 
 class ExtendedConnectResponsePacket : public Packet {
@@ -82,10 +102,28 @@ class ExtendedConnectResponsePacket : public Packet {
 ////
 class GetRequestPacket : public Packet {
  public:
+  static GetRequestPacket& getSettingsInstance() {
+    static GetRequestPacket INSTANCE = GetRequestPacket(GetCommand::gc_settings);
+    return INSTANCE;
+  }
+  static GetRequestPacket& getCurrentTempInstance() {
+    static GetRequestPacket INSTANCE = GetRequestPacket(GetCommand::gc_current_temp);
+    return INSTANCE;
+  }
+  static GetRequestPacket& getStatusInstance() {
+    static GetRequestPacket INSTANCE = GetRequestPacket(GetCommand::gc_standby);
+    return INSTANCE;
+  }
+  static GetRequestPacket& getStandbyInstance() {
+    static GetRequestPacket INSTANCE = GetRequestPacket(GetCommand::gc_status);
+    return INSTANCE;
+  }
+  using Packet::Packet;
+
+ private:
   GetRequestPacket(GetCommand get_command) : Packet(RawPacket(PacketType::get_request, 1)) {
     pkt_.setPayloadByte(0, get_command);
   }
-  using Packet::Packet;
 };
 
 class SettingsGetResponsePacket : public Packet {
@@ -104,6 +142,8 @@ class SettingsGetResponsePacket : public Packet {
   uint8_t getFan() const { return pkt_.getPayloadByte(PLINDEX_FAN); }
   uint8_t getVane() const { return pkt_.getPayloadByte(PLINDEX_VANE); }
   uint8_t getHorizontalVane() const { return pkt_.getPayloadByte(PLINDEX_HVANE); }
+
+  std::string to_string() const override;
 };
 
 class CurrentTempGetResponsePacket : public Packet {
@@ -126,6 +166,7 @@ class StatusGetResponsePacket : public Packet {
  public:
   uint8_t getCompressorFrequency() const { return pkt_.getPayloadByte(PLINDEX_COMPRESSOR_FREQUENCY); }
   bool getOperating() const { return pkt_.getPayloadByte(PLINDEX_OPERATING); }
+  std::string to_string() const override;
 };
 
 class StandbyGetResponsePacket : public Packet {
@@ -136,6 +177,7 @@ class StandbyGetResponsePacket : public Packet {
  public:
   uint8_t getLoopStatus() const { return pkt_.getPayloadByte(PLINDEX_LOOPSTATUS); }
   uint8_t getStage() const { return pkt_.getPayloadByte(PLINDEX_STAGE); }
+  std::string to_string() const override;
 };
 
 ////
@@ -228,7 +270,6 @@ class RemoteTemperatureSetRequestPacket : public Packet {
   RemoteTemperatureSetRequestPacket &setRemoteTemperature(const float temperatureDegressC);
   RemoteTemperatureSetRequestPacket &useInternalTemperature();
 
-  uint8_t getFlags() const { return pkt_.getFlags(); }
   float getRemoteTemperature() const { return ((int) pkt_.getPayloadByte(PLINDEX_REMOTE_TEMPERATURE) - 128) / 2.0f; }
 };
 

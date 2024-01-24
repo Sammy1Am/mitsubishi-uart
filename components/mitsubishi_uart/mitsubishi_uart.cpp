@@ -3,13 +3,6 @@
 namespace esphome {
 namespace mitsubishi_uart {
 
-// Static packets for set requests
-static const Packet PACKET_CONNECT_REQ = ConnectRequestPacket();
-static const Packet PACKET_SETTINGS_REQ = GetRequestPacket(GetCommand::gc_settings);
-static const Packet PACKET_TEMP_REQ = GetRequestPacket(GetCommand::gc_current_temp);
-static const Packet PACKET_STATUS_REQ = GetRequestPacket(GetCommand::gc_status);
-static const Packet PACKET_STANDBY_REQ = GetRequestPacket(GetCommand::gc_standby);
-
 ////
 // MitsubishiUART
 ////
@@ -100,7 +93,7 @@ void MitsubishiUART::update() {
 
   // If we're not yet connected, send off a connection request (we'll check again next update)
   if (!hpConnected) {
-    hp_bridge.sendPacket(PACKET_CONNECT_REQ);
+    hp_bridge.sendPacket(ConnectRequestPacket::instance());
     return;
   }
 
@@ -112,10 +105,10 @@ void MitsubishiUART::update() {
   }
 
   // Request an update from the heatpump
-  hp_bridge.sendPacket(PACKET_SETTINGS_REQ); // Needs to be done before status packet for mode logic to work
-  hp_bridge.sendPacket(PACKET_STANDBY_REQ);
-  hp_bridge.sendPacket(PACKET_STATUS_REQ);
-  hp_bridge.sendPacket(PACKET_TEMP_REQ);
+  hp_bridge.sendPacket(GetRequestPacket::getSettingsInstance()); // Needs to be done before status packet for mode logic to work
+  hp_bridge.sendPacket(GetRequestPacket::getStandbyInstance());
+  hp_bridge.sendPacket(GetRequestPacket::getStatusInstance());
+  hp_bridge.sendPacket(GetRequestPacket::getCurrentTempInstance());
 }
 
 void MitsubishiUART::doPublish() {

@@ -26,7 +26,7 @@ enum PacketType : uint8_t {
   extended_connect_response = 0x7b
 };
 
-// Used to specify
+// Used to specify certain packet subtypes
 enum GetCommand : uint8_t {
   gc_settings = 0x02,
   gc_current_temp = 0x03,
@@ -35,6 +35,7 @@ enum GetCommand : uint8_t {
   gc_standby = 0x09
 };
 
+// Used to specify certain packet subtypes
 enum SetCommand : uint8_t {
   sc_settings = 0x01,
   sc_remote_temperature = 0x07
@@ -58,6 +59,9 @@ class RawPacket {
   RawPacket(); // For optional<RawPacket> construction
   RawPacket(PacketType packet_type, uint8_t payload_size);  // For building packets
   virtual ~RawPacket() {}
+
+  virtual std::string to_string() const {return format_hex_pretty(&getBytes()[0], getLength());};
+
   const uint8_t getLength() const { return length; };
   const uint8_t *getBytes() const { return packetBytes; };  // Primarily for sending packets
 
@@ -66,31 +70,16 @@ class RawPacket {
   // Returns the packet type byte
   uint8_t getPacketType() const { return packetBytes[PACKET_HEADER_INDEX_PACKET_TYPE]; };
   // Returns the first byte of the payload, often used as a command
-  uint8_t getCommand() const { return packetBytes[PACKET_HEADER_SIZE + PLINDEX_COMMAND]; };
-  // Returns flags (ONLY APPLICABLE FOR SOME COMMANDS)
-  uint8_t getFlags() const {return packetBytes[PACKET_HEADER_SIZE + PLINDEX_FLAGS];}
-  // Sets flags (ONLY APPLICABLE FOR SOME COMMANDS)
-  void setFlags(const uint8_t flagValue);
-  // Adds a flag (ONLY APPLICABLE FOR SOME COMMANDS)
-  RawPacket &addFlag(const uint8_t flagToAdd);
-  // Adds a flag2 (ONLY APPLICABLE FOR SOME COMMANDS)
-  RawPacket &addFlag2(const uint8_t flag2ToAdd);
-
-
-
-  virtual std::string to_string() const {return format_hex_pretty(&getBytes()[0], getLength());};
+  uint8_t getCommand() const { return getPayloadByte(PLINDEX_COMMAND); };
 
   RawPacket &setPayloadByte(const uint8_t payload_byte_index, const uint8_t value);
   uint8_t getPayloadByte(const uint8_t payload_byte_index) const {
-    return packetBytes[PACKET_HEADER_SIZE + payload_byte_index];
-  };
-
- protected:
-  static const int PLINDEX_COMMAND = 0;
-  static const int PLINDEX_FLAGS = 1;
-  static const int PLINDEX_FLAGS2 = 2;
+      return packetBytes[PACKET_HEADER_SIZE + payload_byte_index];
+    };
 
  private:
+  static const int PLINDEX_COMMAND = 0;
+
   uint8_t packetBytes[PACKET_MAX_SIZE]{};
   uint8_t length;
   uint8_t checksumIndex;
