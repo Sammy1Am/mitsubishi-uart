@@ -9,6 +9,7 @@
 #include "esphome/components/sensor/sensor.h"
 #include "muart_packet.h"
 #include "muart_bridge.h"
+#include <map>
 
 namespace esphome {
 namespace mitsubishi_uart {
@@ -112,6 +113,7 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
 
     // Selects
     select::Select *temperature_source_select;
+    std::map<std::string, size_t> temp_select_map; // Used to map strings to indexes for preference storage
     std::string currentTemperatureSource = TEMPERATURE_SOURCE_INTERNAL;
     uint32_t lastReceivedTemperature = millis();
 };
