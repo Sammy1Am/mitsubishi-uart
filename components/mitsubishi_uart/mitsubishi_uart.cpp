@@ -55,16 +55,19 @@ void MitsubishiUART::restore_preferences() {
     if (prefs.currentTemperatureSourceIndex.has_value()
     && temperature_source_select->has_index(prefs.currentTemperatureSourceIndex.value())
     && temperature_source_select->at(prefs.currentTemperatureSourceIndex.value()).has_value()) {
-      temperature_source_select->publish_state(temperature_source_select->at(prefs.currentTemperatureSourceIndex.value()).value());
+      currentTemperatureSource = temperature_source_select->at(prefs.currentTemperatureSourceIndex.value()).value();
+      temperature_source_select->publish_state(currentTemperatureSource);
       ESP_LOGCONFIG(TAG, "Preferences loaded.");
     } else {
 
       ESP_LOGCONFIG(TAG, "Preferences loaded, but unsuitable values.");
+      currentTemperatureSource = TEMPERATURE_SOURCE_INTERNAL;
       temperature_source_select->publish_state(TEMPERATURE_SOURCE_INTERNAL);
     }
   } else {
       // TODO: Shouldn't need to define setting all these defaults twice
       ESP_LOGCONFIG(TAG, "Preferences not loaded.");
+      currentTemperatureSource = TEMPERATURE_SOURCE_INTERNAL;
       temperature_source_select->publish_state(TEMPERATURE_SOURCE_INTERNAL);
     }
 }
@@ -81,7 +84,6 @@ void MitsubishiUART::loop() {
   if (millis() - lastReceivedTemperature > TEMPERATURE_SOURCE_TIMEOUT_MS && (temperature_source_select->state != TEMPERATURE_SOURCE_INTERNAL)) {
     ESP_LOGW(TAG, "No temperature received from %s for %i milliseconds, reverting to Internal source", currentTemperatureSource.c_str(), TEMPERATURE_SOURCE_TIMEOUT_MS);
     // Set the select to show Internal (but do not change currentTemperatureSource)
-    // TODO: I think this actually currently changes the currentTemperatureSource because publish_state triggers a call
     temperature_source_select->publish_state(TEMPERATURE_SOURCE_INTERNAL);
     // Send a packet to the heat pump to tell it to switch to internal temperature sensing
     hp_bridge.sendPacket(RemoteTemperatureSetRequestPacket().useInternalTemperature());
