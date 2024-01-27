@@ -81,7 +81,7 @@ void MitsubishiUART::loop() {
   hp_bridge.loop();
 
   // If it's been too long since we received a temperature update (and we're not set to Internal)
-  if (millis() - lastReceivedTemperature > TEMPERATURE_SOURCE_TIMEOUT_MS && (temperature_source_select->state != TEMPERATURE_SOURCE_INTERNAL)) {
+  if (((millis() - lastReceivedTemperature) > TEMPERATURE_SOURCE_TIMEOUT_MS) && (temperature_source_select->state != TEMPERATURE_SOURCE_INTERNAL)) {
     ESP_LOGW(TAG, "No temperature received from %s for %i milliseconds, reverting to Internal source", currentTemperatureSource.c_str(), TEMPERATURE_SOURCE_TIMEOUT_MS);
     // Set the select to show Internal (but do not change currentTemperatureSource)
     temperature_source_select->publish_state(TEMPERATURE_SOURCE_INTERNAL);
@@ -144,6 +144,8 @@ bool MitsubishiUART::select_temperature_source(const std::string &state) {
   // TODO: Possibly check to see if state is available from the select options?  (Might be a bit redundant)
 
   currentTemperatureSource = state;
+  //Reset the timeout for received temperature (without this, the menu dropdown will switch back to Internal temporarily)
+  lastReceivedTemperature = millis();
 
   // If we've switched to internal, let the HP know right away
   if (TEMPERATURE_SOURCE_INTERNAL == state) {
@@ -160,7 +162,7 @@ bool MitsubishiUART::select_temperature_source(const std::string &state) {
 // TODO: ? Maybe store all temperatures (and report on them using internal sensors??) so that selecting a new
 // source takes effect immediately?  Only really needed if source sensors are configured with very slow update times.
 void MitsubishiUART::temperature_source_report(const std::string &temperature_source, const float &v) {
-  ESP_LOGI(TAG, "Received temperature from %s of %f.", temperature_source.c_str(), v);
+  ESP_LOGI(TAG, "Received temperature from %s of %f. (Current source: %s)", temperature_source.c_str(), v, currentTemperatureSource.c_str());
 
   // Only proceed if the incomming source matches our chosen source.
   if (currentTemperatureSource == temperature_source) {
