@@ -23,6 +23,12 @@ captive_portal:
 # https://github.com/Sammy1Am/mitsubishi-uart/wiki/Getting-Started
 # for more detailed configuration options
 
+external_components:
+  - source:
+      type: git
+      url: https://github.com/Sammy1Am/mitsubishi-uart
+      ref: release # Use "main" to get the latest changes
+
 # Mitsubishi UART Component
 mitsubishi_uart:
   heatpump_uart: hp_uart

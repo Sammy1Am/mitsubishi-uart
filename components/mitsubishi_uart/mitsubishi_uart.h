@@ -15,7 +15,6 @@ namespace esphome {
 namespace mitsubishi_uart {
 
 static const char *TAG = "mitsubishi_uart";
-static const char *MUART_VERSION = "0.3.0";
 
 const uint8_t MUART_MIN_TEMP = 16;  // Degrees C
 const uint8_t MUART_MAX_TEMP = 31;  // Degrees C
