@@ -1,18 +1,15 @@
 esphome:
   name: env-basement-hp
+  friendly_name: Basement Heat Pump
 
-esp8266:
-  board: nodemcuv2
-
-# Enable logging
-logger:
-  baud_rate: 0 # Required if using UART0 on an ESP8266
-  level: DEBUG
+esp32:
+  board: esp32-c3-devkitm-1
 
 # Enable Home Assistant API
 api:
 
 ota:
+  password: !secret ota_password
 
 wifi:
   ssid: !secret wifi_ssid
@@ -21,37 +18,21 @@ wifi:
 
 captive_portal:
 
-select:
-  - platform: mitsubishi_uart
-    muart_id: heat_pump
-# vane_direction:
-#   muart_id: muart
+# This is a minimal example of what's required to get things up and
+# running.  See the wiki here: 
+# https://github.com/Sammy1Am/mitsubishi-uart/wiki/Getting-Started
+# for more detailed configuration options
 
-climate:
-  - platform: mitsubishi_uart
-    name: "Basement Heat Pump"
-    muart_id: heat_pump
-
-sensor:
-  - platform: mitsubishi_uart
-    muart_id: heat_pump
-
+# Mitsubishi UART Component
 mitsubishi_uart:
-  id: heat_pump
-  hp_uart: hp_uart
-  #update_interval: 300s
+  heatpump_uart: hp_uart
 
+# Define UART connected to heat pump
 uart:
-  id: hp_uart
-  baud_rate: 2400 # Reportedly some systems require/support 9600
-  parity: EVEN
-  rx_pin:
-    number: GPIO3
-  tx_pin:
-    number: GPIO1
-
-  # debug:
-  #   direction: BOTH
-  #   dummy_receiver: false
-  #   sequence:
-  #     - lambda: UARTDebug::log_hex(direction, bytes, ' ');
+  - id: hp_uart
+    baud_rate: 2400 # Default for many Mitsubishi systems
+    parity: EVEN # Default for many Mitsubishi systems
+    rx_pin:
+      number: GPIO6
+    tx_pin:
+      number: GPIO7
