@@ -166,7 +166,6 @@ void MitsubishiUART::processStatusGetResponsePacket(const StatusGetResponsePacke
     action = climate::CLIMATE_ACTION_OFF;
   }
   // If mode is fan only, packet.getOperating() may be false, but the fan is running
-  // TODO: Check that this ^ is true
   else if (mode == climate::CLIMATE_MODE_FAN_ONLY) {
     action = climate::CLIMATE_ACTION_FAN;
   }

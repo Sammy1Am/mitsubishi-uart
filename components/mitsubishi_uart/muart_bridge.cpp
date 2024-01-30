@@ -95,7 +95,6 @@ const optional<RawPacket> MUARTBridge::receiveRawPacket() const {
   return RawPacket(packetBytes, PACKET_HEADER_SIZE + payloadSize + 1);
 }
 
-// TODO: Any way to dynamic_cast?
 void MUARTBridge::processRawPacket(RawPacket &pkt) const {
   switch (pkt.getPacketType())
   {
