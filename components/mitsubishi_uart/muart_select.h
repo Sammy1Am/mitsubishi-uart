@@ -24,5 +24,23 @@ class TemperatureSourceSelect : public MUARTSelect {
     }
 };
 
+class VanePositionSelect : public MUARTSelect {
+  protected:
+    void control(const std::string &value) {
+      if (parent_->select_vane_position(value)) {
+        publish_state(value);
+      }
+    }
+};
+
+class HorizontalVanePositionSelect : public MUARTSelect {
+  protected:
+    void control(const std::string &value) {
+      if (parent_->select_horizontal_vane_position(value)) {
+        publish_state(value);
+      }
+    }
+};
+
 }  // namespace mitsubishi_uart
 }  // namespace esphome

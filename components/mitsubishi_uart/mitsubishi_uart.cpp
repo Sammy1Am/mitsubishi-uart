@@ -127,6 +127,8 @@ void MitsubishiUART::update() {
 
 void MitsubishiUART::doPublish() {
   publish_state();
+  vane_position_select->publish_state(vane_position_select->state);
+  horizontal_vane_position_select->publish_state(horizontal_vane_position_select->state);
   save_preferences(); // We can save this every time we publish as writes to flash are by default collected and delayed
 
 
@@ -152,6 +154,65 @@ bool MitsubishiUART::select_temperature_source(const std::string &state) {
     hp_bridge.sendPacket(RemoteTemperatureSetRequestPacket().useInternalTemperature());
   }
 
+  return true;
+}
+
+bool MitsubishiUART::select_vane_position(const std::string &state) {
+  SettingsSetRequestPacket::VANE_BYTE positionByte = SettingsSetRequestPacket::VANE_AUTO;
+
+  // NOTE: Annoyed that C++ doesn't have switches for strings, but since this is going to be called
+  // infrequently, this is probably a better solution than over-optimizing via maps or something
+
+  if (state == "Auto") {
+    positionByte = SettingsSetRequestPacket::VANE_AUTO;
+  } else if (state == "1") {
+    positionByte = SettingsSetRequestPacket::VANE_1;
+  } else if (state == "2") {
+    positionByte = SettingsSetRequestPacket::VANE_2;
+  } else if (state == "3") {
+    positionByte = SettingsSetRequestPacket::VANE_3;
+  } else if (state == "4") {
+    positionByte = SettingsSetRequestPacket::VANE_4;
+  } else if (state == "5") {
+    positionByte = SettingsSetRequestPacket::VANE_5;
+  } else if (state == "Swing") {
+    positionByte = SettingsSetRequestPacket::VANE_SWING;
+  } else {
+    ESP_LOGW(TAG, "Unknown vane position %s", state.c_str());
+    return false;
+  }
+
+
+  hp_bridge.sendPacket(SettingsSetRequestPacket().setVane(positionByte));
+  return true;
+}
+
+bool MitsubishiUART::select_horizontal_vane_position(const std::string &state) {
+  SettingsSetRequestPacket::HORIZONTAL_VANE_BYTE positionByte = SettingsSetRequestPacket::HV_CENTER;
+
+  // NOTE: Annoyed that C++ doesn't have switches for strings, but since this is going to be called
+  // infrequently, this is probably a better solution than over-optimizing via maps or something
+
+  if (state == "<<") {
+    positionByte = SettingsSetRequestPacket::HV_LEFT_FULL;
+  } else if (state == "<") {
+    positionByte = SettingsSetRequestPacket::HV_LEFT;
+  } else if (state == "|") {
+    positionByte = SettingsSetRequestPacket::HV_CENTER;
+  } else if (state == ">") {
+    positionByte = SettingsSetRequestPacket::HV_RIGHT;
+  } else if (state == ">>") {
+    positionByte = SettingsSetRequestPacket::HV_RIGHT_FULL;
+  } else if (state == "<>") {
+    positionByte = SettingsSetRequestPacket::HV_SPLIT;
+  } else if (state == "Swing") {
+    positionByte = SettingsSetRequestPacket::HV_SWING;
+  } else {
+    ESP_LOGW(TAG, "Unknown horizontal vane position %s", state.c_str());
+    return false;
+  }
+
+  hp_bridge.sendPacket(SettingsSetRequestPacket().setHorizontalVane(positionByte));
   return true;
 }
 

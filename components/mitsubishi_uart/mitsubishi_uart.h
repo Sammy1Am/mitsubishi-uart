@@ -57,10 +57,14 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
 
   // Select setters
   void set_temperature_source_select(select::Select *select) {temperature_source_select = select;};
+  void set_vane_position_select(select::Select *select) {vane_position_select = select;};
+  void set_horizontal_vane_position_select(select::Select *select) {horizontal_vane_position_select = select;};
 
   // Returns true if select was valid (even if not yet successful) to indicate select component
   // should optimistically publish
   bool select_temperature_source(const std::string &state);
+  bool select_vane_position(const std::string &state);
+  bool select_horizontal_vane_position(const std::string &state);
 
   // Used by external sources to report a temperature
   void temperature_source_report(const std::string &temperature_source, const float &v);
@@ -112,6 +116,10 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
 
     // Selects
     select::Select *temperature_source_select;
+    select::Select *vane_position_select;
+    select::Select *horizontal_vane_position_select;
+
+    // Temperature select extras
     std::map<std::string, size_t> temp_select_map; // Used to map strings to indexes for preference storage
     std::string currentTemperatureSource = TEMPERATURE_SOURCE_INTERNAL;
     uint32_t lastReceivedTemperature = millis();

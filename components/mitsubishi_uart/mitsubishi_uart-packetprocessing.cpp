@@ -85,9 +85,63 @@ void MitsubishiUART::processSettingsGetResponsePacket(const SettingsGetResponseP
 
   publishOnUpdate |= fanChanged;
 
-  // TODO:
-  // Horizontal Vane
-  // Vane
+  // TODO: It would probably be nice to have the enum->string mapping defined somewhere to avoid typos/errors
+  static std::string old_vane_position = vane_position_select->state;
+  switch(packet.getVane()) {
+    case SettingsSetRequestPacket::VANE_AUTO:
+      vane_position_select->state = "Auto";
+      break;
+    case SettingsSetRequestPacket::VANE_1:
+      vane_position_select->state = "1";
+      break;
+    case SettingsSetRequestPacket::VANE_2:
+      vane_position_select->state = "2";
+      break;
+    case SettingsSetRequestPacket::VANE_3:
+      vane_position_select->state = "3";
+      break;
+    case SettingsSetRequestPacket::VANE_4:
+      vane_position_select->state = "4";
+      break;
+    case SettingsSetRequestPacket::VANE_5:
+      vane_position_select->state = "5";
+      break;
+    case SettingsSetRequestPacket::VANE_SWING:
+      vane_position_select->state = "Swing";
+      break;
+    default:
+      ESP_LOGW(TAG, "Vane in unknown position %x", packet.getVane());
+  }
+  publishOnUpdate |= (old_vane_position != vane_position_select->state);
+
+
+  static std::string old_horizontal_vane_position = horizontal_vane_position_select->state;
+  switch(packet.getHorizontalVane()) {
+    case SettingsSetRequestPacket::HV_LEFT_FULL:
+      horizontal_vane_position_select->state = "<<";
+      break;
+    case SettingsSetRequestPacket::HV_LEFT:
+      horizontal_vane_position_select->state = "<";
+      break;
+    case SettingsSetRequestPacket::HV_CENTER:
+      horizontal_vane_position_select->state = "|";
+      break;
+    case SettingsSetRequestPacket::HV_RIGHT:
+      horizontal_vane_position_select->state = ">";
+      break;
+    case SettingsSetRequestPacket::HV_RIGHT_FULL:
+      horizontal_vane_position_select->state = ">>";
+      break;
+    case SettingsSetRequestPacket::HV_SPLIT:
+      horizontal_vane_position_select->state = "<>";
+      break;
+    case SettingsSetRequestPacket::HV_SWING:
+      horizontal_vane_position_select->state = "Swing";
+      break;
+    default:
+      ESP_LOGW(TAG, "Vane in unknown horizontal position %x", packet.getVane());
+  }
+  publishOnUpdate |= (old_horizontal_vane_position != horizontal_vane_position_select->state);
 };
 
 void MitsubishiUART::processCurrentTempGetResponsePacket(const CurrentTempGetResponsePacket &packet) {

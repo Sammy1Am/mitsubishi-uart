@@ -25,7 +25,10 @@ CONF_SENSORS_CURRENT_TEMP = "current_temperature"
 
 CONF_SELECTS = "selects"
 CONF_TEMPERATURE_SOURCE_SELECT = "temperature_source_select" # This is to create a Select object for selecting a source
-CONF_TEMPERATURE_SOURCES = "temperature_sources" # This is for specifying additinoal sources
+CONF_VANE_POSITION_SELECT = "vane_position_select"
+CONF_HORIZONTAL_VANE_POSITION_SELECT = "horizontal_vane_position_select"
+
+CONF_TEMPERATURE_SOURCES = "temperature_sources" # This is for specifying additional sources
 
 DEFAULT_POLLING_INTERVAL = "5s"
 
@@ -33,12 +36,16 @@ mitsubishi_uart_ns = cg.esphome_ns.namespace("mitsubishi_uart")
 MitsubishiUART = mitsubishi_uart_ns.class_("MitsubishiUART", cg.PollingComponent, climate.Climate)
 
 TemperatureSourceSelect = mitsubishi_uart_ns.class_("TemperatureSourceSelect", select.Select)
+VanePositionSelect = mitsubishi_uart_ns.class_("VanePositionSelect", select.Select)
+HorizontalVanePositionSelect = mitsubishi_uart_ns.class_("HorizontalVanePositionSelect", select.Select)
 
 DEFAULT_CLIMATE_MODES = ["OFF", "HEAT", "DRY", "COOL", "FAN_ONLY", "HEAT_COOL"]
 DEFAULT_FAN_MODES = ["AUTO", "QUIET", "LOW", "MEDIUM", "HIGH"]
 CUSTOM_FAN_MODES = {
     "VERYHIGH": mitsubishi_uart_ns.FAN_MODE_VERYHIGH
 }
+VANE_POSITIONS = ["Auto","1","2","3","4","5","Swing"]
+HORIZONTAL_VANE_POSITIONS = ["<<","<","|",">",">>","<>","Swing"]
 
 INTERNAL_TEMPERATURE_SOURCE_OPTIONS = [mitsubishi_uart_ns.TEMPERATURE_SOURCE_INTERNAL] # These will always be available
 
@@ -81,6 +88,24 @@ SELECTS = {
             icon="mdi:thermometer-check"
         ),
         INTERNAL_TEMPERATURE_SOURCE_OPTIONS
+    ),
+    CONF_VANE_POSITION_SELECT: (
+        "Vane Position",
+        select.select_schema(
+            VanePositionSelect,
+            entity_category=ENTITY_CATEGORY_CONFIG,
+            icon="mdi:arrow-expand-vertical"
+        ),
+        VANE_POSITIONS
+    ),
+    CONF_HORIZONTAL_VANE_POSITION_SELECT: (
+        "Horizontal Vane Position",
+        select.select_schema(
+            HorizontalVanePositionSelect,
+            entity_category=ENTITY_CATEGORY_CONFIG,
+            icon="mdi:arrow-expand-horizontal"
+        ),
+        HORIZONTAL_VANE_POSITIONS
     )
 }
 
@@ -125,8 +150,9 @@ async def to_code(config):
         await sensor.register_sensor(sensor_component, sensor_conf)
         cg.add(getattr(muart_component, f"set_{sensor_designator}_sensor")(sensor_component))
 
-    # Selects
+    ### Selects
 
+    # Add additional configured temperature sensors to the select menu
     for ts_id in config[CONF_TEMPERATURE_SOURCES]:
         ts = await cg.get_variable(ts_id)
         SELECTS[CONF_TEMPERATURE_SOURCE_SELECT][2].append(ts.get_name())
@@ -136,9 +162,8 @@ async def to_code(config):
                 f"[](float v){{{getattr(muart_component, 'temperature_source_report')}({ts.get_name()}, v);}}"
             )
         ))
-        # TODO: Add callback to sensor pointed to MUART
 
-
+    # Register selects
     for select_designator, (select_name, select_schema, select_options) in SELECTS.items():
         select_conf = config[CONF_SELECTS][select_designator]
         select_component = cg.new_Pvariable(select_conf[CONF_ID])
