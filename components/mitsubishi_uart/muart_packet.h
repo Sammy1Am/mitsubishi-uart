@@ -4,6 +4,7 @@
 #include "esphome/components/climate/climate.h"
 #include "esphome/components/uart/uart.h"
 #include "muart_rawpacket.h"
+#include <sstream>
 
 namespace esphome {
 namespace mitsubishi_uart {
@@ -21,7 +22,7 @@ class Packet {
     Packet(); // For optional<> construction
 
     // Returns a (more) human readable string of the packet
-    virtual std::string to_string() const {return format_hex_pretty(&pkt_.getBytes()[0], pkt_.getLength());};
+    virtual std::string to_string() const;
 
     // Is a response packet expected when this packet is sent.  Defaults to true since
     // most requests receive a response.

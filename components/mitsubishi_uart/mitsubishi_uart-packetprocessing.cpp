@@ -10,13 +10,13 @@ void MitsubishiUART::processGenericPacket(const Packet &packet) {
 };
 
 void MitsubishiUART::processConnectResponsePacket(const ConnectResponsePacket &packet) {
-  ESP_LOGV(TAG, packet.to_string().c_str());
+  ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
   // Not sure if there's any needed content in this response, so assume we're connected.
   hpConnected = true;
   ESP_LOGI(TAG, "Heatpump connected.");
 };
 void MitsubishiUART::processExtendedConnectResponsePacket(const ExtendedConnectResponsePacket &packet) {
-  ESP_LOGV(TAG, packet.to_string().c_str());
+  ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
   // Not sure if there's any needed content in this response, so assume we're connected.
   // TODO: Is there more useful info in these?
   hpConnected = true;
@@ -24,8 +24,9 @@ void MitsubishiUART::processExtendedConnectResponsePacket(const ExtendedConnectR
 };
 
 void MitsubishiUART::processSettingsGetResponsePacket(const SettingsGetResponsePacket &packet) {
-  ESP_LOGV(TAG, packet.to_string().c_str());
   ESP_LOGD(TAG, "Processing settings packet...");
+  ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
+
   // Mode
 
   const climate::ClimateMode old_mode = mode;
@@ -145,7 +146,7 @@ void MitsubishiUART::processSettingsGetResponsePacket(const SettingsGetResponseP
 };
 
 void MitsubishiUART::processCurrentTempGetResponsePacket(const CurrentTempGetResponsePacket &packet) {
-  ESP_LOGV(TAG, packet.to_string().c_str());
+  ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
   // This will be the same as the remote temperature if we're using a remote sensor, otherwise the internal temp
   const float old_current_temperature = current_temperature;
   current_temperature = packet.getCurrentTemp();
@@ -158,7 +159,7 @@ void MitsubishiUART::processCurrentTempGetResponsePacket(const CurrentTempGetRes
 };
 
 void MitsubishiUART::processStatusGetResponsePacket(const StatusGetResponsePacket &packet) {
-  ESP_LOGV(TAG, packet.to_string().c_str());
+  ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
   const climate::ClimateAction old_action = action;
 
   // If mode is off, action is off

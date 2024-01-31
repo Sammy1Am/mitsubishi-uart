@@ -3,25 +3,18 @@
 namespace esphome {
 namespace mitsubishi_uart {
 
-// TODO: This should probably live somewhere common eventually (maybe in MUARTBridge where it'll inherently know the direction)
-static void logPacket(const char *direction, const RawPacket &packet) {
-  ESP_LOGD(BRIDGE_TAG, "%s [%02x] %s", direction, packet.getPacketType(),
-           format_hex_pretty(&packet.getBytes()[0], packet.getLength()).c_str());
-}
-
 MUARTBridge::MUARTBridge(uart::UARTComponent &uart_component, PacketProcessor &packet_processor) : uart_comp{uart_component}, pkt_processor{packet_processor} {}
 
 void MUARTBridge::loop() {
 
   // Try to get a packet
   if (optional<RawPacket> pkt = receiveRawPacket()) {
-    ESP_LOGD(BRIDGE_TAG, "Received %x packet", pkt.value().getPacketType());
+    ESP_LOGV(BRIDGE_TAG, "Parsing %x packet", pkt.value().getPacketType());
     // Check the packet's checksum and either process it, or log an error
     if (pkt.value().isChecksumValid()) {
       processRawPacket(pkt.value());
     } else {
-      ESP_LOGW(BRIDGE_TAG, "Invalid packet checksum!");
-      logPacket("<-HP", pkt.value());
+      ESP_LOGW(BRIDGE_TAG, "Invalid packet checksum!\n%s", format_hex_pretty(&pkt.value().getBytes()[0], pkt.value().getLength()).c_str());
     }
 
     // If there was a packet waiting for a response, remove it.
@@ -38,7 +31,7 @@ void MUARTBridge::loop() {
       packetAwaitingResponse = pkt_queue.front();
     }
 
-    ESP_LOGD(BRIDGE_TAG, "Sending %x packet", pkt_queue.front().getPacketType());
+    ESP_LOGV(BRIDGE_TAG, "Sending %s", pkt_queue.front().to_string().c_str());
     writeRawPacket(pkt_queue.front().rawPacket());
     packet_sent_millis = millis();
 
