@@ -11,7 +11,14 @@ namespace mitsubishi_uart {
 
 #define LOGPACKET(packet, direction) ESP_LOGD("mitsubishi_uart.packets", "%s [%02x] %s", direction, packet.getPacketType(), packet.to_string().c_str());
 
-               // Checksum
+#define CONSOLE_COLOR_NONE "\033[0m"
+#define CONSOLE_COLOR_GREEN "\033[0;32m"
+#define CONSOLE_COLOR_PURPLE "\033[0;35m"
+#define CONSOLE_COLOR_CYAN "\033[0;36m"
+#define CONSOLE_COLOR_CYAN_BOLD "\033[1;36m"
+#define CONSOLE_COLOR_WHITE "\033[0;37m"
+
+
 
 class PacketProcessor;
 

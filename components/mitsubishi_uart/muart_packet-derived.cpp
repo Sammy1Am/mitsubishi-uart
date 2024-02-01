@@ -13,11 +13,13 @@ std::string ConnectResponsePacket::to_string() const {
 }
 std::string CurrentTempGetResponsePacket::to_string() const {
   return ("Current Temp Response: " + Packet::to_string()
+  + CONSOLE_COLOR_PURPLE
   + "\n Temp:" + std::to_string(getCurrentTemp()));
 }
 std::string SettingsGetResponsePacket::to_string() const {
 
   return ("Settings Response: " + Packet::to_string()
+  + CONSOLE_COLOR_PURPLE
   + "\n Fan:" + format_hex(getFan())
   + " Mode:" + format_hex(getMode())
   + " Power:" + (getPower() ? "On" : "Off")
@@ -27,12 +29,14 @@ std::string SettingsGetResponsePacket::to_string() const {
 }
 std::string StandbyGetResponsePacket::to_string() const {
   return ("Standby Response: " + Packet::to_string()
+  + CONSOLE_COLOR_PURPLE
   + "\n Loop Status:" + format_hex(getLoopStatus())
   + " Stage:" + format_hex(getStage())
   );
 }
 std::string StatusGetResponsePacket::to_string() const {
   return ("Status Response: " + Packet::to_string()
+  + CONSOLE_COLOR_PURPLE
   + "\n CompressorFrequency: " + std::to_string(getCompressorFrequency())
   + " Operating: " + (getOperating() ? "Yes":"No")
   );
