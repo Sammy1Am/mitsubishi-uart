@@ -72,6 +72,13 @@ void MitsubishiUART::restore_preferences() {
     }
 }
 
+void MitsubishiUART::sendIfActive(const Packet& packet) {
+  if (active_mode) hp_bridge.sendPacket(packet);
+}
+
+#define IFACTIVE(dothis) if (active_mode) {dothis}
+#define IFNOTACTIVE(dothis) if (!active_mode) {dothis}
+
 /* Used for receiving and acting on incoming packets as soon as they're available.
   Because packet processing happens as part of the receiving process, packet processing
   should not block for very long (e.g. no publishing inside the packet processing)
@@ -86,7 +93,7 @@ void MitsubishiUART::loop() {
     // Set the select to show Internal (but do not change currentTemperatureSource)
     temperature_source_select->publish_state(TEMPERATURE_SOURCE_INTERNAL);
     // Send a packet to the heat pump to tell it to switch to internal temperature sensing
-    hp_bridge.sendPacket(RemoteTemperatureSetRequestPacket().useInternalTemperature());
+    IFACTIVE(hp_bridge.sendPacket(RemoteTemperatureSetRequestPacket().useInternalTemperature());)
   }
   //
   // Send packet to HP to tell it to use internal temp sensor
@@ -107,7 +114,7 @@ void MitsubishiUART::update() {
 
   // If we're not yet connected, send off a connection request (we'll check again next update)
   if (!hpConnected) {
-    hp_bridge.sendPacket(ConnectRequestPacket::instance());
+    IFACTIVE(hp_bridge.sendPacket(ConnectRequestPacket::instance());)
     return;
   }
 
@@ -118,11 +125,13 @@ void MitsubishiUART::update() {
     publishOnUpdate = false;
   }
 
+  IFACTIVE(
   // Request an update from the heatpump
   hp_bridge.sendPacket(GetRequestPacket::getSettingsInstance()); // Needs to be done before status packet for mode logic to work
   hp_bridge.sendPacket(GetRequestPacket::getStandbyInstance());
   hp_bridge.sendPacket(GetRequestPacket::getStatusInstance());
   hp_bridge.sendPacket(GetRequestPacket::getCurrentTempInstance());
+  )
 }
 
 void MitsubishiUART::doPublish() {
@@ -151,13 +160,14 @@ bool MitsubishiUART::select_temperature_source(const std::string &state) {
 
   // If we've switched to internal, let the HP know right away
   if (TEMPERATURE_SOURCE_INTERNAL == state) {
-    hp_bridge.sendPacket(RemoteTemperatureSetRequestPacket().useInternalTemperature());
+    IFACTIVE(hp_bridge.sendPacket(RemoteTemperatureSetRequestPacket().useInternalTemperature());)
   }
 
   return true;
 }
 
 bool MitsubishiUART::select_vane_position(const std::string &state) {
+  IFNOTACTIVE(return false;) // Skip this if we're not in active mode
   SettingsSetRequestPacket::VANE_BYTE positionByte = SettingsSetRequestPacket::VANE_AUTO;
 
   // NOTE: Annoyed that C++ doesn't have switches for strings, but since this is going to be called
@@ -188,6 +198,7 @@ bool MitsubishiUART::select_vane_position(const std::string &state) {
 }
 
 bool MitsubishiUART::select_horizontal_vane_position(const std::string &state) {
+  IFNOTACTIVE(return false;) // Skip this if we're not in active mode
   SettingsSetRequestPacket::HORIZONTAL_VANE_BYTE positionByte = SettingsSetRequestPacket::HV_CENTER;
 
   // NOTE: Annoyed that C++ doesn't have switches for strings, but since this is going to be called
@@ -232,9 +243,11 @@ void MitsubishiUART::temperature_source_report(const std::string &temperature_so
     lastReceivedTemperature = millis();
 
     // Tell the heat pump about the temperature asap, but don't worry about setting it locally, the next update() will get it
+    IFACTIVE(
     RemoteTemperatureSetRequestPacket pkt = RemoteTemperatureSetRequestPacket();
     pkt.setRemoteTemperature(v);
     hp_bridge.sendPacket(pkt);
+    )
 
     // If we've changed the select to reflect a temporary reversion to a different source, change it back.
     if (temperature_source_select->state != temperature_source) {

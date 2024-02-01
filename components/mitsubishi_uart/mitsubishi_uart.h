@@ -69,6 +69,9 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   // Used by external sources to report a temperature
   void temperature_source_report(const std::string &temperature_source, const float &v);
 
+  // Turns on or off actively sending packets
+  void set_active_mode(const bool active) {active_mode = active;};
+
   protected:
     void processGenericPacket(const Packet &packet);
     void processConnectResponsePacket(const ConnectResponsePacket &packet);
@@ -123,6 +126,9 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     std::map<std::string, size_t> temp_select_map; // Used to map strings to indexes for preference storage
     std::string currentTemperatureSource = TEMPERATURE_SOURCE_INTERNAL;
     uint32_t lastReceivedTemperature = millis();
+
+    void sendIfActive(const Packet& packet);
+    bool active_mode = true;
 };
 
 struct MUARTPreferences {

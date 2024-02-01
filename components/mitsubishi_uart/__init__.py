@@ -1,6 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import climate, uart, sensor, select
+from esphome.components import climate, uart, sensor, select, switch
 from esphome.core import CORE
 from esphome.const import (
     CONF_ID,
@@ -15,8 +15,8 @@ from esphome.const import (
 )
 from esphome.core import coroutine
 
-AUTO_LOAD = ["climate", "select", "sensor"]
-DEPENDENCIES = ["uart", "climate", "sensor", "select"]
+AUTO_LOAD = ["climate", "select", "sensor", "switch"]
+DEPENDENCIES = ["uart", "climate", "sensor", "select", "switch"]
 
 CONF_HP_UART = "heatpump_uart"
 
@@ -30,6 +30,8 @@ CONF_HORIZONTAL_VANE_POSITION_SELECT = "horizontal_vane_position_select"
 
 CONF_TEMPERATURE_SOURCES = "temperature_sources" # This is for specifying additional sources
 
+CONF_ACTIVE_MODE_SWITCH = "active_mode_switch"
+
 DEFAULT_POLLING_INTERVAL = "5s"
 
 mitsubishi_uart_ns = cg.esphome_ns.namespace("mitsubishi_uart")
@@ -38,6 +40,8 @@ MitsubishiUART = mitsubishi_uart_ns.class_("MitsubishiUART", cg.PollingComponent
 TemperatureSourceSelect = mitsubishi_uart_ns.class_("TemperatureSourceSelect", select.Select)
 VanePositionSelect = mitsubishi_uart_ns.class_("VanePositionSelect", select.Select)
 HorizontalVanePositionSelect = mitsubishi_uart_ns.class_("HorizontalVanePositionSelect", select.Select)
+
+ActiveModeSwitch = mitsubishi_uart_ns.class_("ActiveModeSwitch", switch.Switch, cg.Component)
 
 DEFAULT_CLIMATE_MODES = ["OFF", "HEAT", "DRY", "COOL", "FAN_ONLY", "HEAT_COOL"]
 DEFAULT_FAN_MODES = ["AUTO", "QUIET", "LOW", "MEDIUM", "HIGH"]
@@ -59,7 +63,11 @@ BASE_SCHEMA = cv.polling_component_schema(DEFAULT_POLLING_INTERVAL).extend(clima
     cv.Optional(CONF_SUPPORTED_MODES, default=DEFAULT_CLIMATE_MODES) : cv.ensure_list(climate.validate_climate_mode),
     cv.Optional(CONF_SUPPORTED_FAN_MODES, default=DEFAULT_FAN_MODES): cv.ensure_list(climate.validate_climate_fan_mode),
     cv.Optional(CONF_CUSTOM_FAN_MODES, default=["VERYHIGH"]) : cv.ensure_list(validate_custom_fan_modes),
-    cv.Optional(CONF_TEMPERATURE_SOURCES, default=[]) : cv.ensure_list(cv.use_id(sensor.Sensor))
+    cv.Optional(CONF_TEMPERATURE_SOURCES, default=[]) : cv.ensure_list(cv.use_id(sensor.Sensor)),
+    cv.Optional(CONF_ACTIVE_MODE_SWITCH, default={"name":"Active Mode"}) : switch.switch_schema(
+        ActiveModeSwitch,
+        entity_category=ENTITY_CATEGORY_CONFIG,
+        default_restore_mode="RESTORE_DEFAULT_ON")
     })
 
 SENSORS = {
@@ -170,3 +178,10 @@ async def to_code(config):
         await select.register_select(select_component, select_conf, options=select_options)
         cg.add(getattr(muart_component, f"set_{select_designator}")(select_component))
         await cg.register_parented(select_component, muart_component)
+
+    ### Switches
+    if am_switch_conf := config.get(CONF_ACTIVE_MODE_SWITCH):
+        switch_component = await switch.new_switch(am_switch_conf)
+        await cg.register_component(switch_component, am_switch_conf)
+        await cg.register_parented(switch_component,muart_component)
+

@@ -5,6 +5,9 @@ namespace mitsubishi_uart {
 
 // Called to instruct a change of the climate controls
 void MitsubishiUART::control(const climate::ClimateCall &call) {
+
+  if (!active_mode) return; // If we're not in active mode, ignore control requests
+
   SettingsSetRequestPacket setRequestPacket = SettingsSetRequestPacket();
 
   // Fan
