@@ -25,6 +25,7 @@ std::string SettingsGetResponsePacket::to_string() const {
   + " Power:" + (getPower() ? "On" : "Off")
   + " TargetTemp:" + std::to_string(getTargetTemp())
   + " Vane:" + format_hex(getVane())
+  + " HVane:" + format_hex(getHorizontalVane())
   );
 }
 std::string StandbyGetResponsePacket::to_string() const {
