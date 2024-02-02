@@ -67,7 +67,8 @@ BASE_SCHEMA = cv.polling_component_schema(DEFAULT_POLLING_INTERVAL).extend(clima
     cv.Optional(CONF_ACTIVE_MODE_SWITCH, default={"name":"Active Mode"}) : switch.switch_schema(
         ActiveModeSwitch,
         entity_category=ENTITY_CATEGORY_CONFIG,
-        default_restore_mode="RESTORE_DEFAULT_ON")
+        default_restore_mode="RESTORE_DEFAULT_ON",
+        icon="mdi:upload-network")
     })
 
 SENSORS = {
