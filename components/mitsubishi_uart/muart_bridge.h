@@ -13,7 +13,7 @@ static const uint32_t RESPONSE_TIMEOUT_MS = 3000; // Maximum amount of time to w
 // A UARTComponent wrapper to send and receieve packets
 class MUARTBridge  {
   public:
-    MUARTBridge(uart::UARTComponent &uart_component, PacketProcessor &packet_processor);
+    MUARTBridge(uart::UARTComponent *uart_component, PacketProcessor *packet_processor);
 
     // Enqueues a packet to be sent
     void sendPacket(const Packet &packetToSend);

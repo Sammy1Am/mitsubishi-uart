@@ -7,7 +7,7 @@ namespace mitsubishi_uart {
 // MitsubishiUART
 ////
 
-MitsubishiUART::MitsubishiUART(uart::UARTComponent *hp_uart_comp) : hp_uart{*hp_uart_comp}, hp_bridge{HeatpumpBridge(*hp_uart_comp, *this)} {
+MitsubishiUART::MitsubishiUART(uart::UARTComponent *hp_uart_comp) : hp_uart{*hp_uart_comp}, hp_bridge{HeatpumpBridge(hp_uart_comp, this)} {
 
   /**
    * Climate pushes all its data to Home Assistant immediately when the API connects, this causes

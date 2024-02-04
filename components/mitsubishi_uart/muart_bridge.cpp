@@ -3,7 +3,7 @@
 namespace esphome {
 namespace mitsubishi_uart {
 
-MUARTBridge::MUARTBridge(uart::UARTComponent &uart_component, PacketProcessor &packet_processor) : uart_comp{uart_component}, pkt_processor{packet_processor} {}
+MUARTBridge::MUARTBridge(uart::UARTComponent *uart_component, PacketProcessor *packet_processor) : uart_comp{*uart_component}, pkt_processor{*packet_processor} {}
 
 void HeatpumpBridge::loop() {
 

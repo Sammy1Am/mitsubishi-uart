@@ -53,10 +53,10 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   void control(const climate::ClimateCall &call) override;
 
   // Set thermostat UART component
-  void set_thermostat_uart(uart::UARTComponent &uart) {
+  void set_thermostat_uart(uart::UARTComponent *uart) {
     ESP_LOGCONFIG(TAG, "Thermostat uart was set.");
-    //ts_uart = uart;
-    //ts_bridge = ThermostatBridge(&ts_uart, this);
+    ts_uart = uart;
+    ts_bridge = new ThermostatBridge(ts_uart, static_cast<PacketProcessor*>(this));
   }
 
   // Sensor setters
@@ -111,9 +111,9 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     // UART packet wrapper for heatpump
     HeatpumpBridge hp_bridge;
     // UARTComponent connected to thermostat
-    //uart::UARTComponent &ts_uart;
+    uart::UARTComponent *ts_uart;
     // UART packet wrapper for heatpump
-    //ThermostatBridge ts_bridge;
+    ThermostatBridge *ts_bridge;
 
 
     // Are we connected to the heatpump?
