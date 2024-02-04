@@ -19,6 +19,7 @@ AUTO_LOAD = ["climate", "select", "sensor", "switch"]
 DEPENDENCIES = ["uart", "climate", "sensor", "select", "switch"]
 
 CONF_HP_UART = "heatpump_uart"
+CONF_TS_UART = "thermostat_uart"
 
 CONF_SENSORS = "sensors"
 CONF_SENSORS_CURRENT_TEMP = "current_temperature"
@@ -58,6 +59,7 @@ validate_custom_fan_modes = cv.enum(CUSTOM_FAN_MODES, upper=True)
 BASE_SCHEMA = cv.polling_component_schema(DEFAULT_POLLING_INTERVAL).extend(climate.CLIMATE_SCHEMA).extend({
     cv.GenerateID(CONF_ID): cv.declare_id(MitsubishiUART),
     cv.Required(CONF_HP_UART): cv.use_id(uart.UARTComponent),
+    cv.Optional(CONF_TS_UART): cv.use_id(uart.UARTComponent),
     cv.Optional(CONF_NAME, default="Climate") : cv.string,
 
     cv.Optional(CONF_SUPPORTED_MODES, default=DEFAULT_CLIMATE_MODES) : cv.ensure_list(climate.validate_climate_mode),
@@ -137,6 +139,11 @@ async def to_code(config):
 
     await cg.register_component(muart_component, config)
     await climate.register_climate(muart_component, config)
+
+    # If thermostat defined, add to muart
+    if (CONF_TS_UART in config):
+        ts_uart_component = await cg.get_variable(config[CONF_TS_UART])
+        cg.add(getattr(muart_component, f"set_thermostat_uart")(ts_uart_component))
 
     # Traits
 

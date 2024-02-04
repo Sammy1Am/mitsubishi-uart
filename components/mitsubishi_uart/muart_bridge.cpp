@@ -5,14 +5,14 @@ namespace mitsubishi_uart {
 
 MUARTBridge::MUARTBridge(uart::UARTComponent &uart_component, PacketProcessor &packet_processor) : uart_comp{uart_component}, pkt_processor{packet_processor} {}
 
-void MUARTBridge::loop() {
+void HeatpumpBridge::loop() {
 
   // Try to get a packet
   if (optional<RawPacket> pkt = receiveRawPacket()) {
     ESP_LOGV(BRIDGE_TAG, "Parsing %x packet", pkt.value().getPacketType());
     // Check the packet's checksum and either process it, or log an error
     if (pkt.value().isChecksumValid()) {
-      processRawPacket(pkt.value());
+      classifyAndProcessRawPacket(pkt.value());
     } else {
       ESP_LOGW(BRIDGE_TAG, "Invalid packet checksum!\n%s", format_hex_pretty(&pkt.value().getBytes()[0], pkt.value().getLength()).c_str());
     }
@@ -43,6 +43,10 @@ void MUARTBridge::loop() {
     packetAwaitingResponse.reset();
     ESP_LOGW(BRIDGE_TAG, "Timeout waiting for response to  %x packet.", packetAwaitingResponse.value().getPacketType());
   }
+}
+
+void ThermostatBridge::loop() {
+
 }
 
 void MUARTBridge::sendPacket(const Packet &packetToSend) {
@@ -88,45 +92,54 @@ const optional<RawPacket> MUARTBridge::receiveRawPacket() const {
   return RawPacket(packetBytes, PACKET_HEADER_SIZE + payloadSize + 1);
 }
 
-void MUARTBridge::processRawPacket(RawPacket &pkt) const {
+template <class P>
+void MUARTBridge::processRawPacket(RawPacket &pkt, bool expectResponse) const {
+  P packet = P(std::move(pkt));
+  // TODO: ? If these are used EVERY time a packet is constructed, maybe move to constructor?
+  packet.associatedController = getControllerAssoc();
+  packet.setResponseExpected(expectResponse);
+  pkt_processor.processPacket(packet);
+}
+
+void MUARTBridge::classifyAndProcessRawPacket(RawPacket &pkt) const {
   switch (pkt.getPacketType())
   {
   case PacketType::connect_response :
-    pkt_processor.processConnectResponsePacket(ConnectResponsePacket(std::move(pkt)));
+    processRawPacket<ConnectResponsePacket>(pkt, false);
     break;
   case PacketType::extended_connect_response :
-    pkt_processor.processExtendedConnectResponsePacket(ExtendedConnectResponsePacket(std::move(pkt)));
+    processRawPacket<ExtendedConnectResponsePacket>(pkt, false);
     break;
   case PacketType::get_response :
     switch(pkt.getCommand()) {
       case GetCommand::gc_current_temp :
-       pkt_processor.processCurrentTempGetResponsePacket(CurrentTempGetResponsePacket(std::move(pkt)));
+        processRawPacket<CurrentTempGetResponsePacket>(pkt, false);
         break;
       case GetCommand::gc_settings :
-       pkt_processor.processSettingsGetResponsePacket(SettingsGetResponsePacket(std::move(pkt)));
+        processRawPacket<SettingsGetResponsePacket>(pkt, false);
         break;
       case GetCommand::gc_standby :
-       pkt_processor.processStandbyGetResponsePacket(StandbyGetResponsePacket(std::move(pkt)));
+        processRawPacket<StandbyGetResponsePacket>(pkt, false);
         break;
       case GetCommand::gc_status :
-        pkt_processor.processStatusGetResponsePacket(StatusGetResponsePacket(std::move(pkt)));
+        processRawPacket<StatusGetResponsePacket>(pkt, false);
         break;
       default:
-        pkt_processor.processGenericPacket(Packet(std::move(pkt)));
+        processRawPacket<Packet>(pkt, false);
     }
     break;
   case PacketType::set_response :
     switch(pkt.getCommand()) {
       case SetCommand::sc_remote_temperature :
-        pkt_processor.processRemoteTemperatureSetResponsePacket(RemoteTemperatureSetResponsePacket(std::move(pkt)));
+        processRawPacket<RemoteTemperatureSetResponsePacket>(pkt, false);
         break;
       default:
-        pkt_processor.processGenericPacket(Packet(std::move(pkt)));
+        processRawPacket<Packet>(pkt, false);
     }
     break;
 
   default:
-    pkt_processor.processGenericPacket(Packet(std::move(pkt)));
+    processRawPacket<ConnectResponsePacket>(pkt, false);
   }
 }
 

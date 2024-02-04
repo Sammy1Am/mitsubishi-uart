@@ -19,18 +19,36 @@ class MUARTBridge  {
     void sendPacket(const Packet &packetToSend);
 
     // Checks for incoming packets, processes them, sends queued packets
-    void loop();
+    virtual void loop() = 0;
 
-  private:
+  protected:
     const optional<RawPacket> receiveRawPacket() const;
-    void writeRawPacket(const RawPacket &packet) const;
-    void processRawPacket(RawPacket &packet) const;
+    void writeRawPacket(const RawPacket &pkt) const;
+    template <class P>
+    void processRawPacket(RawPacket &pkt, bool expectResponse = true) const;
+    void classifyAndProcessRawPacket(RawPacket &pkt) const;
+    virtual ControllerAssoc getControllerAssoc() const = 0;
 
     uart::UARTComponent &uart_comp;
     PacketProcessor &pkt_processor;
     std::queue<Packet> pkt_queue;
     optional<Packet> packetAwaitingResponse = nullopt;
     uint32_t packet_sent_millis;
+};
+
+class HeatpumpBridge : public MUARTBridge{
+  public:
+  using MUARTBridge::MUARTBridge;
+  void loop() override;
+  ControllerAssoc getControllerAssoc() const override {return ControllerAssoc::muart;};
+};
+
+class ThermostatBridge : public MUARTBridge{
+  public:
+  using MUARTBridge::MUARTBridge;
+  //ThermostatBridge(uart::UARTComponent &uart_component, PacketProcessor &packet_processor) : MUARTBridge(uart_component, packet_processor){};
+  void loop() override;
+  ControllerAssoc getControllerAssoc() const override {return ControllerAssoc::thermostat;};
 };
 
 }  // namespace mitsubishi_uart

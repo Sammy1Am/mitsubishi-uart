@@ -18,7 +18,11 @@ namespace mitsubishi_uart {
 #define CONSOLE_COLOR_CYAN_BOLD "\033[1;36m"
 #define CONSOLE_COLOR_WHITE "\033[0;37m"
 
-
+// Indicates which controller is associated with this packet
+enum ControllerAssoc : uint8_t {
+  muart,
+  thermostat
+};
 
 class PacketProcessor;
 
@@ -34,6 +38,7 @@ class Packet {
     // Is a response packet expected when this packet is sent.  Defaults to true since
     // most requests receive a response.
     const bool isResponseExpected() const {return responseExpected;};
+    void setResponseExpected(bool expectResponse) {responseExpected = expectResponse;};
 
     // Passthrough methods to RawPacket
     RawPacket& rawPacket() {return pkt_;};
@@ -48,6 +53,8 @@ class Packet {
     void addFlag(const uint8_t flagToAdd);
     // Adds a flag2 (ONLY APPLICABLE FOR SOME COMMANDS)
     void addFlag2(const uint8_t flag2ToAdd);
+
+    ControllerAssoc associatedController = ControllerAssoc::muart;
 
   protected:
     static const int PLINDEX_FLAGS = 1;
@@ -289,15 +296,14 @@ class RemoteTemperatureSetResponsePacket : public Packet {
 
 class PacketProcessor {
   public:
-    virtual void processGenericPacket(const Packet &packet) {};
-    virtual void processConnectResponsePacket(const ConnectResponsePacket &packet) {};
-    virtual void processExtendedConnectResponsePacket(const ExtendedConnectResponsePacket &packet) {};
-    virtual void processSettingsGetResponsePacket(const SettingsGetResponsePacket &packet) {};
-    virtual void processCurrentTempGetResponsePacket(const CurrentTempGetResponsePacket &packet) {};
-    virtual void processStatusGetResponsePacket(const StatusGetResponsePacket &packet) {};
-    virtual void processStandbyGetResponsePacket(const StandbyGetResponsePacket &packet) {};
-    virtual void processRemoteTemperatureSetResponsePacket(const RemoteTemperatureSetResponsePacket &packet) {};
-
+    virtual void processPacket(const Packet &packet) {};
+    virtual void processPacket(const ConnectResponsePacket &packet) {};
+    virtual void processPacket(const ExtendedConnectResponsePacket &packet) {};
+    virtual void processPacket(const SettingsGetResponsePacket &packet) {};
+    virtual void processPacket(const CurrentTempGetResponsePacket &packet) {};
+    virtual void processPacket(const StatusGetResponsePacket &packet) {};
+    virtual void processPacket(const StandbyGetResponsePacket &packet) {};
+    virtual void processPacket(const RemoteTemperatureSetResponsePacket &packet) {};
 };
 
 }  // namespace mitsubishi_uart

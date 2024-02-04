@@ -52,6 +52,13 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   // Called to instruct a change of the climate controls
   void control(const climate::ClimateCall &call) override;
 
+  // Set thermostat UART component
+  void set_thermostat_uart(uart::UARTComponent &uart) {
+    ESP_LOGCONFIG(TAG, "Thermostat uart was set.");
+    //ts_uart = uart;
+    //ts_bridge = ThermostatBridge(&ts_uart, this);
+  }
+
   // Sensor setters
   void set_current_temperature_sensor(sensor::Sensor *sensor) {current_temperature_sensor = sensor;};
 
@@ -73,14 +80,14 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   void set_active_mode(const bool active) {active_mode = active;};
 
   protected:
-    void processGenericPacket(const Packet &packet);
-    void processConnectResponsePacket(const ConnectResponsePacket &packet);
-    void processExtendedConnectResponsePacket(const ExtendedConnectResponsePacket &packet);
-    void processSettingsGetResponsePacket(const SettingsGetResponsePacket &packet);
-    void processCurrentTempGetResponsePacket(const CurrentTempGetResponsePacket &packet);
-    void processStatusGetResponsePacket(const StatusGetResponsePacket &packet);
-    void processStandbyGetResponsePacket(const StandbyGetResponsePacket &packet);
-    void processRemoteTemperatureSetResponsePacket(const RemoteTemperatureSetResponsePacket &packet);
+    void processPacket(const Packet &packet);
+    void processPacket(const ConnectResponsePacket &packet);
+    void processPacket(const ExtendedConnectResponsePacket &packet);
+    void processPacket(const SettingsGetResponsePacket &packet);
+    void processPacket(const CurrentTempGetResponsePacket &packet);
+    void processPacket(const StatusGetResponsePacket &packet);
+    void processPacket(const StandbyGetResponsePacket &packet);
+    void processPacket(const RemoteTemperatureSetResponsePacket &packet);
 
     void doPublish();
 
@@ -102,7 +109,13 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     // UARTComponent connected to heatpump
     const uart::UARTComponent &hp_uart;
     // UART packet wrapper for heatpump
-    MUARTBridge hp_bridge;
+    HeatpumpBridge hp_bridge;
+    // UARTComponent connected to thermostat
+    //uart::UARTComponent &ts_uart;
+    // UART packet wrapper for heatpump
+    //ThermostatBridge ts_bridge;
+
+
     // Are we connected to the heatpump?
     bool hpConnected = false;
     // Should we call publish on the next update?
