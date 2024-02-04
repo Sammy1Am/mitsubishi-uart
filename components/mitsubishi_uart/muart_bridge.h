@@ -25,9 +25,8 @@ class MUARTBridge  {
     const optional<RawPacket> receiveRawPacket() const;
     void writeRawPacket(const RawPacket &pkt) const;
     template <class P>
-    void processRawPacket(RawPacket &pkt, bool expectResponse = true) const;
-    void classifyAndProcessRawPacket(RawPacket &pkt) const;
-    virtual ControllerAssoc getControllerAssoc() const = 0;
+    void processRawPacket(RawPacket &pkt, BridgeAssoc sourceBridge, ControllerAssoc associatedController, bool expectResponse = true) const;
+    void classifyAndProcessRawPacket(RawPacket &pkt, BridgeAssoc sourceBridge, ControllerAssoc associatedController = ControllerAssoc::ca_muart) const;
 
     uart::UARTComponent &uart_comp;
     PacketProcessor &pkt_processor;
@@ -40,7 +39,6 @@ class HeatpumpBridge : public MUARTBridge{
   public:
   using MUARTBridge::MUARTBridge;
   void loop() override;
-  ControllerAssoc getControllerAssoc() const override {return ControllerAssoc::muart;};
 };
 
 class ThermostatBridge : public MUARTBridge{
@@ -48,7 +46,6 @@ class ThermostatBridge : public MUARTBridge{
   using MUARTBridge::MUARTBridge;
   //ThermostatBridge(uart::UARTComponent &uart_component, PacketProcessor &packet_processor) : MUARTBridge(uart_component, packet_processor){};
   void loop() override;
-  ControllerAssoc getControllerAssoc() const override {return ControllerAssoc::thermostat;};
 };
 
 }  // namespace mitsubishi_uart

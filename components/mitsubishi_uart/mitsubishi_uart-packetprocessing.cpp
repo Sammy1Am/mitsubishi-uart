@@ -3,20 +3,37 @@
 namespace esphome {
 namespace mitsubishi_uart {
 
+void MitsubishiUART::routePacket(const Packet &packet) {
+  // If the packet is associated with the thermostat and just came from the thermostat, send it to the heatpump
+  // If it came from the heatpump, send it back to the thermostat
+  if (packet.associatedController == ControllerAssoc::ca_thermostat) {
+    if (packet.sourceBridge == BridgeAssoc::ba_thermostat) {
+      hp_bridge.sendPacket(packet);
+    } else if (packet.sourceBridge == BridgeAssoc::ba_heatpump) {
+      ts_bridge->sendPacket(packet);
+    }
+  }
+}
+
 // Packet Handlers
 void MitsubishiUART::processPacket(const Packet &packet) {
   ESP_LOGI(TAG, "Generic unhandled packet type %x received.", packet.getPacketType());
   ESP_LOGD(TAG, packet.to_string().c_str());
+  routePacket(packet);
 };
+
+
 
 void MitsubishiUART::processPacket(const ConnectResponsePacket &packet) {
   ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
+  routePacket(packet);
   // Not sure if there's any needed content in this response, so assume we're connected.
   hpConnected = true;
   ESP_LOGI(TAG, "Heatpump connected.");
 };
 void MitsubishiUART::processPacket(const ExtendedConnectResponsePacket &packet) {
   ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
+  routePacket(packet);
   // Not sure if there's any needed content in this response, so assume we're connected.
   // TODO: Is there more useful info in these?
   hpConnected = true;
@@ -24,8 +41,8 @@ void MitsubishiUART::processPacket(const ExtendedConnectResponsePacket &packet) 
 };
 
 void MitsubishiUART::processPacket(const SettingsGetResponsePacket &packet) {
-  ESP_LOGD(TAG, "Processing settings packet...");
   ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
+  routePacket(packet);
 
   // Mode
 
@@ -147,6 +164,7 @@ void MitsubishiUART::processPacket(const SettingsGetResponsePacket &packet) {
 
 void MitsubishiUART::processPacket(const CurrentTempGetResponsePacket &packet) {
   ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
+  routePacket(packet);
   // This will be the same as the remote temperature if we're using a remote sensor, otherwise the internal temp
   const float old_current_temperature = current_temperature;
   current_temperature = packet.getCurrentTemp();
@@ -160,6 +178,7 @@ void MitsubishiUART::processPacket(const CurrentTempGetResponsePacket &packet) {
 
 void MitsubishiUART::processPacket(const StatusGetResponsePacket &packet) {
   ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
+  routePacket(packet);
   const climate::ClimateAction old_action = action;
 
   // If mode is off, action is off
@@ -205,10 +224,12 @@ void MitsubishiUART::processPacket(const StatusGetResponsePacket &packet) {
   publishOnUpdate |= (old_action != action);
 };
 void MitsubishiUART::processPacket(const StandbyGetResponsePacket &packet) {
+  routePacket(packet);
   ESP_LOGI(TAG, "Unhandled packet StandbyGetResponsePacket received.");
   ESP_LOGD(TAG, packet.to_string().c_str());
 };
 void MitsubishiUART::processPacket(const RemoteTemperatureSetResponsePacket &packet) {
+  routePacket(packet);
   ESP_LOGI(TAG, "Unhandled packet RemoteTemperatureSetResponsePacket received.");
   ESP_LOGD(TAG, packet.to_string().c_str());
 };

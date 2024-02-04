@@ -20,8 +20,13 @@ namespace mitsubishi_uart {
 
 // Indicates which controller is associated with this packet
 enum ControllerAssoc : uint8_t {
-  muart,
-  thermostat
+  ca_muart,
+  ca_thermostat
+};
+
+enum BridgeAssoc : uint8_t {
+  ba_heatpump,
+  ba_thermostat
 };
 
 class PacketProcessor;
@@ -54,7 +59,8 @@ class Packet {
     // Adds a flag2 (ONLY APPLICABLE FOR SOME COMMANDS)
     void addFlag2(const uint8_t flag2ToAdd);
 
-    ControllerAssoc associatedController = ControllerAssoc::muart;
+    ControllerAssoc associatedController = ControllerAssoc::ca_muart;
+    BridgeAssoc sourceBridge = BridgeAssoc::ba_heatpump;
 
   protected:
     static const int PLINDEX_FLAGS = 1;
@@ -70,7 +76,7 @@ class Packet {
 ////
 class ConnectRequestPacket : public Packet {
  public:
-
+  using Packet::Packet;
   static ConnectRequestPacket& instance() {
     static ConnectRequestPacket INSTANCE;
     return INSTANCE;

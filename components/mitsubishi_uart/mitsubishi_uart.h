@@ -80,6 +80,8 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   void set_active_mode(const bool active) {active_mode = active;};
 
   protected:
+    void routePacket(const Packet &packet);
+
     void processPacket(const Packet &packet);
     void processPacket(const ConnectResponsePacket &packet);
     void processPacket(const ExtendedConnectResponsePacket &packet);

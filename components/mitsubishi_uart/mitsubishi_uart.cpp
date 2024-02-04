@@ -86,6 +86,7 @@ void MitsubishiUART::sendIfActive(const Packet& packet) {
 void MitsubishiUART::loop() {
   // Loop bridge to handle sending and receiving packets
   hp_bridge.loop();
+  if (ts_bridge) ts_bridge->loop();
 
   // If it's been too long since we received a temperature update (and we're not set to Internal)
   if (((millis() - lastReceivedTemperature) > TEMPERATURE_SOURCE_TIMEOUT_MS) && (temperature_source_select->state != TEMPERATURE_SOURCE_INTERNAL)) {
