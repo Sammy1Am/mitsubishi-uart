@@ -9,12 +9,12 @@ MUARTBridge::MUARTBridge(uart::UARTComponent *uart_component, PacketProcessor *p
 void HeatpumpBridge::loop() {
 
   // Try to get a packet
-  if (optional<RawPacket> pkt = receiveRawPacket()) {
+  if (optional<RawPacket> pkt = receiveRawPacket(SourceBridge::heatpump, packetAwaitingResponse.has_value() ? packetAwaitingResponse.value().getControllerAssociation() : ControllerAssociation::muart)) {
     ESP_LOGV(BRIDGE_TAG, "Parsing %x heatpump packet", pkt.value().getPacketType());
     // Check the packet's checksum and either process it, or log an error
     if (pkt.value().isChecksumValid()) {
       // If we're waiting for a response, associate the incomming packet with the request packet
-      classifyAndProcessRawPacket(pkt.value(), BridgeAssoc::ba_heatpump, packetAwaitingResponse.has_value() ? packetAwaitingResponse.value().associatedController : ControllerAssoc::ca_muart);
+      classifyAndProcessRawPacket(pkt.value());
     } else {
       ESP_LOGW(BRIDGE_TAG, "Invalid packet checksum!\n%s", format_hex_pretty(&pkt.value().getBytes()[0], pkt.value().getLength()).c_str());
     }
@@ -50,11 +50,11 @@ void HeatpumpBridge::loop() {
 // The thermostat bridge loop doesn't expect any responses, so packets in queue are just sent without checking if they expect a response
 void ThermostatBridge::loop() {
   // Try to get a packet
-  if (optional<RawPacket> pkt = receiveRawPacket()) {
+  if (optional<RawPacket> pkt = receiveRawPacket(SourceBridge::thermostat, ControllerAssociation::thermostat)) {
     ESP_LOGV(BRIDGE_TAG, "Parsing %x thermostat packet", pkt.value().getPacketType());
     // Check the packet's checksum and either process it, or log an error
     if (pkt.value().isChecksumValid()) {
-      classifyAndProcessRawPacket(pkt.value(), BridgeAssoc::ba_thermostat, ControllerAssoc::ca_thermostat);
+      classifyAndProcessRawPacket(pkt.value());
     } else {
       ESP_LOGW(BRIDGE_TAG, "Invalid packet checksum!\n%s", format_hex_pretty(&pkt.value().getBytes()[0], pkt.value().getLength()).c_str());
     }
@@ -88,7 +88,8 @@ after the first byte has been received though, so currently we're assuming that 
 the header is available, it's safe to call read_array without timing out and severing
 the packet.
 */
-const optional<RawPacket> MUARTBridge::receiveRawPacket() const {
+const optional<RawPacket> MUARTBridge::receiveRawPacket(const SourceBridge source_bridge, const ControllerAssociation controller_association) const {
+  // TODO: Can we make the source_bridge and controller_association inherent to the class instead of passed as arguments?
   uint8_t packetBytes[PACKET_MAX_SIZE];
   packetBytes[0] = 0;  // Reset control byte before starting
 
@@ -110,70 +111,68 @@ const optional<RawPacket> MUARTBridge::receiveRawPacket() const {
   uint8_t payloadSize = packetBytes[PACKET_HEADER_INDEX_PAYLOAD_LENGTH];
   uart_comp.read_array(&packetBytes[PACKET_HEADER_SIZE], payloadSize + 1);
 
-  return RawPacket(packetBytes, PACKET_HEADER_SIZE + payloadSize + 1);
+  return RawPacket(packetBytes, PACKET_HEADER_SIZE + payloadSize + 1, source_bridge, controller_association);
 }
 
 template <class P>
-void MUARTBridge::processRawPacket(RawPacket &pkt, BridgeAssoc sourceBridge, ControllerAssoc associatedController, bool expectResponse) const {
+void MUARTBridge::processRawPacket(RawPacket &pkt, bool expectResponse) const {
   P packet = P(std::move(pkt));
-  // TODO: ? If these are used EVERY time a packet is constructed, maybe move to constructor?
-  packet.sourceBridge = sourceBridge;
-  packet.associatedController = associatedController;
   packet.setResponseExpected(expectResponse);
   pkt_processor.processPacket(packet);
 }
 
-void MUARTBridge::classifyAndProcessRawPacket(RawPacket &pkt, BridgeAssoc sB, ControllerAssoc aC) const {
-  switch (pkt.getPacketType())
+void MUARTBridge::classifyAndProcessRawPacket(RawPacket &pkt) const {
+  // Figure out how to do this without a static_cast?
+  switch (static_cast<PacketType>(pkt.getPacketType()))
   {
   case PacketType::connect_request :
-    processRawPacket<ConnectRequestPacket>(pkt, sB, aC, true);
+    processRawPacket<ConnectRequestPacket>(pkt, true);
     break;
   case PacketType::connect_response :
-    processRawPacket<ConnectResponsePacket>(pkt, sB, aC, false);
+    processRawPacket<ConnectResponsePacket>(pkt, false);
     break;
 
   case PacketType::extended_connect_request :
-    processRawPacket<ExtendedConnectRequestPacket>(pkt, sB, aC, true);
+    processRawPacket<ExtendedConnectRequestPacket>(pkt, true);
     break;
   case PacketType::extended_connect_response :
-    processRawPacket<ExtendedConnectResponsePacket>(pkt, sB, aC, false);
+    processRawPacket<ExtendedConnectResponsePacket>(pkt, false);
     break;
 
   case PacketType::get_request :
-    processRawPacket<GetRequestPacket>(pkt, sB, aC, true);
+    processRawPacket<GetRequestPacket>(pkt, true);
     break;
   case PacketType::get_response :
-    switch(pkt.getCommand()) {
-      case GetCommand::gc_current_temp :
-        processRawPacket<CurrentTempGetResponsePacket>(pkt, sB, aC, false);
+    switch(static_cast<GetCommand>(pkt.getCommand())) {
+      case GetCommand::current_temp :
+        processRawPacket<CurrentTempGetResponsePacket>(pkt, false);
         break;
-      case GetCommand::gc_settings :
-        processRawPacket<SettingsGetResponsePacket>(pkt, sB, aC, false);
+      case GetCommand::settings :
+        processRawPacket<SettingsGetResponsePacket>(pkt, false);
         break;
-      case GetCommand::gc_standby :
-        processRawPacket<StandbyGetResponsePacket>(pkt, sB, aC, false);
+      case GetCommand::standby :
+        processRawPacket<StandbyGetResponsePacket>(pkt, false);
         break;
-      case GetCommand::gc_status :
-        processRawPacket<StatusGetResponsePacket>(pkt, sB, aC, false);
+      case GetCommand::status :
+        processRawPacket<StatusGetResponsePacket>(pkt, false);
         break;
       default:
-        processRawPacket<Packet>(pkt, sB, aC, false);
+        processRawPacket<Packet>(pkt, false);
     }
     break;
 
   case PacketType::set_response :
-    switch(pkt.getCommand()) {
-      case SetCommand::sc_remote_temperature :
-        processRawPacket<RemoteTemperatureSetResponsePacket>(pkt, sB, aC, false);
+    switch(static_cast<SetCommand>(pkt.getCommand())) {
+      case SetCommand::remote_temperature :
+        processRawPacket<RemoteTemperatureSetResponsePacket>(pkt, false);
         break;
       default:
-        processRawPacket<Packet>(pkt, sB, aC, false);
+        processRawPacket<Packet>(pkt, false);
     }
     break;
 
   default:
-    processRawPacket<Packet>(pkt, sB, aC, true); // If we get an unknown packet from the thermostat, expect a response
+    processRawPacket<Packet>(pkt, true); // If we get an unknown packet from the thermostat, expect a response
   }
 }
 

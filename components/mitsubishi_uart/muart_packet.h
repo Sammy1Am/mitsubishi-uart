@@ -18,17 +18,6 @@ namespace mitsubishi_uart {
 #define CONSOLE_COLOR_CYAN_BOLD "\033[1;36m"
 #define CONSOLE_COLOR_WHITE "\033[0;37m"
 
-// Indicates which controller is associated with this packet
-enum ControllerAssoc : uint8_t {
-  ca_muart,
-  ca_thermostat
-};
-
-enum BridgeAssoc : uint8_t {
-  ba_heatpump,
-  ba_thermostat
-};
-
 class PacketProcessor;
 
 // Generic Base Packet wrapper over RawPacket
@@ -59,8 +48,8 @@ class Packet {
     // Adds a flag2 (ONLY APPLICABLE FOR SOME COMMANDS)
     void addFlag2(const uint8_t flag2ToAdd);
 
-    ControllerAssoc associatedController = ControllerAssoc::ca_muart;
-    BridgeAssoc sourceBridge = BridgeAssoc::ba_heatpump;
+    SourceBridge getSourceBridge() const { return pkt_.getSourceBridge(); }
+    ControllerAssociation getControllerAssociation() const { return pkt_.getControllerAssociation(); }
 
   protected:
     static const int PLINDEX_FLAGS = 1;
@@ -124,26 +113,26 @@ class ExtendedConnectResponsePacket : public Packet {
 class GetRequestPacket : public Packet {
  public:
   static GetRequestPacket& getSettingsInstance() {
-    static GetRequestPacket INSTANCE = GetRequestPacket(GetCommand::gc_settings);
+    static GetRequestPacket INSTANCE = GetRequestPacket(GetCommand::settings);
     return INSTANCE;
   }
   static GetRequestPacket& getCurrentTempInstance() {
-    static GetRequestPacket INSTANCE = GetRequestPacket(GetCommand::gc_current_temp);
+    static GetRequestPacket INSTANCE = GetRequestPacket(GetCommand::current_temp);
     return INSTANCE;
   }
   static GetRequestPacket& getStatusInstance() {
-    static GetRequestPacket INSTANCE = GetRequestPacket(GetCommand::gc_standby);
+    static GetRequestPacket INSTANCE = GetRequestPacket(GetCommand::standby);
     return INSTANCE;
   }
   static GetRequestPacket& getStandbyInstance() {
-    static GetRequestPacket INSTANCE = GetRequestPacket(GetCommand::gc_status);
+    static GetRequestPacket INSTANCE = GetRequestPacket(GetCommand::status);
     return INSTANCE;
   }
   using Packet::Packet;
 
  private:
   GetRequestPacket(GetCommand get_command) : Packet(RawPacket(PacketType::get_request, 1)) {
-    pkt_.setPayloadByte(0, get_command);
+    pkt_.setPayloadByte(0, static_cast<uint8_t>(get_command));
   }
 };
 
@@ -264,7 +253,7 @@ class SettingsSetRequestPacket : public Packet {
     HV_SWING = 0x0c,
   };
 
-  SettingsSetRequestPacket() : Packet(RawPacket(PacketType::set_request, 16)) { pkt_.setPayloadByte(0, SetCommand::sc_settings); }
+  SettingsSetRequestPacket() : Packet(RawPacket(PacketType::set_request, 16)) { pkt_.setPayloadByte(0, static_cast<uint8_t>(SetCommand::settings)); }
   using Packet::Packet;
 
   SettingsSetRequestPacket &setPower(const bool isOn);
@@ -284,7 +273,7 @@ class RemoteTemperatureSetRequestPacket : public Packet {
 
  public:
   RemoteTemperatureSetRequestPacket() : Packet(RawPacket(PacketType::set_request, 4)) {
-    pkt_.setPayloadByte(0, SetCommand::sc_remote_temperature);
+    pkt_.setPayloadByte(0, static_cast<uint8_t>(SetCommand::remote_temperature));
   }
   using Packet::Packet;
 

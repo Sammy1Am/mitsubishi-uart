@@ -5,18 +5,20 @@ namespace mitsubishi_uart {
 
 
 // Creates an empty packet
-RawPacket::RawPacket(PacketType packet_type, uint8_t payload_size)
-    : length{(uint8_t)(payload_size + PACKET_HEADER_SIZE + 1)}, checksumIndex{(uint8_t)(length - 1)} {
+RawPacket::RawPacket(PacketType packet_type, uint8_t payload_size, SourceBridge source_bridge, ControllerAssociation controller_association)
+    : length{(uint8_t)(payload_size + PACKET_HEADER_SIZE + 1)}, checksumIndex{(uint8_t)(length - 1)},
+    sourceBridge{source_bridge}, controllerAssociation{controller_association} {
   memcpy(packetBytes, EMPTY_PACKET, length);
-  packetBytes[PACKET_HEADER_INDEX_PACKET_TYPE] = packet_type;
+  packetBytes[PACKET_HEADER_INDEX_PACKET_TYPE] = static_cast<uint8_t>(packet_type);
   packetBytes[PACKET_HEADER_INDEX_PAYLOAD_LENGTH] = payload_size;
 
   updateChecksum();
 }
 
 // Creates a packet with the provided bytes
-RawPacket::RawPacket(const uint8_t packet_bytes[], const uint8_t packet_length)
-    : length{(uint8_t) packet_length}, checksumIndex{(uint8_t)(packet_length - 1)} {
+RawPacket::RawPacket(const uint8_t packet_bytes[], const uint8_t packet_length, SourceBridge source_bridge, ControllerAssociation controller_association)
+    : length{(uint8_t) packet_length}, checksumIndex{(uint8_t)(packet_length - 1)},
+    sourceBridge{source_bridge}, controllerAssociation{controller_association} {
   memcpy(packetBytes, packet_bytes, packet_length);
 
   if (!this->isChecksumValid()) {

@@ -6,10 +6,10 @@ namespace mitsubishi_uart {
 void MitsubishiUART::routePacket(const Packet &packet) {
   // If the packet is associated with the thermostat and just came from the thermostat, send it to the heatpump
   // If it came from the heatpump, send it back to the thermostat
-  if (packet.associatedController == ControllerAssoc::ca_thermostat) {
-    if (packet.sourceBridge == BridgeAssoc::ba_thermostat) {
+  if (packet.getControllerAssociation() == ControllerAssociation::thermostat) {
+    if (packet.getSourceBridge() == SourceBridge::thermostat) {
       hp_bridge.sendPacket(packet);
-    } else if (packet.sourceBridge == BridgeAssoc::ba_heatpump) {
+    } else if (packet.getSourceBridge() == SourceBridge::heatpump) {
       ts_bridge->sendPacket(packet);
     }
   }

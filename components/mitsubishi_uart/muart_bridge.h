@@ -22,11 +22,11 @@ class MUARTBridge  {
     virtual void loop() = 0;
 
   protected:
-    const optional<RawPacket> receiveRawPacket() const;
+    const optional<RawPacket> receiveRawPacket(const SourceBridge source_bridge, const ControllerAssociation controller_association) const;
     void writeRawPacket(const RawPacket &pkt) const;
     template <class P>
-    void processRawPacket(RawPacket &pkt, BridgeAssoc sourceBridge, ControllerAssoc associatedController, bool expectResponse = true) const;
-    void classifyAndProcessRawPacket(RawPacket &pkt, BridgeAssoc sourceBridge, ControllerAssoc associatedController = ControllerAssoc::ca_muart) const;
+    void processRawPacket(RawPacket &pkt, bool expectResponse = true) const;
+    void classifyAndProcessRawPacket(RawPacket &pkt) const;
 
     uart::UARTComponent &uart_comp;
     PacketProcessor &pkt_processor;
