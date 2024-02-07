@@ -23,7 +23,6 @@ void MitsubishiUART::processPacket(const Packet &packet) {
 };
 
 
-
 void MitsubishiUART::processPacket(const ConnectResponsePacket &packet) {
   ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
   routePacket(packet);
@@ -39,6 +38,14 @@ void MitsubishiUART::processPacket(const ExtendedConnectResponsePacket &packet) 
   hpConnected = true;
   ESP_LOGI(TAG, "Heatpump connected.");
 };
+
+void MitsubishiUART::processPacket(const GetRequestPacket &packet) {
+  ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
+  routePacket(packet);
+  // These are just requests for information from the thermostat.  For now, nothing to be done
+  // except route them.  In the future, we could use this to inject information for the thermostat
+  // or use a cached value.
+}
 
 void MitsubishiUART::processPacket(const SettingsGetResponsePacket &packet) {
   ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
@@ -224,9 +231,15 @@ void MitsubishiUART::processPacket(const StatusGetResponsePacket &packet) {
   publishOnUpdate |= (old_action != action);
 };
 void MitsubishiUART::processPacket(const StandbyGetResponsePacket &packet) {
+  ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
   routePacket(packet);
-  ESP_LOGI(TAG, "Unhandled packet StandbyGetResponsePacket received.");
-  ESP_LOGD(TAG, packet.to_string().c_str());
+  // TODO: This packet may contain "loop status" and "stage" information, but want to confirm what it is before using it
+};
+void MitsubishiUART::processPacket(const FourGetResponsePacket &packet) {
+  ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
+  routePacket(packet);
+  // TODO: The MHK2 thermostat often asks for this, but the response is usually just all zeros.  Could be be checking for
+  // errors / messages / warnings.  Should check when e.g. the filter life runs out.
 };
 void MitsubishiUART::processPacket(const RemoteTemperatureSetRequestPacket &packet) {
   ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());

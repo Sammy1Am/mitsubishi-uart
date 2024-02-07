@@ -41,7 +41,8 @@ enum class GetCommand : uint8_t {
 // Used to specify certain packet subtypes
 enum class SetCommand : uint8_t {
   settings = 0x01,
-  remote_temperature = 0x07
+  remote_temperature = 0x07,
+  a_7 = 0xa7
 };
 
 // Which MUARTBridge was the packet read from (used to determine flow direction of the packet)

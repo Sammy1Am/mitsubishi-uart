@@ -43,7 +43,7 @@ void HeatpumpBridge::loop() {
     // We've been waiting too long for a response, give up
     // TODO: We could potentially retry here, but that seems unnecessary
     packetAwaitingResponse.reset();
-    ESP_LOGW(BRIDGE_TAG, "Timeout waiting for response to  %x packet.", packetAwaitingResponse.value().getPacketType());
+    ESP_LOGW(BRIDGE_TAG, "Timeout waiting for response to %x packet.", packetAwaitingResponse.value().getPacketType());
   }
 }
 
@@ -144,11 +144,14 @@ void MUARTBridge::classifyAndProcessRawPacket(RawPacket &pkt) const {
     break;
   case PacketType::get_response :
     switch(static_cast<GetCommand>(pkt.getCommand())) {
+      case GetCommand::settings :
+        processRawPacket<SettingsGetResponsePacket>(pkt, false);
+        break;
       case GetCommand::current_temp :
         processRawPacket<CurrentTempGetResponsePacket>(pkt, false);
         break;
-      case GetCommand::settings :
-        processRawPacket<SettingsGetResponsePacket>(pkt, false);
+      case GetCommand::four :
+        processRawPacket<FourGetResponsePacket>(pkt, false);
         break;
       case GetCommand::standby :
         processRawPacket<StandbyGetResponsePacket>(pkt, false);
@@ -164,6 +167,12 @@ void MUARTBridge::classifyAndProcessRawPacket(RawPacket &pkt) const {
     switch(static_cast<SetCommand>(pkt.getCommand())) {
       case SetCommand::remote_temperature :
         processRawPacket<RemoteTemperatureSetRequestPacket>(pkt, true);
+        break;
+      case SetCommand::settings :
+        processRawPacket<SettingsSetRequestPacket>(pkt, true);
+        break;
+      case SetCommand::a_7 :
+        processRawPacket<A7SetRequestPacket>(pkt, false);
         break;
       default:
         processRawPacket<Packet>(pkt, true);

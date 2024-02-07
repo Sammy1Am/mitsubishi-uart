@@ -190,6 +190,11 @@ class StandbyGetResponsePacket : public Packet {
   std::string to_string() const override;
 };
 
+class FourGetResponsePacket : public Packet {
+  using Packet::Packet;
+ public:
+};
+
 ////
 // Set
 ////
@@ -287,8 +292,16 @@ class RemoteTemperatureSetRequestPacket : public Packet {
 
 class RemoteTemperatureSetResponsePacket : public Packet {
   using Packet::Packet;
- public:
+public:
   RemoteTemperatureSetResponsePacket() : Packet(RawPacket(PacketType::set_response, 16)) {}
+};
+
+class A7SetRequestPacket : public Packet {
+  using Packet::Packet;
+ public:
+  A7SetRequestPacket() : Packet(RawPacket(PacketType::set_request, 4)) {
+    pkt_.setPayloadByte(0, static_cast<uint8_t>(SetCommand::a_7));
+  }
 };
 
 class PacketProcessor {
@@ -296,10 +309,12 @@ class PacketProcessor {
     virtual void processPacket(const Packet &packet) {};
     virtual void processPacket(const ConnectResponsePacket &packet) {};
     virtual void processPacket(const ExtendedConnectResponsePacket &packet) {};
+    virtual void processPacket(const GetRequestPacket &packet) {};
     virtual void processPacket(const SettingsGetResponsePacket &packet) {};
     virtual void processPacket(const CurrentTempGetResponsePacket &packet) {};
     virtual void processPacket(const StatusGetResponsePacket &packet) {};
     virtual void processPacket(const StandbyGetResponsePacket &packet) {};
+    virtual void processPacket(const FourGetResponsePacket &packet) {};
     virtual void processPacket(const RemoteTemperatureSetRequestPacket &packet) {};
     virtual void processPacket(const RemoteTemperatureSetResponsePacket &packet) {};
 };
