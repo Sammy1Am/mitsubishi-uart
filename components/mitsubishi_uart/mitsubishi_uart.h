@@ -134,8 +134,8 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     ESPPreferenceObject preferences_;
 
     // Internal sensors
-    sensor::Sensor *current_temperature_sensor;
-    sensor::Sensor *thermostat_temperature_sensor;
+    sensor::Sensor *current_temperature_sensor = nullptr;
+    sensor::Sensor *thermostat_temperature_sensor = nullptr;
 
     // Selects
     select::Select *temperature_source_select;
