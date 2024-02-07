@@ -150,6 +150,10 @@ void MitsubishiUART::doPublish() {
     ESP_LOGI(TAG, "Current temp differs, do publish");
     current_temperature_sensor->publish_state(current_temperature_sensor->raw_state);
   }
+  if (thermostat_temperature_sensor && (thermostat_temperature_sensor->raw_state != thermostat_temperature_sensor->state)) {
+    ESP_LOGI(TAG, "Thermostat temp differs, do publish");
+    thermostat_temperature_sensor->publish_state(thermostat_temperature_sensor->raw_state);
+  }
 }
 
 bool MitsubishiUART::select_temperature_source(const std::string &state) {

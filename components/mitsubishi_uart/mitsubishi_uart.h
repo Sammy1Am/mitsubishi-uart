@@ -25,6 +25,8 @@ const std::string FAN_MODE_VERYHIGH = "Very High";
 const std::string TEMPERATURE_SOURCE_INTERNAL = "Internal";
 const uint32_t TEMPERATURE_SOURCE_TIMEOUT_MS = 420000; // (7min) The heatpump will revert on its own in ~10min
 
+const std::string TEMPERATURE_SOURCE_THERMOSTAT = "Thermostat";
+
 class MitsubishiUART : public PollingComponent, public climate::Climate, public PacketProcessor {
  public:
   /**
@@ -61,6 +63,7 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
 
   // Sensor setters
   void set_current_temperature_sensor(sensor::Sensor *sensor) {current_temperature_sensor = sensor;};
+  void set_thermostat_temperature_sensor(sensor::Sensor *sensor) {thermostat_temperature_sensor = sensor;};
 
   // Select setters
   void set_temperature_source_select(select::Select *select) {temperature_source_select = select;};
@@ -89,6 +92,7 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     void processPacket(const CurrentTempGetResponsePacket &packet);
     void processPacket(const StatusGetResponsePacket &packet);
     void processPacket(const StandbyGetResponsePacket &packet);
+    void processPacket(const RemoteTemperatureSetRequestPacket &packet);
     void processPacket(const RemoteTemperatureSetResponsePacket &packet);
 
     void doPublish();
@@ -131,6 +135,7 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
 
     // Internal sensors
     sensor::Sensor *current_temperature_sensor;
+    sensor::Sensor *thermostat_temperature_sensor;
 
     // Selects
     select::Select *temperature_source_select;

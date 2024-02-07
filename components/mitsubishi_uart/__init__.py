@@ -23,6 +23,7 @@ CONF_TS_UART = "thermostat_uart"
 
 CONF_SENSORS = "sensors"
 CONF_SENSORS_CURRENT_TEMP = "current_temperature"
+CONF_SENSORS_THERMOSTAT_TEMP = "thermostat_temperature"
 
 CONF_SELECTS = "selects"
 CONF_TEMPERATURE_SOURCE_SELECT = "temperature_source_select" # This is to create a Select object for selecting a source
@@ -76,6 +77,15 @@ BASE_SCHEMA = cv.polling_component_schema(DEFAULT_POLLING_INTERVAL).extend(clima
 SENSORS = {
     CONF_SENSORS_CURRENT_TEMP: (
         "Current Temperature",
+        sensor.sensor_schema(
+        unit_of_measurement=UNIT_CELSIUS,
+        device_class=DEVICE_CLASS_TEMPERATURE,
+        state_class=STATE_CLASS_MEASUREMENT,
+        accuracy_decimals=1,
+        )
+    ),
+    CONF_SENSORS_THERMOSTAT_TEMP: (
+        "Thermostat Temperature",
         sensor.sensor_schema(
         unit_of_measurement=UNIT_CELSIUS,
         device_class=DEVICE_CLASS_TEMPERATURE,
@@ -140,10 +150,13 @@ async def to_code(config):
     await cg.register_component(muart_component, config)
     await climate.register_climate(muart_component, config)
 
-    # If thermostat defined, add to muart
+    # If thermostat defined
     if (CONF_TS_UART in config):
+        # Register thermostat with MUART
         ts_uart_component = await cg.get_variable(config[CONF_TS_UART])
         cg.add(getattr(muart_component, f"set_thermostat_uart")(ts_uart_component))
+        # Add sensor as source
+        SELECTS[CONF_TEMPERATURE_SOURCE_SELECT][2].append("Thermostat")
 
     # Traits
 
@@ -161,10 +174,12 @@ async def to_code(config):
     # Sensors
 
     for sensor_designator in SENSORS:
-        sensor_conf = config[CONF_SENSORS][sensor_designator]
-        sensor_component = cg.new_Pvariable(sensor_conf[CONF_ID])
-        await sensor.register_sensor(sensor_component, sensor_conf)
-        cg.add(getattr(muart_component, f"set_{sensor_designator}_sensor")(sensor_component))
+        # Only add the thermostat temp if we have a TS_UART
+        if ((sensor_designator != CONF_SENSORS_THERMOSTAT_TEMP) or (CONF_TS_UART in config)):
+            sensor_conf = config[CONF_SENSORS][sensor_designator]
+            sensor_component = cg.new_Pvariable(sensor_conf[CONF_ID])
+            await sensor.register_sensor(sensor_component, sensor_conf)
+            cg.add(getattr(muart_component, f"set_{sensor_designator}_sensor")(sensor_component))
 
     ### Selects
 

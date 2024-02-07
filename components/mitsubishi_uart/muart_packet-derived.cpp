@@ -42,6 +42,11 @@ std::string StatusGetResponsePacket::to_string() const {
   + " Operating: " + (getOperating() ? "Yes":"No")
   );
 }
+std::string RemoteTemperatureSetRequestPacket::to_string() const {
+  return ("Remote Temp Set Request: " + Packet::to_string()
+  + CONSOLE_COLOR_PURPLE
+  + "\n Temp:" + std::to_string(getRemoteTemperature()));
+}
 
 
 // TODO: Are there function implementations for packets in the .h file? (Yes)  Should they be here?

@@ -271,7 +271,7 @@ class SettingsSetRequestPacket : public Packet {
 class RemoteTemperatureSetRequestPacket : public Packet {
   static const uint8_t PLINDEX_REMOTE_TEMPERATURE = 3;
 
- public:
+  public:
   RemoteTemperatureSetRequestPacket() : Packet(RawPacket(PacketType::set_request, 4)) {
     pkt_.setPayloadByte(0, static_cast<uint8_t>(SetCommand::remote_temperature));
   }
@@ -281,6 +281,8 @@ class RemoteTemperatureSetRequestPacket : public Packet {
   RemoteTemperatureSetRequestPacket &useInternalTemperature();
 
   float getRemoteTemperature() const { return ((int) pkt_.getPayloadByte(PLINDEX_REMOTE_TEMPERATURE) - 128) / 2.0f; }
+
+  std::string to_string() const override;
 };
 
 class RemoteTemperatureSetResponsePacket : public Packet {
@@ -298,6 +300,7 @@ class PacketProcessor {
     virtual void processPacket(const CurrentTempGetResponsePacket &packet) {};
     virtual void processPacket(const StatusGetResponsePacket &packet) {};
     virtual void processPacket(const StandbyGetResponsePacket &packet) {};
+    virtual void processPacket(const RemoteTemperatureSetRequestPacket &packet) {};
     virtual void processPacket(const RemoteTemperatureSetResponsePacket &packet) {};
 };
 

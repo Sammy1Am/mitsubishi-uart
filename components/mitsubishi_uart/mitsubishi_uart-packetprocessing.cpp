@@ -228,6 +228,21 @@ void MitsubishiUART::processPacket(const StandbyGetResponsePacket &packet) {
   ESP_LOGI(TAG, "Unhandled packet StandbyGetResponsePacket received.");
   ESP_LOGD(TAG, packet.to_string().c_str());
 };
+void MitsubishiUART::processPacket(const RemoteTemperatureSetRequestPacket &packet) {
+  ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
+
+  // Only send this temperature packet to the heatpump if Thermostat is the selected source, otherwise
+  // just respond to the thermostat to keep it happy.
+  if (currentTemperatureSource == TEMPERATURE_SOURCE_THERMOSTAT) {
+    routePacket(packet);
+  } else {
+    ts_bridge->sendPacket(RemoteTemperatureSetResponsePacket());
+  }
+
+  float t = packet.getRemoteTemperature();
+  temperature_source_report(TEMPERATURE_SOURCE_THERMOSTAT, t);
+  thermostat_temperature_sensor->raw_state = t;
+};
 void MitsubishiUART::processPacket(const RemoteTemperatureSetResponsePacket &packet) {
   routePacket(packet);
   ESP_LOGI(TAG, "Unhandled packet RemoteTemperatureSetResponsePacket received.");

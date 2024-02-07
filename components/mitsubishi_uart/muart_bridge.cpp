@@ -160,7 +160,15 @@ void MUARTBridge::classifyAndProcessRawPacket(RawPacket &pkt) const {
         processRawPacket<Packet>(pkt, false);
     }
     break;
-
+  case PacketType::set_request :
+    switch(static_cast<SetCommand>(pkt.getCommand())) {
+      case SetCommand::remote_temperature :
+        processRawPacket<RemoteTemperatureSetRequestPacket>(pkt, true);
+        break;
+      default:
+        processRawPacket<Packet>(pkt, true);
+    }
+    break;
   case PacketType::set_response :
     switch(static_cast<SetCommand>(pkt.getCommand())) {
       case SetCommand::remote_temperature :
