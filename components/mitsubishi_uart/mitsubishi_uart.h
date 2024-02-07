@@ -117,7 +117,7 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     // UART packet wrapper for heatpump
     HeatpumpBridge hp_bridge;
     // UARTComponent connected to thermostat
-    uart::UARTComponent *ts_uart;
+    uart::UARTComponent *ts_uart = nullptr;
     // UART packet wrapper for heatpump
     ThermostatBridge *ts_bridge = nullptr;
 
