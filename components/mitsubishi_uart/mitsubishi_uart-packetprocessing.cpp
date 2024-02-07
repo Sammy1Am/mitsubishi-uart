@@ -18,7 +18,7 @@ void MitsubishiUART::routePacket(const Packet &packet) {
 // Packet Handlers
 void MitsubishiUART::processPacket(const Packet &packet) {
   ESP_LOGI(TAG, "Generic unhandled packet type %x received.", packet.getPacketType());
-  ESP_LOGD(TAG, packet.to_string().c_str());
+  ESP_LOGD(TAG, "%s", packet.to_string().c_str());
   routePacket(packet);
 };
 
@@ -259,7 +259,7 @@ void MitsubishiUART::processPacket(const RemoteTemperatureSetRequestPacket &pack
 void MitsubishiUART::processPacket(const RemoteTemperatureSetResponsePacket &packet) {
   routePacket(packet);
   ESP_LOGI(TAG, "Unhandled packet RemoteTemperatureSetResponsePacket received.");
-  ESP_LOGD(TAG, packet.to_string().c_str());
+  ESP_LOGD(TAG, "%s", packet.to_string().c_str());
 };
 
 }  // namespace mitsubishi_uart
