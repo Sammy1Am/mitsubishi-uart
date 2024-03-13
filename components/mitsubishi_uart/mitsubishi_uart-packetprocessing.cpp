@@ -220,6 +220,9 @@ void MitsubishiUART::processPacket(const StatusGetResponsePacket &packet) {
         // If the mode hasn't changed, but the temps are equal, we can assume the same action and make no change.
         // If the unit overshoots, this still doesn't work.
         break;
+      default:
+        ESP_LOGW(TAG, "Unhandled mode %i.", mode);
+        break;
     }
   }
   // If we're not operating (but not off or in fan mode), we're idle

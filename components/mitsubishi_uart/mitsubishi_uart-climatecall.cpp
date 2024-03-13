@@ -40,6 +40,9 @@ void MitsubishiUART::control(const climate::ClimateCall &call) {
       set_fan_mode_(climate::CLIMATE_FAN_AUTO);
       setRequestPacket.setFan(SettingsSetRequestPacket::FAN_AUTO);
       break;
+    default:
+      ESP_LOGW(TAG, "Unhandled fan mode %i!", call.get_fan_mode().value());
+      break;
   }
 
   // Mode
