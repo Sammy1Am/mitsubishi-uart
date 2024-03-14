@@ -9,9 +9,11 @@ from esphome.const import (
     CONF_CUSTOM_FAN_MODES,
     CONF_SUPPORTED_FAN_MODES,
     DEVICE_CLASS_TEMPERATURE,
+    DEVICE_CLASS_FREQUENCY,
     ENTITY_CATEGORY_CONFIG,
     STATE_CLASS_MEASUREMENT,
     UNIT_CELSIUS,
+    UNIT_HERTZ,
 )
 from esphome.core import coroutine
 
@@ -24,6 +26,7 @@ CONF_TS_UART = "thermostat_uart"
 CONF_SENSORS = "sensors"
 CONF_SENSORS_CURRENT_TEMP = "current_temperature"
 CONF_SENSORS_THERMOSTAT_TEMP = "thermostat_temperature"
+CONF_SENSORS_COMPRESSOR_FREQUENCY = "compressor_frequency"
 
 CONF_SELECTS = "selects"
 CONF_TEMPERATURE_SOURCE_SELECT = "temperature_source_select" # This is to create a Select object for selecting a source
@@ -78,19 +81,28 @@ SENSORS = {
     CONF_SENSORS_CURRENT_TEMP: (
         "Current Temperature",
         sensor.sensor_schema(
-        unit_of_measurement=UNIT_CELSIUS,
-        device_class=DEVICE_CLASS_TEMPERATURE,
-        state_class=STATE_CLASS_MEASUREMENT,
-        accuracy_decimals=1,
+            unit_of_measurement=UNIT_CELSIUS,
+            device_class=DEVICE_CLASS_TEMPERATURE,
+            state_class=STATE_CLASS_MEASUREMENT,
+            accuracy_decimals=1,
         )
     ),
     CONF_SENSORS_THERMOSTAT_TEMP: (
         "Thermostat Temperature",
         sensor.sensor_schema(
-        unit_of_measurement=UNIT_CELSIUS,
-        device_class=DEVICE_CLASS_TEMPERATURE,
-        state_class=STATE_CLASS_MEASUREMENT,
-        accuracy_decimals=1,
+            unit_of_measurement=UNIT_CELSIUS,
+            device_class=DEVICE_CLASS_TEMPERATURE,
+            state_class=STATE_CLASS_MEASUREMENT,
+            accuracy_decimals=1,
+        )
+    ),
+    CONF_SENSORS_COMPRESSOR_FREQUENCY: (
+        "Compressor Frequency",
+        sensor.sensor_schema(
+            unit_of_measurement=UNIT_HERTZ,
+            device_class=DEVICE_CLASS_FREQUENCY,
+            state_class=STATE_CLASS_MEASUREMENT,
+            disabled_by_default=True
         )
     )
 }
@@ -175,11 +187,13 @@ async def to_code(config):
 
     for sensor_designator in SENSORS:
         # Only add the thermostat temp if we have a TS_UART
-        if ((sensor_designator != CONF_SENSORS_THERMOSTAT_TEMP) or (CONF_TS_UART in config)):
-            sensor_conf = config[CONF_SENSORS][sensor_designator]
-            sensor_component = cg.new_Pvariable(sensor_conf[CONF_ID])
-            await sensor.register_sensor(sensor_component, sensor_conf)
-            cg.add(getattr(muart_component, f"set_{sensor_designator}_sensor")(sensor_component))
+        if (sensor_designator == CONF_SENSORS_THERMOSTAT_TEMP) and (CONF_TS_UART not in config):
+            continue
+
+        sensor_conf = config[CONF_SENSORS][sensor_designator]
+        sensor_component = cg.new_Pvariable(sensor_conf[CONF_ID])
+        await sensor.register_sensor(sensor_component, sensor_conf)
+        cg.add(getattr(muart_component, f"set_{sensor_designator}_sensor")(sensor_component))
 
     ### Selects
 

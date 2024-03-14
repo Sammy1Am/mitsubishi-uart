@@ -17,6 +17,8 @@ MitsubishiUART::MitsubishiUART(uart::UARTComponent *hp_uart_comp) : hp_uart{*hp_
    */
   target_temperature = NAN;
   current_temperature = NAN;
+
+  compressor_frequency = 0;
 }
 
 // Used to restore state of previous MUART-specific settings (like temperature source or pass-thru mode)
@@ -141,7 +143,6 @@ void MitsubishiUART::doPublish() {
   horizontal_vane_position_select->publish_state(horizontal_vane_position_select->state);
   save_preferences(); // We can save this every time we publish as writes to flash are by default collected and delayed
 
-
   // Check sensors and publish if needed.
   // This is a bit of a hack to avoid needing to publish sensor data immediately as packets arrive.
   // Instead, packet data is written directly to `raw_state` (which doesn't update `state`).  If they
@@ -153,6 +154,10 @@ void MitsubishiUART::doPublish() {
   if (thermostat_temperature_sensor && (thermostat_temperature_sensor->raw_state != thermostat_temperature_sensor->state)) {
     ESP_LOGI(TAG, "Thermostat temp differs, do publish");
     thermostat_temperature_sensor->publish_state(thermostat_temperature_sensor->raw_state);
+  }
+  if (compressor_frequency_sensor && (compressor_frequency_sensor->raw_state != compressor_frequency_sensor->state)) {
+    ESP_LOGI(TAG, "Compressor frequency differs, do publish");
+    compressor_frequency_sensor->publish_state(compressor_frequency_sensor->raw_state);
   }
 }
 
