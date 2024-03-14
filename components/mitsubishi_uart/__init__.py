@@ -101,7 +101,8 @@ SENSORS = {
         sensor.sensor_schema(
             unit_of_measurement=UNIT_HERTZ,
             device_class=DEVICE_CLASS_FREQUENCY,
-            state_class=STATE_CLASS_MEASUREMENT
+            state_class=STATE_CLASS_MEASUREMENT,
+            disabled_by_default=True
         )
     )
 }
