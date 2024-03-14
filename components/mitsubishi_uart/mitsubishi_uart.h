@@ -34,8 +34,6 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
    */
   MitsubishiUART(uart::UARTComponent *hp_uart_comp);
 
-  uint8_t compressor_frequency;
-
   // Used to restore state of previous MUART-specific settings (like temperature source or pass-thru mode)
   // Most other climate-state is preserved by the heatpump itself and will be retrieved after connection
   void setup() override;

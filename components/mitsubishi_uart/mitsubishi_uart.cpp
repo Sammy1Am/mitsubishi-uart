@@ -17,8 +17,6 @@ MitsubishiUART::MitsubishiUART(uart::UARTComponent *hp_uart_comp) : hp_uart{*hp_
    */
   target_temperature = NAN;
   current_temperature = NAN;
-
-  compressor_frequency = 0;
 }
 
 // Used to restore state of previous MUART-specific settings (like temperature source or pass-thru mode)
