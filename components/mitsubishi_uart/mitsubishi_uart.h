@@ -34,6 +34,8 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
    */
   MitsubishiUART(uart::UARTComponent *hp_uart_comp);
 
+  uint8_t compressor_frequency;
+
   // Used to restore state of previous MUART-specific settings (like temperature source or pass-thru mode)
   // Most other climate-state is preserved by the heatpump itself and will be retrieved after connection
   void setup() override;
@@ -64,6 +66,7 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   // Sensor setters
   void set_current_temperature_sensor(sensor::Sensor *sensor) {current_temperature_sensor = sensor;};
   void set_thermostat_temperature_sensor(sensor::Sensor *sensor) {thermostat_temperature_sensor = sensor;};
+  void set_compressor_frequency_sensor(sensor::Sensor *sensor) {compressor_frequency_sensor = sensor;};
 
   // Select setters
   void set_temperature_source_select(select::Select *select) {temperature_source_select = select;};
@@ -138,6 +141,7 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     // Internal sensors
     sensor::Sensor *current_temperature_sensor = nullptr;
     sensor::Sensor *thermostat_temperature_sensor = nullptr;
+    sensor::Sensor *compressor_frequency_sensor = nullptr;
 
     // Selects
     select::Select *temperature_source_select;

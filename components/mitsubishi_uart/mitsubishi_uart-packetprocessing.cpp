@@ -232,6 +232,15 @@ void MitsubishiUART::processPacket(const StatusGetResponsePacket &packet) {
   }
 
   publishOnUpdate |= (old_action != action);
+
+  const float old_compressor_frequency = compressor_frequency;
+  compressor_frequency = packet.getCompressorFrequency();
+
+  if (compressor_frequency_sensor) {
+    compressor_frequency_sensor->raw_state = compressor_frequency;
+  }
+
+  publishOnUpdate |= (old_compressor_frequency != compressor_frequency);
 };
 void MitsubishiUART::processPacket(const StandbyGetResponsePacket &packet) {
   ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
