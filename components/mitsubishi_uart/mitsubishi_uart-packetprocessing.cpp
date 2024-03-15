@@ -233,8 +233,13 @@ void MitsubishiUART::processPacket(const StatusGetResponsePacket &packet) {
 
   publishOnUpdate |= (old_action != action);
 
+
   if (compressor_frequency_sensor) {
+    const float old_compressor_frequency = compressor_frequency_sensor->raw_state;
+
     compressor_frequency_sensor->raw_state = packet.getCompressorFrequency();
+
+    publishOnUpdate |= (old_compressor_frequency != compressor_frequency_sensor->raw_state);
   }
 };
 void MitsubishiUART::processPacket(const StandbyGetResponsePacket &packet) {
@@ -261,7 +266,14 @@ void MitsubishiUART::processPacket(const RemoteTemperatureSetRequestPacket &pack
 
   float t = packet.getRemoteTemperature();
   temperature_source_report(TEMPERATURE_SOURCE_THERMOSTAT, t);
-  thermostat_temperature_sensor->raw_state = t;
+
+  if (thermostat_temperature_sensor) {
+    const float old_thermostat_temp = thermostat_temperature_sensor->raw_state;
+
+    thermostat_temperature_sensor->raw_state = t;
+
+    publishOnUpdate |= (old_thermostat_temp != thermostat_temperature_sensor->raw_state);
+  }
 };
 void MitsubishiUART::processPacket(const RemoteTemperatureSetResponsePacket &packet) {
   routePacket(packet);
