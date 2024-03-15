@@ -296,6 +296,7 @@ public:
   RemoteTemperatureSetResponsePacket() : Packet(RawPacket(PacketType::set_response, 16)) {}
 };
 
+// Sent by MHK2 but with no response; defined to allow setResponseExpected(false)
 class A7SetRequestPacket : public Packet {
   using Packet::Packet;
  public:
@@ -304,10 +305,21 @@ class A7SetRequestPacket : public Packet {
   }
 };
 
+// Sent by MHK2 but with no response; defined to allow setResponseExpected(false)
+class A9GetRequestPacket : public Packet {
+  using Packet::Packet;
+ public:
+  A9GetRequestPacket() : Packet(RawPacket(PacketType::get_request, 10)) {
+    pkt_.setPayloadByte(0, static_cast<uint8_t>(GetCommand::a_9));
+  }
+};
+
 class PacketProcessor {
   public:
     virtual void processPacket(const Packet &packet) {};
+    virtual void processPacket(const ConnectRequestPacket &packet) {};
     virtual void processPacket(const ConnectResponsePacket &packet) {};
+    virtual void processPacket(const ExtendedConnectRequestPacket &packet) {};
     virtual void processPacket(const ExtendedConnectResponsePacket &packet) {};
     virtual void processPacket(const GetRequestPacket &packet) {};
     virtual void processPacket(const SettingsGetResponsePacket &packet) {};

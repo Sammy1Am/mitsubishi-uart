@@ -35,7 +35,8 @@ enum class GetCommand : uint8_t {
   current_temp = 0x03,
   four = 0x04,
   status = 0x06,
-  standby = 0x09
+  standby = 0x09,
+  a_9 = 0xa9
 };
 
 // Used to specify certain packet subtypes

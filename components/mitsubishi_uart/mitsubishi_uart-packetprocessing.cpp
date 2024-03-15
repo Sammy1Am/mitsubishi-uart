@@ -22,13 +22,25 @@ void MitsubishiUART::processPacket(const Packet &packet) {
   routePacket(packet);
 };
 
-
+void MitsubishiUART::processPacket(const ConnectRequestPacket &packet) {
+  // Nothing to be done for these except forward them along from thermostat to heat pump.
+  // This method defined so that these packets are not "unhandled"
+  ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
+  routePacket(packet);
+};
 void MitsubishiUART::processPacket(const ConnectResponsePacket &packet) {
   ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
   routePacket(packet);
   // Not sure if there's any needed content in this response, so assume we're connected.
   hpConnected = true;
   ESP_LOGI(TAG, "Heatpump connected.");
+};
+
+void MitsubishiUART::processPacket(const ExtendedConnectRequestPacket &packet) {
+  // Nothing to be done for these except forward them along from thermostat to heat pump.
+  // This method defined so that these packets are not "unhandled"
+  ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
+  routePacket(packet);
 };
 void MitsubishiUART::processPacket(const ExtendedConnectResponsePacket &packet) {
   ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());

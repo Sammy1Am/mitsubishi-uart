@@ -87,7 +87,9 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     void routePacket(const Packet &packet);
 
     void processPacket(const Packet &packet);
+    void processPacket(const ConnectRequestPacket &packet);
     void processPacket(const ConnectResponsePacket &packet);
+    void processPacket(const ExtendedConnectRequestPacket &packet);
     void processPacket(const ExtendedConnectResponsePacket &packet);
     void processPacket(const GetRequestPacket &packet);
     void processPacket(const SettingsGetResponsePacket &packet);

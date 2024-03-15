@@ -159,6 +159,9 @@ void MUARTBridge::classifyAndProcessRawPacket(RawPacket &pkt) const {
       case GetCommand::status :
         processRawPacket<StatusGetResponsePacket>(pkt, false);
         break;
+      case GetCommand::a_9 :
+        processRawPacket<A9GetRequestPacket>(pkt, false);
+        break;
       default:
         processRawPacket<Packet>(pkt, false);
     }
