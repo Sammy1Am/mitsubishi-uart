@@ -259,7 +259,7 @@ void MitsubishiUART::processPacket(const StandbyGetResponsePacket &packet) {
   routePacket(packet);
   // TODO: This packet may contain "loop status" and "stage" information, but want to confirm what it is before using it
 };
-void MitsubishiUART::processPacket(const FourGetResponsePacket &packet) {
+void MitsubishiUART::processPacket(const ErrorStateGetResponsePacket &packet) {
   ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
   routePacket(packet);
   // TODO: The MHK2 thermostat often asks for this, but the response is usually just all zeros.  Could be be checking for

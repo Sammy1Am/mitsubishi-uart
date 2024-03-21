@@ -8,8 +8,8 @@
 
 namespace esphome {
 namespace mitsubishi_uart {
-
-#define LOGPACKET(packet, direction) ESP_LOGD("mitsubishi_uart.packets", "%s [%02x] %s", direction, packet.getPacketType(), packet.to_string().c_str());
+static const char *PACKETS_TAG = "mitsubishi_uart.packets";
+#define LOGPACKET(packet, direction) ESP_LOGD(PACKETS_TAG, "%s [%02x] %s", direction, packet.getPacketType(), packet.to_string().c_str());
 
 #define CONSOLE_COLOR_NONE "\033[0m"
 #define CONSOLE_COLOR_GREEN "\033[0;32m"
@@ -105,6 +105,58 @@ class ExtendedConnectRequestPacket : public Packet {
 
 class ExtendedConnectResponsePacket : public Packet {
   using Packet::Packet;
+
+ public:
+  // Byte 7
+  bool isHeatDisabled() const { return pkt_.getPayloadByte(7) & 0x02; }
+  bool supportsVane() const { return pkt_.getPayloadByte(7) & 0x20; }
+  bool supportsVaneSwing() const { return pkt_.getPayloadByte(7) & 0x40; }
+
+  // Byte 8
+  bool isDryDisabled() const { return pkt_.getPayloadByte(8) & 0x01; }
+  bool isFanDisabled() const { return pkt_.getPayloadByte(8) & 0x02; }
+  bool hasExtendedTemperatureRange() const { return pkt_.getPayloadByte(8) & 0x04; }
+  bool hasAutoFanSpeed() const { return pkt_.getPayloadByte(8) & 0x10; }
+  bool supportsInstallerSettings() const { return pkt_.getPayloadByte(8) & 0x20; }
+  bool supportsTestMode() const { return pkt_.getPayloadByte(8) & 0x40; }
+  bool supportsDryTemperature() const { return pkt_.getPayloadByte(8) & 0x80; }
+
+  // Byte 9
+  bool hasStatusDisplay() const { return pkt_.getPayloadByte(9) & 0x01; }
+
+  // Bytes 10-15
+  float getMinCoolDrySetpoint() const { return ((int) pkt_.getPayloadByte(10) - 128) / 2.0f; }
+  float getMaxCoolDrySetpoint() const { return ((int) pkt_.getPayloadByte(11) - 128) / 2.0f; }
+  float getMinHeatingSetpoint() const { return ((int) pkt_.getPayloadByte(12) - 128) / 2.0f; }
+  float getMaxHeatingSetpoint() const { return ((int) pkt_.getPayloadByte(13) - 128) / 2.0f; }
+  float getMinAutoSetpoint() const { return ((int) pkt_.getPayloadByte(14) - 128) / 2.0f; }
+  float getMaxAutoSetpoint() const { return ((int) pkt_.getPayloadByte(15) - 128) / 2.0f; }
+
+  // Fan Speeds TODO: Probably move this to .cpp?
+  uint8_t getSupportedFanSpeeds() const {
+    uint8_t raw_value = ((pkt_.getPayloadByte(7) & 0x10) >> 2) + ((pkt_.getPayloadByte(8) & 0x08) >> 2) +
+                        ((pkt_.getPayloadByte(9) & 0x02) >> 1);
+
+    switch (raw_value) {
+      case 1:
+      case 2:
+      case 4:
+        return raw_value;
+        break;
+      case 0:
+        return 3;
+        break;
+      case 6:
+        return 5;
+        break;
+
+      default:
+        ESP_LOGW(PACKETS_TAG, "Unexpected supported fan speeds: %i", raw_value);
+        return 0; // TODO: Depending on how this is used, it might be more useful to just return 3 and hope for the best
+    }
+  }
+
+  std::string to_string() const override;
 };
 
 ////
@@ -139,25 +191,29 @@ class GetRequestPacket : public Packet {
 class SettingsGetResponsePacket : public Packet {
   static const int PLINDEX_POWER = 3;
   static const int PLINDEX_MODE = 4;
-  static const int PLINDEX_TARGETTEMP = 11;
   static const int PLINDEX_FAN = 6;
   static const int PLINDEX_VANE = 7;
+  static const int PLINDEX_PROHIBITFLAGS = 8;
   static const int PLINDEX_HVANE = 10;
+  static const int PLINDEX_TARGETTEMP = 11;
   using Packet::Packet;
 
  public:
-  bool getPower() const { return pkt_.getPayloadByte(PLINDEX_POWER); }
+  uint8_t getPower() const { return pkt_.getPayloadByte(PLINDEX_POWER); }
   uint8_t getMode() const { return pkt_.getPayloadByte(PLINDEX_MODE); }
-  float getTargetTemp() const { return ((int) pkt_.getPayloadByte(PLINDEX_TARGETTEMP) - 128) / 2.0f; }
   uint8_t getFan() const { return pkt_.getPayloadByte(PLINDEX_FAN); }
   uint8_t getVane() const { return pkt_.getPayloadByte(PLINDEX_VANE); }
+  bool lockedPower() const { return pkt_.getPayloadByte(PLINDEX_PROHIBITFLAGS) & 0x01; }
+  bool lockedMode() const { return pkt_.getPayloadByte(PLINDEX_PROHIBITFLAGS) & 0x02; }
+  bool lockedTemp() const { return pkt_.getPayloadByte(PLINDEX_PROHIBITFLAGS) & 0x04; }
   uint8_t getHorizontalVane() const { return pkt_.getPayloadByte(PLINDEX_HVANE); }
+  float getTargetTemp() const { return ((int) pkt_.getPayloadByte(PLINDEX_TARGETTEMP) - 128) / 2.0f; }
 
   std::string to_string() const override;
 };
 
 class CurrentTempGetResponsePacket : public Packet {
-  static const int PLINDEX_CURRENTTEMP_CODE = 3;  // TODO: I don't know why I would use this instead of the one below...
+  static const int PLINDEX_CURRENTTEMP_LEGACY = 3;  // TODO: I don't know why I would use this instead of the one below...
   static const int PLINDEX_CURRENTTEMP = 6;
   using Packet::Packet;
 
@@ -180,19 +236,28 @@ class StatusGetResponsePacket : public Packet {
 };
 
 class StandbyGetResponsePacket : public Packet {
-  static const int PLINDEX_LOOPSTATUS = 3;
-  static const int PLINDEX_STAGE = 4;
+  static const int PLINDEX_STATUSFLAGS = 3;
+  static const int PLINDEX_ACTUALFAN = 4;
+  static const int PLINDEX_AUTOMODE = 5;
   using Packet::Packet;
 
  public:
-  uint8_t getLoopStatus() const { return pkt_.getPayloadByte(PLINDEX_LOOPSTATUS); }
-  uint8_t getStage() const { return pkt_.getPayloadByte(PLINDEX_STAGE); }
+  bool serviceFilter() const { return pkt_.getPayloadByte(PLINDEX_STATUSFLAGS) & 0x01; }
+  bool inDefrost() const { return pkt_.getPayloadByte(PLINDEX_STATUSFLAGS) & 0x02; }
+  bool inHotAdjust() const { return pkt_.getPayloadByte(PLINDEX_STATUSFLAGS) & 0x04; }
+  bool inStandby() const { return pkt_.getPayloadByte(PLINDEX_STATUSFLAGS) & 0x08; }
+  uint8_t getActualFanSpeed() const { return pkt_.getPayloadByte(PLINDEX_ACTUALFAN); }
+  uint8_t getAutoMode() const { return pkt_.getPayloadByte(PLINDEX_AUTOMODE); }
   std::string to_string() const override;
 };
 
-class FourGetResponsePacket : public Packet {
+class ErrorStateGetResponsePacket : public Packet {
   using Packet::Packet;
  public:
+  uint16_t getErrorCode() const {return pkt_.getPayloadByte(4) << 8 | pkt_.getPayloadByte(5);}
+  uint8_t getShortCode() const {return pkt_.getPayloadByte(6);}
+
+  std::string to_string() const override;
 };
 
 ////
@@ -326,7 +391,7 @@ class PacketProcessor {
     virtual void processPacket(const CurrentTempGetResponsePacket &packet) {};
     virtual void processPacket(const StatusGetResponsePacket &packet) {};
     virtual void processPacket(const StandbyGetResponsePacket &packet) {};
-    virtual void processPacket(const FourGetResponsePacket &packet) {};
+    virtual void processPacket(const ErrorStateGetResponsePacket &packet) {};
     virtual void processPacket(const RemoteTemperatureSetRequestPacket &packet) {};
     virtual void processPacket(const RemoteTemperatureSetResponsePacket &packet) {};
 };

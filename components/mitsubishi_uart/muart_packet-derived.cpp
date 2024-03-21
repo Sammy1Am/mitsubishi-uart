@@ -11,6 +11,28 @@ std::string ConnectRequestPacket::to_string() const {
 std::string ConnectResponsePacket::to_string() const {
   return("Connect Response: " + Packet::to_string());
 }
+std::string ExtendedConnectResponsePacket::to_string() const {
+  return ("Extended Connect Response: " + Packet::to_string()
+  + CONSOLE_COLOR_PURPLE
+  + "\n HeatDisabled:" + std::to_string(isHeatDisabled()))
+  + " SupportsVane:" + std::to_string(supportsVane())
+  + " SupportsVaneSwing:" + std::to_string(supportsVaneSwing())
+
+  + " DryDisabled:" + std::to_string(isDryDisabled())
+  + " FanDisabled:" + std::to_string(isFanDisabled())
+  + " ExtTempRange:" + std::to_string(hasExtendedTemperatureRange())
+  + " AutoFan:" + std::to_string(hasAutoFanSpeed())
+  + " InstallerSettings:" + std::to_string(supportsInstallerSettings())
+  + " TestMode:" + std::to_string(supportsTestMode())
+  + " DryTemp:" + std::to_string(supportsDryTemperature())
+
+  + " StatusDisplay:" + std::to_string(hasStatusDisplay())
+
+  + "\n CoolDrySetpoint:" + std::to_string(getMinCoolDrySetpoint()) + "/" + std::to_string(getMaxCoolDrySetpoint())
+  + "HeatSetpoint:" + std::to_string(getMinHeatingSetpoint()) + "/" + std::to_string(getMaxHeatingSetpoint())
+  + "AutoSetpoint:" + std::to_string(getMinAutoSetpoint()) + "/" + std::to_string(getMaxAutoSetpoint())
+  + "FanSpeeds:" + std::to_string(getSupportedFanSpeeds());
+}
 std::string CurrentTempGetResponsePacket::to_string() const {
   return ("Current Temp Response: " + Packet::to_string()
   + CONSOLE_COLOR_PURPLE
@@ -22,17 +44,24 @@ std::string SettingsGetResponsePacket::to_string() const {
   + CONSOLE_COLOR_PURPLE
   + "\n Fan:" + format_hex(getFan())
   + " Mode:" + format_hex(getMode())
-  + " Power:" + (getPower() ? "On" : "Off")
+  + " Power:" + (getPower()==3 ? "Test" : getPower()>0 ? "On" : "Off")
   + " TargetTemp:" + std::to_string(getTargetTemp())
   + " Vane:" + format_hex(getVane())
   + " HVane:" + format_hex(getHorizontalVane())
+  + "\n PowerLock:" + std::to_string(lockedPower())
+  + " ModeLock:" + std::to_string(lockedMode())
+  + " TempLock:" + std::to_string(lockedTemp())
   );
 }
 std::string StandbyGetResponsePacket::to_string() const {
   return ("Standby Response: " + Packet::to_string()
   + CONSOLE_COLOR_PURPLE
-  + "\n Loop Status:" + format_hex(getLoopStatus())
-  + " Stage:" + format_hex(getStage())
+  + "\n ServiceFilter:" + std::to_string(serviceFilter())
+  + " Defrost:" + std::to_string(inDefrost())
+  + " HotAdjust:" + std::to_string(inHotAdjust())
+  + " Standby:" + std::to_string(inStandby())
+  + " ActualFan:" + std::to_string(getActualFanSpeed())
+  + " AutoMode:" + format_hex(getAutoMode())
   );
 }
 std::string StatusGetResponsePacket::to_string() const {
@@ -40,6 +69,13 @@ std::string StatusGetResponsePacket::to_string() const {
   + CONSOLE_COLOR_PURPLE
   + "\n CompressorFrequency: " + std::to_string(getCompressorFrequency())
   + " Operating: " + (getOperating() ? "Yes":"No")
+  );
+}
+std::string ErrorStateGetResponsePacket::to_string() const {
+  return ("Error State Response: " + Packet::to_string()
+  + CONSOLE_COLOR_PURPLE
+  + "\n ErrorCode: " + format_hex(getErrorCode())
+  + " ShortCode: " + format_hex(getShortCode()) // TODO: This can be converted to a code string
   );
 }
 std::string RemoteTemperatureSetRequestPacket::to_string() const {
