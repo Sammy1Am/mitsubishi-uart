@@ -62,7 +62,6 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   }
 
   // Sensor setters
-  void set_current_temperature_sensor(sensor::Sensor *sensor) {current_temperature_sensor = sensor;};
   void set_thermostat_temperature_sensor(sensor::Sensor *sensor) {thermostat_temperature_sensor = sensor;};
   void set_compressor_frequency_sensor(sensor::Sensor *sensor) {compressor_frequency_sensor = sensor;};
 
@@ -139,7 +138,6 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     ESPPreferenceObject preferences_;
 
     // Internal sensors
-    sensor::Sensor *current_temperature_sensor = nullptr;
     sensor::Sensor *thermostat_temperature_sensor = nullptr;
     sensor::Sensor *compressor_frequency_sensor = nullptr;
 

@@ -188,10 +188,6 @@ void MitsubishiUART::processPacket(const CurrentTempGetResponsePacket &packet) {
   const float old_current_temperature = current_temperature;
   current_temperature = packet.getCurrentTemp();
 
-  if (current_temperature_sensor) {
-    current_temperature_sensor->raw_state = current_temperature;
-  }
-
   publishOnUpdate |= (old_current_temperature != current_temperature);
 };
 

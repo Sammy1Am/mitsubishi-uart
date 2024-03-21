@@ -145,10 +145,6 @@ void MitsubishiUART::doPublish() {
   // This is a bit of a hack to avoid needing to publish sensor data immediately as packets arrive.
   // Instead, packet data is written directly to `raw_state` (which doesn't update `state`).  If they
   // differ, calling `publish_state` will update `state` so that it won't be published later
-  if (current_temperature_sensor && (current_temperature_sensor->raw_state != current_temperature_sensor->state)) {
-    ESP_LOGI(TAG, "Current temp differs, do publish");
-    current_temperature_sensor->publish_state(current_temperature_sensor->raw_state);
-  }
   if (thermostat_temperature_sensor && (thermostat_temperature_sensor->raw_state != thermostat_temperature_sensor->state)) {
     ESP_LOGI(TAG, "Thermostat temp differs, do publish");
     thermostat_temperature_sensor->publish_state(thermostat_temperature_sensor->raw_state);

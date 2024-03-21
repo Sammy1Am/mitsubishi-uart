@@ -24,7 +24,6 @@ CONF_HP_UART = "heatpump_uart"
 CONF_TS_UART = "thermostat_uart"
 
 CONF_SENSORS = "sensors"
-CONF_SENSORS_CURRENT_TEMP = "current_temperature"
 CONF_SENSORS_THERMOSTAT_TEMP = "thermostat_temperature"
 CONF_SENSORS_COMPRESSOR_FREQUENCY = "compressor_frequency"
 
@@ -78,15 +77,6 @@ BASE_SCHEMA = cv.polling_component_schema(DEFAULT_POLLING_INTERVAL).extend(clima
     })
 
 SENSORS = {
-    CONF_SENSORS_CURRENT_TEMP: (
-        "Current Temperature",
-        sensor.sensor_schema(
-            unit_of_measurement=UNIT_CELSIUS,
-            device_class=DEVICE_CLASS_TEMPERATURE,
-            state_class=STATE_CLASS_MEASUREMENT,
-            accuracy_decimals=1,
-        )
-    ),
     CONF_SENSORS_THERMOSTAT_TEMP: (
         "Thermostat Temperature",
         sensor.sensor_schema(
@@ -108,7 +98,7 @@ SENSORS = {
 }
 
 SENSORS_SCHEMA = cv.All({
-    cv.Optional(sensor_designator, default={"name": f"{sensor_name}"}): sensor_schema
+    cv.Optional(sensor_designator, default={"name": f"{sensor_name}", "disabled_by_default":"true"}): sensor_schema
     for sensor_designator, (sensor_name, sensor_schema) in SENSORS.items()
 })
 
