@@ -70,8 +70,14 @@ void ThermostatBridge::loop() {
   }
 }
 
+/* Queues a packet to be sent by the bridge.  If the queue is full, the packet will not be
+enqueued.*/
 void MUARTBridge::sendPacket(const Packet &packetToSend) {
-  pkt_queue.push(packetToSend);
+  if (pkt_queue.size() <= MAX_QUEUE_SIZE) {
+    pkt_queue.push(packetToSend) ;
+  } else {
+    ESP_LOGW(BRIDGE_TAG, "Packet queue full!  %x packet not sent.", packetToSend.getPacketType());
+  }
 }
 
 void MUARTBridge::writeRawPacket(const RawPacket &packetToSend) const {
