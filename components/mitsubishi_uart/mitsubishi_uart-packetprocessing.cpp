@@ -253,7 +253,38 @@ void MitsubishiUART::processPacket(const StatusGetResponsePacket &packet) {
 void MitsubishiUART::processPacket(const StandbyGetResponsePacket &packet) {
   ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
   routePacket(packet);
-  // TODO: This packet may contain "loop status" and "stage" information, but want to confirm what it is before using it
+
+  if (service_filter_sensor) {
+    const bool old_service_filter = service_filter_sensor->state;
+    service_filter_sensor->state = packet.serviceFilter();
+    publishOnUpdate |= (old_service_filter != service_filter_sensor->state);
+  }
+
+  if (defrost_sensor) {
+    const bool old_defrost = defrost_sensor->state;
+    defrost_sensor->state = packet.inDefrost();
+    publishOnUpdate |= (old_defrost != defrost_sensor->state);
+  }
+
+  if (hot_adjust_sensor) {
+    const bool old_hot_adjust = hot_adjust_sensor->state;
+    hot_adjust_sensor->state = packet.inHotAdjust();
+    publishOnUpdate |= (old_hot_adjust != hot_adjust_sensor->state);
+  }
+
+  if (standby_sensor) {
+    const bool old_standby = standby_sensor->state;
+    standby_sensor->state = packet.inStandby();
+    publishOnUpdate |= (old_standby != standby_sensor->state);
+  }
+
+  if (actual_fan_sensor) {
+    const uint8_t old_actual_fan = actual_fan_sensor->raw_state;
+    actual_fan_sensor->raw_state = packet.getActualFanSpeed();
+    publishOnUpdate |= (old_actual_fan != actual_fan_sensor->raw_state);
+  }
+
+  //TODO: Not sure what AutoMode does yet
 };
 void MitsubishiUART::processPacket(const ErrorStateGetResponsePacket &packet) {
   ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());

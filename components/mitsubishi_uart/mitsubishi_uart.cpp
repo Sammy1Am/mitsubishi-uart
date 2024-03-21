@@ -153,6 +153,16 @@ void MitsubishiUART::doPublish() {
     ESP_LOGI(TAG, "Compressor frequency differs, do publish");
     compressor_frequency_sensor->publish_state(compressor_frequency_sensor->raw_state);
   }
+  if (actual_fan_sensor && (actual_fan_sensor->raw_state != actual_fan_sensor->state)) {
+    ESP_LOGI(TAG, "Actual fan speed differs, do publish");
+    actual_fan_sensor->publish_state(actual_fan_sensor->raw_state);
+  }
+
+  // Binary sensors automatically dedup publishes (I think) and so will only actually publish on change
+  service_filter_sensor->publish_state(service_filter_sensor->state);
+  defrost_sensor->publish_state(defrost_sensor->state);
+  hot_adjust_sensor->publish_state(hot_adjust_sensor->state);
+  standby_sensor->publish_state(standby_sensor->state);
 }
 
 bool MitsubishiUART::select_temperature_source(const std::string &state) {

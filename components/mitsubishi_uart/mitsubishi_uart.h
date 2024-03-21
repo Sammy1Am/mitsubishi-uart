@@ -64,6 +64,11 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   // Sensor setters
   void set_thermostat_temperature_sensor(sensor::Sensor *sensor) {thermostat_temperature_sensor = sensor;};
   void set_compressor_frequency_sensor(sensor::Sensor *sensor) {compressor_frequency_sensor = sensor;};
+  void set_actual_fan_sensor(sensor::Sensor *sensor) {actual_fan_sensor = sensor;};
+  void set_service_filter_sensor(binary_sensor::BinarySensor *sensor) {service_filter_sensor = sensor;};
+  void set_defrost_sensor(binary_sensor::BinarySensor *sensor) {defrost_sensor = sensor;};
+  void set_hot_adjust_sensor(binary_sensor::BinarySensor *sensor) {hot_adjust_sensor = sensor;};
+  void set_standby_sensor(binary_sensor::BinarySensor *sensor) {standby_sensor = sensor;};
 
   // Select setters
   void set_temperature_source_select(select::Select *select) {temperature_source_select = select;};
@@ -140,6 +145,11 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     // Internal sensors
     sensor::Sensor *thermostat_temperature_sensor = nullptr;
     sensor::Sensor *compressor_frequency_sensor = nullptr;
+    sensor::Sensor *actual_fan_sensor = nullptr;
+    binary_sensor::BinarySensor *service_filter_sensor = nullptr;
+    binary_sensor::BinarySensor *defrost_sensor = nullptr;
+    binary_sensor::BinarySensor *hot_adjust_sensor = nullptr;
+    binary_sensor::BinarySensor *standby_sensor = nullptr;
 
     // Selects
     select::Select *temperature_source_select;

@@ -1,6 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import climate, uart, sensor, select, switch
+from esphome.components import climate, uart, sensor, binary_sensor, select, switch
 from esphome.core import CORE
 from esphome.const import (
     CONF_ID,
@@ -10,22 +10,23 @@ from esphome.const import (
     CONF_SUPPORTED_FAN_MODES,
     DEVICE_CLASS_TEMPERATURE,
     DEVICE_CLASS_FREQUENCY,
+    DEVICE_CLASS_SPEED,
     ENTITY_CATEGORY_CONFIG,
+    ENTITY_CATEGORY_DIAGNOSTIC,
     STATE_CLASS_MEASUREMENT,
     UNIT_CELSIUS,
     UNIT_HERTZ,
 )
 from esphome.core import coroutine
 
-AUTO_LOAD = ["climate", "select", "sensor", "switch"]
-DEPENDENCIES = ["uart", "climate", "sensor", "select", "switch"]
+AUTO_LOAD = ["climate", "select", "sensor", "binary_sensor", "switch"]
+DEPENDENCIES = ["uart", "climate", "sensor", "binary_sensor", "select", "switch"]
 
 CONF_HP_UART = "heatpump_uart"
 CONF_TS_UART = "thermostat_uart"
 
 CONF_SENSORS = "sensors"
 CONF_SENSORS_THERMOSTAT_TEMP = "thermostat_temperature"
-CONF_SENSORS_COMPRESSOR_FREQUENCY = "compressor_frequency"
 
 CONF_SELECTS = "selects"
 CONF_TEMPERATURE_SOURCE_SELECT = "temperature_source_select" # This is to create a Select object for selecting a source
@@ -76,6 +77,7 @@ BASE_SCHEMA = cv.polling_component_schema(DEFAULT_POLLING_INTERVAL).extend(clima
         icon="mdi:upload-network")
     })
 
+# TODO Storing the registration function here seems weird, but I can't figure out how to determine schema type later
 SENSORS = {
     CONF_SENSORS_THERMOSTAT_TEMP: (
         "Thermostat Temperature",
@@ -84,22 +86,50 @@ SENSORS = {
             device_class=DEVICE_CLASS_TEMPERATURE,
             state_class=STATE_CLASS_MEASUREMENT,
             accuracy_decimals=1,
-        )
+        ),
+        sensor.register_sensor
     ),
-    CONF_SENSORS_COMPRESSOR_FREQUENCY: (
+    "compressor_frequency": (
         "Compressor Frequency",
         sensor.sensor_schema(
             unit_of_measurement=UNIT_HERTZ,
             device_class=DEVICE_CLASS_FREQUENCY,
             state_class=STATE_CLASS_MEASUREMENT,
-            #disabled_by_default=True # This throws an 'unexpected keyword argument' error
-        )
-    )
+        ),
+        sensor.register_sensor
+    ),
+    "actual_fan": (
+        "Actual Fan Speed",
+        sensor.sensor_schema(
+            device_class=DEVICE_CLASS_SPEED,
+        ),
+        sensor.register_sensor
+    ),
+    "service_filter": (
+        "Service Filter",
+        binary_sensor.binary_sensor_schema(),
+        binary_sensor.register_binary_sensor
+    ),
+    "defrost": (
+        "Defrost",
+        binary_sensor.binary_sensor_schema(),
+        binary_sensor.register_binary_sensor
+    ),
+    "hot_adjust": (
+        "Hot Adjust",
+        binary_sensor.binary_sensor_schema(),
+        binary_sensor.register_binary_sensor
+    ),
+    "standby": (
+        "Standby",
+        binary_sensor.binary_sensor_schema(),
+        binary_sensor.register_binary_sensor
+    ),
 }
 
 SENSORS_SCHEMA = cv.All({
     cv.Optional(sensor_designator, default={"name": f"{sensor_name}", "disabled_by_default":"true"}): sensor_schema
-    for sensor_designator, (sensor_name, sensor_schema) in SENSORS.items()
+    for sensor_designator, (sensor_name, sensor_schema, registration_function) in SENSORS.items()
 })
 
 SELECTS = {
@@ -175,14 +205,16 @@ async def to_code(config):
 
     # Sensors
 
-    for sensor_designator in SENSORS:
+    for sensor_designator, (sensor_name, sensor_schema, registration_function) in SENSORS.items():
         # Only add the thermostat temp if we have a TS_UART
         if (sensor_designator == CONF_SENSORS_THERMOSTAT_TEMP) and (CONF_TS_UART not in config):
             continue
 
         sensor_conf = config[CONF_SENSORS][sensor_designator]
         sensor_component = cg.new_Pvariable(sensor_conf[CONF_ID])
-        await sensor.register_sensor(sensor_component, sensor_conf)
+
+        await registration_function(sensor_component, sensor_conf)
+
         cg.add(getattr(muart_component, f"set_{sensor_designator}_sensor")(sensor_component))
 
     ### Selects
