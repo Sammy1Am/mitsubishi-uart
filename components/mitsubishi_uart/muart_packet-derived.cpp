@@ -142,10 +142,10 @@ float SettingsGetResponsePacket::getTargetTemp() const {
 
   if (enhancedTemperature == 0x00) {
     auto legacyTemperature = pkt_.getPayloadByte(PLINDEX_TARGETTEMP_LEGACY);
-    return ((float)(31 - (legacyTemperature % 0x10)) + (0.5f * (float)legacyTemperature / 0x10));
+    return ((float)(31 - (legacyTemperature % 0x10)) + (0.5f * (float)(legacyTemperature & 0x10)));
   }
 
-  return ((float) pkt_.getPayloadByte(PLINDEX_TARGETTEMP) - 128) / 2.0f;
+  return ((float)enhancedTemperature - 128) / 2.0f;
 }
 
 
