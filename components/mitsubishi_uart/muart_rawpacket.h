@@ -33,7 +33,7 @@ enum class PacketType : uint8_t {
 enum class GetCommand : uint8_t {
   settings = 0x02,
   current_temp = 0x03,
-  four = 0x04,
+  error_info = 0x04,
   status = 0x06,
   standby = 0x09,
   a_9 = 0xa9

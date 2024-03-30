@@ -156,7 +156,7 @@ void MUARTBridge::classifyAndProcessRawPacket(RawPacket &pkt) const {
       case GetCommand::current_temp :
         processRawPacket<CurrentTempGetResponsePacket>(pkt, false);
         break;
-      case GetCommand::four :
+      case GetCommand::error_info :
         processRawPacket<ErrorStateGetResponsePacket>(pkt, false);
         break;
       case GetCommand::standby :
