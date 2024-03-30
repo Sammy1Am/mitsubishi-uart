@@ -285,13 +285,29 @@ void MitsubishiUART::processPacket(const StandbyGetResponsePacket &packet) {
   }
 
   //TODO: Not sure what AutoMode does yet
-};
+}
+
 void MitsubishiUART::processPacket(const ErrorStateGetResponsePacket &packet) {
   ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
   routePacket(packet);
-  // TODO: The MHK2 thermostat often asks for this, but the response is usually just all zeros.  Could be be checking for
-  // errors / messages / warnings.  Should check when e.g. the filter life runs out.
-};
+
+  auto oldErrorCode = error_code_sensor->raw_state;
+
+  // TODO: Include friendly text from JSON, somehow.
+  if (!packet.errorPresent()) {
+    error_code_sensor->raw_state = "No Error Reported";
+  } else if (packet.getRawShortCode() != 0x00) {
+    error_code_sensor->raw_state = "Error " + packet.getShortCode();
+  } else if (packet.getErrorCode() != 0x8000) {
+    error_code_sensor->raw_state = "Error " + to_string(packet.getErrorCode());
+  } else {
+    // Logic bug :(
+    ESP_LOGW(TAG, "Packet indicated an error was present, but none of the error states matched. wat.");
+  }
+
+  publishOnUpdate |= (oldErrorCode != error_code_sensor->state);
+}
+
 void MitsubishiUART::processPacket(const RemoteTemperatureSetRequestPacket &packet) {
   ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
 

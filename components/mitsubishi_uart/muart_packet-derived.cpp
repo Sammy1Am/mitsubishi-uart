@@ -1,5 +1,6 @@
 #include "muart_packet.h"
 #include "muart_utils.h"
+#include "mitsubishi_uart.h"
 
 namespace esphome {
 namespace mitsubishi_uart {
@@ -75,7 +76,8 @@ std::string StatusGetResponsePacket::to_string() const {
 std::string ErrorStateGetResponsePacket::to_string() const {
   return ("Error State Response: " + Packet::to_string()
   + CONSOLE_COLOR_PURPLE
-  + "\n ErrorCode: " + format_hex(getErrorCode())
+  + "\n Error State: " + (errorPresent() ? "Yes" : "No")
+  + " ErrorCode: " + format_hex(getErrorCode())
   + " ShortCode: " + getShortCode() + "(" + format_hex(getRawShortCode()) + ")"
   );
 }
@@ -210,7 +212,6 @@ std::string ErrorStateGetResponsePacket::getShortCode() const {
 
   auto lowBits = errorCode & 0x1F;
   if (lowBits > 0x15) {
-    ESP_LOGW(PACKETS_TAG, "Error lowbits %x were out of range.", lowBits);
     char buf[7];
     sprintf(buf, "ERR_%x", errorCode);
     return buf;
