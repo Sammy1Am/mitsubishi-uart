@@ -85,6 +85,28 @@ void MitsubishiUART::control(const climate::ClimateCall &call) {
   // HVane?
   // Swing?
 
+  if (call.get_swing_mode().has_value()) {
+    switch (call.get_swing_mode().value()) {
+      case climate::CLIMATE_SWING_OFF:
+        if (climate_traits_.supports_swing_mode(climate::CLIMATE_SWING_VERTICAL))
+          setRequestPacket.setVane(this->last_known_vane_position);
+
+        if (climate_traits_.supports_swing_mode(climate::CLIMATE_SWING_HORIZONTAL))
+          setRequestPacket.setHorizontalVane(this->last_known_hvane_position);
+        break;
+      case climate::CLIMATE_SWING_BOTH:
+        setRequestPacket.setHorizontalVane(SettingsSetRequestPacket::HV_SWING);
+        setRequestPacket.setVane(SettingsSetRequestPacket::VANE_SWING);
+        break;
+      case climate::CLIMATE_SWING_VERTICAL:
+        setRequestPacket.setVane(SettingsSetRequestPacket::VANE_SWING);
+        break;
+      case climate::CLIMATE_SWING_HORIZONTAL:
+        setRequestPacket.setHorizontalVane(SettingsSetRequestPacket::HV_SWING);
+        break;
+    }
+  }
+
   // We're assuming that every climate call *does* make some change worth sending to the heat pump
   // Queue the packet to be sent first (so any subsequent update packets come *after* our changes)
   hp_bridge.sendPacket(setRequestPacket);

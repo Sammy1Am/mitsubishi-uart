@@ -124,7 +124,9 @@ void MitsubishiUART::processPacket(const SettingsGetResponsePacket &packet) {
 
   // TODO: It would probably be nice to have the enum->string mapping defined somewhere to avoid typos/errors
   const std::string old_vane_position = vane_position_select->state;
-  switch(packet.getVane()) {
+  const auto vane_position = static_cast<SettingsSetRequestPacket::VANE_BYTE>(packet.getVane());
+  this->set_last_known_vane_position(vane_position);
+  switch(vane_position) {
     case SettingsSetRequestPacket::VANE_AUTO:
       vane_position_select->state = "Auto";
       break;
@@ -153,7 +155,9 @@ void MitsubishiUART::processPacket(const SettingsGetResponsePacket &packet) {
 
 
   const std::string old_horizontal_vane_position = horizontal_vane_position_select->state;
-  switch(packet.getHorizontalVane()) {
+  const auto hvane_position = static_cast<SettingsSetRequestPacket::HORIZONTAL_VANE_BYTE>(packet.getHorizontalVane());
+  this->set_last_known_hvane_position(hvane_position);
+  switch(hvane_position) {
     case SettingsSetRequestPacket::HV_LEFT_FULL:
       horizontal_vane_position_select->state = "<<";
       break;
