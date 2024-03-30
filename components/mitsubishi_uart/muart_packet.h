@@ -191,6 +191,7 @@ class GetRequestPacket : public Packet {
 class SettingsGetResponsePacket : public Packet {
   static const int PLINDEX_POWER = 3;
   static const int PLINDEX_MODE = 4;
+  static const int PLINDEX_TARGETTEMP_LEGACY = 5;
   static const int PLINDEX_FAN = 6;
   static const int PLINDEX_VANE = 7;
   static const int PLINDEX_PROHIBITFLAGS = 8;
@@ -207,7 +208,8 @@ class SettingsGetResponsePacket : public Packet {
   bool lockedMode() const { return pkt_.getPayloadByte(PLINDEX_PROHIBITFLAGS) & 0x02; }
   bool lockedTemp() const { return pkt_.getPayloadByte(PLINDEX_PROHIBITFLAGS) & 0x04; }
   uint8_t getHorizontalVane() const { return pkt_.getPayloadByte(PLINDEX_HVANE); }
-  float getTargetTemp() const { return ((int) pkt_.getPayloadByte(PLINDEX_TARGETTEMP) - 128) / 2.0f; }
+
+  float getTargetTemp() const;
 
   std::string to_string() const override;
 };
@@ -218,7 +220,7 @@ class CurrentTempGetResponsePacket : public Packet {
   using Packet::Packet;
 
  public:
-  float getCurrentTemp() const { return ((int) pkt_.getPayloadByte(PLINDEX_CURRENTTEMP) - 128) / 2.0f; }
+  float getCurrentTemp() const;
   std::string to_string() const override;
 };
 
