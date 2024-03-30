@@ -23,7 +23,7 @@ std::string ExtendedConnectResponsePacket::to_string() const {
   + " DryDisabled:" + (isDryDisabled()?"Yes":"No")
   + " FanDisabled:" + (isFanDisabled()?"Yes":"No")
   + " ExtTempRange:" + (hasExtendedTemperatureRange()?"Yes":"No")
-  + " AutoFan:" + (hasAutoFanSpeed()?"Yes":"No")
+  + " AutoFanDisabled:" + (autoFanSpeedDisabled()?"Yes":"No")
   + " InstallerSettings:" + (supportsInstallerSettings()?"Yes":"No")
   + " TestMode:" + (supportsTestMode()?"Yes":"No")
   + " DryTemp:" + (supportsDryTemperature()?"Yes":"No")
@@ -218,6 +218,93 @@ std::string ErrorStateGetResponsePacket::getShortCode() const {
   }
 
   return {upperAlphabet[(errorCode & 0xE0) >> 5], lowerAlphabet[lowBits]};
+}
+
+// ExtendedConnectResponsePacket functions
+uint8_t ExtendedConnectResponsePacket::getSupportedFanSpeeds() const {
+  uint8_t raw_value = ((pkt_.getPayloadByte(7) & 0x10) >> 2) + ((pkt_.getPayloadByte(8) & 0x08) >> 2) +
+                      ((pkt_.getPayloadByte(9) & 0x02) >> 1);
+
+  switch (raw_value) {
+    case 1:
+    case 2:
+    case 4:
+      return raw_value;
+    case 0:
+      return 3;
+    case 6:
+      return 5;
+
+    default:
+      ESP_LOGW(PACKETS_TAG, "Unexpected supported fan speeds: %i", raw_value);
+      return 0;  // TODO: Depending on how this is used, it might be more useful to just return 3 and hope for the best
+  }
+}
+
+climate::ClimateTraits ExtendedConnectResponsePacket::asTraits() const {
+  auto ct = climate::ClimateTraits();
+
+  // always enabled
+  ct.add_supported_mode(climate::CLIMATE_MODE_COOL);
+  ct.add_supported_mode(climate::CLIMATE_MODE_OFF);
+
+  if (!this->isHeatDisabled())
+    ct.add_supported_mode(climate::CLIMATE_MODE_HEAT);
+  if (!this->isDryDisabled())
+    ct.add_supported_mode(climate::CLIMATE_MODE_DRY);
+  if (!this->isFanDisabled())
+    ct.add_supported_mode(climate::CLIMATE_MODE_FAN_ONLY);
+
+  if (this->supportsVaneSwing() && this->supportsHVaneSwing())
+    ct.add_supported_swing_mode(climate::CLIMATE_SWING_BOTH);
+  if (this->supportsVaneSwing())
+    ct.add_supported_swing_mode(climate::CLIMATE_SWING_VERTICAL);
+  if (this->supportsHVaneSwing())
+    ct.add_supported_swing_mode(climate::CLIMATE_SWING_HORIZONTAL);
+
+  ct.set_visual_min_temperature(std::min(this->getMinCoolDrySetpoint(), this->getMinHeatingSetpoint()));
+  ct.set_visual_max_temperature(std::max(this->getMaxCoolDrySetpoint(), this->getMaxHeatingSetpoint()));
+
+  // TODO: Figure out what these states *actually* map to so we aren't sending bad data.
+  // This is probably a dynamic map, so the setter will need to be aware of things.
+  switch (this->getSupportedFanSpeeds()) {
+    case 1:
+      ct.set_supported_fan_modes({climate::CLIMATE_FAN_HIGH});
+      break;
+    case 2:
+      ct.set_supported_fan_modes({climate::CLIMATE_FAN_LOW, climate::CLIMATE_FAN_HIGH});
+      break;
+    case 3:
+      ct.set_supported_fan_modes({
+        climate::CLIMATE_FAN_LOW,
+        climate::CLIMATE_FAN_MEDIUM,
+        climate::CLIMATE_FAN_HIGH
+      });
+      break;
+    case 4:
+      ct.set_supported_fan_modes({
+          climate::CLIMATE_FAN_QUIET,
+          climate::CLIMATE_FAN_LOW,
+          climate::CLIMATE_FAN_MEDIUM,
+          climate::CLIMATE_FAN_HIGH,
+      });
+      break;
+    case 5:
+      ct.set_supported_fan_modes({
+          climate::CLIMATE_FAN_QUIET,
+          climate::CLIMATE_FAN_LOW,
+          climate::CLIMATE_FAN_MEDIUM,
+          climate::CLIMATE_FAN_HIGH,
+      });
+      ct.add_supported_custom_fan_mode("Very High");
+      break;
+    default:
+      // no-op, don't set a fan mode.
+      break;
+  }
+  if (!this->autoFanSpeedDisabled()) ct.add_supported_fan_mode(climate::CLIMATE_FAN_AUTO);
+
+  return ct;
 }
 
 }  // namespace mitsubishi_uart

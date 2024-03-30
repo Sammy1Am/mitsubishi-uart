@@ -116,7 +116,7 @@ class ExtendedConnectResponsePacket : public Packet {
   bool isDryDisabled() const { return pkt_.getPayloadByte(8) & 0x01; }
   bool isFanDisabled() const { return pkt_.getPayloadByte(8) & 0x02; }
   bool hasExtendedTemperatureRange() const { return pkt_.getPayloadByte(8) & 0x04; }
-  bool hasAutoFanSpeed() const { return pkt_.getPayloadByte(8) & 0x10; }
+  bool autoFanSpeedDisabled() const { return pkt_.getPayloadByte(8) & 0x10; }
   bool supportsInstallerSettings() const { return pkt_.getPayloadByte(8) & 0x20; }
   bool supportsTestMode() const { return pkt_.getPayloadByte(8) & 0x40; }
   bool supportsDryTemperature() const { return pkt_.getPayloadByte(8) & 0x80; }
@@ -132,29 +132,15 @@ class ExtendedConnectResponsePacket : public Packet {
   float getMinAutoSetpoint() const { return ((int) pkt_.getPayloadByte(14) - 128) / 2.0f; }
   float getMaxAutoSetpoint() const { return ((int) pkt_.getPayloadByte(15) - 128) / 2.0f; }
 
+  // Things that have to exist, but we don't know where yet.
+  bool supportsHVaneSwing() const { return false; }
+
   // Fan Speeds TODO: Probably move this to .cpp?
-  uint8_t getSupportedFanSpeeds() const {
-    uint8_t raw_value = ((pkt_.getPayloadByte(7) & 0x10) >> 2) + ((pkt_.getPayloadByte(8) & 0x08) >> 2) +
-                        ((pkt_.getPayloadByte(9) & 0x02) >> 1);
+  uint8_t getSupportedFanSpeeds() const;
 
-    switch (raw_value) {
-      case 1:
-      case 2:
-      case 4:
-        return raw_value;
-        break;
-      case 0:
-        return 3;
-        break;
-      case 6:
-        return 5;
-        break;
-
-      default:
-        ESP_LOGW(PACKETS_TAG, "Unexpected supported fan speeds: %i", raw_value);
-        return 0; // TODO: Depending on how this is used, it might be more useful to just return 3 and hope for the best
-    }
-  }
+  // Convert a temperature response into ClimateTraits. This will *not* include library-provided features.
+  // This will also not handle things like MHK2 humidity detection.
+  climate::ClimateTraits asTraits() const;
 
   std::string to_string() const override;
 };
