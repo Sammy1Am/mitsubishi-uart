@@ -107,6 +107,7 @@ be about `update_interval` late from their actual time.  Generally the update in
 (default is 5seconds) this won't pose a practical problem.
 */
 void MitsubishiUART::update() {
+  this->_updateLoopCounter += 1;
 
   // TODO: Temporarily wait 5 seconds on startup to help with viewing logs
   if (millis() < 5000) {
@@ -133,6 +134,11 @@ void MitsubishiUART::update() {
   hp_bridge.sendPacket(GetRequestPacket::getStatusInstance());
   hp_bridge.sendPacket(GetRequestPacket::getCurrentTempInstance());
   )
+
+  // TODO: get this every 60 seconds instead of every n loops
+  if (this->_updateLoopCounter % 10 == 0 && this->ts_bridge != nullptr) {
+    IFACTIVE(hp_bridge.sendPacket(GetRequestPacket::getErrorInfoInstance());)
+  }
 }
 
 void MitsubishiUART::doPublish() {

@@ -180,6 +180,10 @@ class GetRequestPacket : public Packet {
     static GetRequestPacket INSTANCE = GetRequestPacket(GetCommand::status);
     return INSTANCE;
   }
+  static GetRequestPacket& getErrorInfoInstance() {
+    static GetRequestPacket INSTANCE = GetRequestPacket(GetCommand::error_info);
+    return INSTANCE;
+  }
   using Packet::Packet;
 
  private:

@@ -136,6 +136,9 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     // Should we call publish on the next update?
     bool publishOnUpdate = false;
 
+    // used to track inconsistent updates
+    uint32_t _updateLoopCounter = 0;
+
     // Preferences
     void save_preferences();
     void restore_preferences();
