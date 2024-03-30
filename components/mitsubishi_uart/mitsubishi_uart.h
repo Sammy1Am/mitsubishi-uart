@@ -142,6 +142,8 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     // Should we call publish on the next update?
     bool publishOnUpdate = false;
 
+    optional<ExtendedConnectResponsePacket> _capabilitiesCache;
+
     // Preferences
     void save_preferences();
     void restore_preferences();

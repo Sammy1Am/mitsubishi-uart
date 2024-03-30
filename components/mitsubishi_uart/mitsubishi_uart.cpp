@@ -118,6 +118,12 @@ void MitsubishiUART::update() {
     return;
   }
 
+  // Block until we get our extended capabilities information.
+  if (!_capabilitiesCache.has_value()) {
+    IFACTIVE(hp_bridge.sendPacket(ExtendedConnectRequestPacket::instance());)
+    return;
+  }
+
   // Before requesting additional updates, publish any changes waiting from packets received
   if (publishOnUpdate){
     doPublish();
