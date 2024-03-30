@@ -61,8 +61,9 @@ std::string StatusGetResponsePacket::to_string() const {
 }
 std::string ErrorStateGetResponsePacket::to_string() const {
   return ("Error State Response: " + Packet::to_string() + CONSOLE_COLOR_PURPLE +
-          "\n ErrorCode: " + format_hex(getErrorCode()) +
-          " ShortCode: " + getShortCode() + "(" + format_hex(getRawShortCode()) + ")");
+          "\n Error State: " + (errorPresent() ? "Yes" : "No")
+          + " ErrorCode: " + format_hex(getErrorCode()) +
+          " ShortCode: " + getShortCode() + " (" + format_hex(getRawShortCode()) + ")");
 }
 std::string RemoteTemperatureSetRequestPacket::to_string() const {
   return ("Remote Temp Set Request: " + Packet::to_string() + CONSOLE_COLOR_PURPLE +
@@ -122,10 +123,10 @@ float SettingsGetResponsePacket::getTargetTemp() const {
 
   if (enhancedTemperature == 0x00) {
     auto legacyTemperature = pkt_.getPayloadByte(PLINDEX_TARGETTEMP_LEGACY);
-    return ((float)(31 - (legacyTemperature % 0x10)) + (0.5f * (float)legacyTemperature / 0x10));
+    return ((float)(31 - (legacyTemperature % 0x10)) + (0.5f * (float)(legacyTemperature & 0x10)));
   }
 
-  return ((float) pkt_.getPayloadByte(PLINDEX_TARGETTEMP) - 128) / 2.0f;
+  return ((float)enhancedTemperature - 128) / 2.0f;
 }
 
 
