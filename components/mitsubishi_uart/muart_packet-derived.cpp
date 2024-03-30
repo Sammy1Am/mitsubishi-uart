@@ -1,4 +1,5 @@
 #include "muart_packet.h"
+#include "mitsubishi_uart.h"
 
 namespace esphome {
 namespace mitsubishi_uart {
@@ -92,7 +93,7 @@ SettingsSetRequestPacket &SettingsSetRequestPacket::setMode(const MODE_BYTE mode
 
 SettingsSetRequestPacket &SettingsSetRequestPacket::setTargetTemperature(const float temperatureDegressC) {
   if (temperatureDegressC < 63.5 && temperatureDegressC > -64.0) {
-    pkt_.setPayloadByte(PLINDEX_TARGET_TEMPERATURE, round(temperatureDegressC * 2) + 128);
+    pkt_.setPayloadByte(PLINDEX_TARGET_TEMPERATURE, (uint8_t)round(temperatureDegressC * 2) + 128);
     addSettingsFlag(SF_TARGET_TEMPERATURE);
   } else {
     ESP_LOGW(PTAG, "Target temp %f is outside valid range.", temperatureDegressC);
@@ -123,7 +124,7 @@ float SettingsGetResponsePacket::getTargetTemp() const {
 
   if (enhancedTemperature == 0x00) {
     auto legacyTemperature = pkt_.getPayloadByte(PLINDEX_TARGETTEMP_LEGACY);
-    return ((float)(31 - (legacyTemperature % 0x10)) + (0.5f * (float)(legacyTemperature & 0x10)));
+    return ((float)(31 - (legacyTemperature & 0x0F)) + (((legacyTemperature & 0xF0) > 0) ? 0.5f : 0));
   }
 
   return ((float)enhancedTemperature - 128) / 2.0f;
@@ -134,7 +135,7 @@ float SettingsGetResponsePacket::getTargetTemp() const {
 
 RemoteTemperatureSetRequestPacket &RemoteTemperatureSetRequestPacket::setRemoteTemperature(float temperatureDegressC) {
   if (temperatureDegressC < 63.5 && temperatureDegressC > -64.0) {
-    pkt_.setPayloadByte(PLINDEX_REMOTE_TEMPERATURE, round(temperatureDegressC * 2) + 128);
+    pkt_.setPayloadByte(PLINDEX_REMOTE_TEMPERATURE, (uint8_t)round(temperatureDegressC * 2) + 128);
     setFlags(0x01);  // Set flags to say we're providing the temperature
   } else {
     ESP_LOGW(PTAG, "Remote temp %f is outside valid range.", temperatureDegressC);
@@ -234,7 +235,7 @@ climate::ClimateTraits ExtendedConnectResponsePacket::asTraits() const {
           climate::CLIMATE_FAN_MEDIUM,
           climate::CLIMATE_FAN_HIGH,
       });
-      ct.add_supported_custom_fan_mode("Very High");
+      ct.add_supported_custom_fan_mode(FAN_MODE_VERYHIGH);
       break;
     default:
       // no-op, don't set a fan mode.

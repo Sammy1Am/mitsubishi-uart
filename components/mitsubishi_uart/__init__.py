@@ -1,6 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import climate, uart, sensor, binary_sensor, select, switch
+from esphome.components import climate, uart, sensor, binary_sensor, text_sensor, select, switch
 from esphome.core import CORE
 from esphome.const import (
     CONF_ID,
@@ -19,14 +19,15 @@ from esphome.const import (
 )
 from esphome.core import coroutine
 
-AUTO_LOAD = ["climate", "select", "sensor", "binary_sensor", "switch"]
-DEPENDENCIES = ["uart", "climate", "sensor", "binary_sensor", "select", "switch"]
+AUTO_LOAD = ["climate", "select", "sensor", "binary_sensor", "text_sensor", "switch"]
+DEPENDENCIES = ["uart", "climate", "sensor", "binary_sensor", "text_sensor", "select", "switch"]
 
 CONF_HP_UART = "heatpump_uart"
 CONF_TS_UART = "thermostat_uart"
 
 CONF_SENSORS = "sensors"
 CONF_SENSORS_THERMOSTAT_TEMP = "thermostat_temperature"
+CONF_SENSORS_ERROR_CODE = "error_code"
 
 CONF_SELECTS = "selects"
 CONF_TEMPERATURE_SOURCE_SELECT = "temperature_source_select" # This is to create a Select object for selecting a source
@@ -125,6 +126,11 @@ SENSORS = {
         binary_sensor.binary_sensor_schema(),
         binary_sensor.register_binary_sensor
     ),
+    CONF_SENSORS_ERROR_CODE: (
+        "Error Code",
+        text_sensor.text_sensor_schema(),
+        text_sensor.register_text_sensor
+    )
 }
 
 SENSORS_SCHEMA = cv.All({

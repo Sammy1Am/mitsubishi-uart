@@ -168,6 +168,10 @@ void MitsubishiUART::doPublish() {
     ESP_LOGI(TAG, "Actual fan speed differs, do publish");
     actual_fan_sensor->publish_state(actual_fan_sensor->raw_state);
   }
+  if (error_code_sensor && (error_code_sensor->raw_state != error_code_sensor->state)) {
+    ESP_LOGI(TAG, "Error code state differs, do publish");
+    error_code_sensor->publish_state(error_code_sensor->raw_state);
+  }
 
   // Binary sensors automatically dedup publishes (I think) and so will only actually publish on change
   service_filter_sensor->publish_state(service_filter_sensor->state);
