@@ -180,7 +180,7 @@ void MitsubishiUART::processPacket(const SettingsGetResponsePacket &packet) {
       horizontal_vane_position_select->state = "Swing";
       break;
     default:
-      ESP_LOGW(TAG, "Vane in unknown horizontal position %x", packet.getVane());
+      ESP_LOGW(TAG, "Vane in unknown horizontal position %x", packet.getHorizontalVane());
   }
   publishOnUpdate |= (old_horizontal_vane_position != horizontal_vane_position_select->state);
 };
