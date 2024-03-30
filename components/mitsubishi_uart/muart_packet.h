@@ -257,7 +257,10 @@ class ErrorStateGetResponsePacket : public Packet {
   using Packet::Packet;
  public:
   uint16_t getErrorCode() const {return pkt_.getPayloadByte(4) << 8 | pkt_.getPayloadByte(5);}
-  uint8_t getShortCode() const {return pkt_.getPayloadByte(6);}
+  uint8_t getRawShortCode() const {return pkt_.getPayloadByte(6);}
+  std::string getShortCode() const;
+
+  bool errorPresent() const { return getErrorCode() == 0x8000 && getRawShortCode() == 0x00; }
 
   std::string to_string() const override;
 };

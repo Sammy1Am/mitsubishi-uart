@@ -76,7 +76,7 @@ std::string ErrorStateGetResponsePacket::to_string() const {
   return ("Error State Response: " + Packet::to_string()
   + CONSOLE_COLOR_PURPLE
   + "\n ErrorCode: " + format_hex(getErrorCode())
-  + " ShortCode: " + format_hex(getShortCode()) // TODO: This can be converted to a code string
+  + " ShortCode: " + getShortCode() + "(" + format_hex(getRawShortCode()) + ")"
   );
 }
 std::string RemoteTemperatureSetRequestPacket::to_string() const {
@@ -200,6 +200,23 @@ std::string ThermostatHelloRequestPacket::getThermostatVersionString() const {
           pkt_.getPayloadByte(15));
 
   return buf;
+}
+
+// ErrorStateGetResponsePacket functions
+std::string ErrorStateGetResponsePacket::getShortCode() const {
+  const auto upperAlphabet = "AbEFJLPU";
+  const auto lowerAlphabet = "0123456789ABCDEFOHJLPU";
+  const auto errorCode = this->getRawShortCode();
+
+  auto lowBits = errorCode & 0x1F;
+  if (lowBits > 0x15) {
+    ESP_LOGW(PACKETS_TAG, "Error lowbits %x were out of range.", lowBits);
+    char buf[7];
+    sprintf(buf, "ERR_%x", errorCode);
+    return buf;
+  }
+
+  return {upperAlphabet[(errorCode & 0xE0) >> 5], lowerAlphabet[lowBits]};
 }
 
 }  // namespace mitsubishi_uart
