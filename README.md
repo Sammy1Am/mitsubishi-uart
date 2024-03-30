@@ -1,4 +1,8 @@
 # Mitsubishi UART
+
+[![Discord](https://img.shields.io/discord/1219515821043220500?label=discord)](https://discord.gg/VRpgcF5JG5)
+[![GitHub Release](https://img.shields.io/github/v/release/Sammy1am/mitsubishi-uart)](https://github.com/Sammy1Am/mitsubishi-uart/releases/latest)
+
 First-class ESPHome component targeting Mitsubishi heat pumps via UART.
 
 ### For the impatient:
@@ -6,7 +10,7 @@ First-class ESPHome component targeting Mitsubishi heat pumps via UART.
 
 -----
 
-Building on the work of the seminal [9SwiCago/HeatPump](https://github.com/SwiCago/HeatPump) and [geoffdavis/esphome-mitsubishiheatpump](https://github.com/geoffdavis/esphome-mitsubishiheatpump), this library aims to take advantage of more recent developments (e.g. parity support in ESPHome's software UART) to provide a more compact ESPHome component for heatpump contol.  I'm also planning to support using this along with an MHK thermostat (basically [akamali/mhk1_mqtt](https://github.com/akamali/mhk1_mqtt), but built in an ESPHome-native way, rather than via MQTT).
+Building on the work of the seminal [SwiCago/HeatPump](https://github.com/SwiCago/HeatPump) and [geoffdavis/esphome-mitsubishiheatpump](https://github.com/geoffdavis/esphome-mitsubishiheatpump), this library aims to take advantage of more recent developments (e.g. parity support in ESPHome's software UART) to provide a more compact ESPHome component for heatpump contol.  I'm also planning to support using this along with an MHK thermostat (basically [akamali/mhk1_mqtt](https://github.com/akamali/mhk1_mqtt), but built in an ESPHome-native way, rather than via MQTT).
 
 __Why not use use / contribute to those?__
 Largely, all of the above libraries *work* fine, but each lacks a little bit of something I'm looking for:
