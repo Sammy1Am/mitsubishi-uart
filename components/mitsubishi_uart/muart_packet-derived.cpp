@@ -199,8 +199,8 @@ climate::ClimateTraits ExtendedConnectResponsePacket::asTraits() const {
   if (this->supportsHVaneSwing())
     ct.add_supported_swing_mode(climate::CLIMATE_SWING_HORIZONTAL);
 
-  ct.set_visual_min_temperature(min(this->getMinCoolDrySetpoint(), this->getMinHeatingSetpoint()));
-  ct.set_visual_max_temperature(max(this->getMaxCoolDrySetpoint(), this->getMaxHeatingSetpoint()));
+  ct.set_visual_min_temperature(std::min(this->getMinCoolDrySetpoint(), this->getMinHeatingSetpoint()));
+  ct.set_visual_max_temperature(std::max(this->getMaxCoolDrySetpoint(), this->getMaxHeatingSetpoint()));
 
   // TODO: Figure out what these states *actually* map to so we aren't sending bad data.
   // This is probably a dynamic map, so the setter will need to be aware of things.
