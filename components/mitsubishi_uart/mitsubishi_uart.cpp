@@ -136,7 +136,7 @@ void MitsubishiUART::update() {
   )
 
   // TODO: get this every 60 seconds instead of every n loops
-  if (this->_updateLoopCounter % 10 == 0 && this->ts_bridge != nullptr) {
+  if (this->_updateLoopCounter % 10 == 0 && !ts_bridge) {
     IFACTIVE(hp_bridge.sendPacket(GetRequestPacket::getErrorInfoInstance());)
   }
 }
