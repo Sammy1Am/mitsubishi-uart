@@ -31,7 +31,7 @@ class Packet {
 
     // Is a response packet expected when this packet is sent.  Defaults to true since
     // most requests receive a response.
-    const bool isResponseExpected() const {return responseExpected;};
+    bool isResponseExpected() const {return responseExpected;};
     void setResponseExpected(bool expectResponse) {responseExpected = expectResponse;};
 
     // Passthrough methods to RawPacket
