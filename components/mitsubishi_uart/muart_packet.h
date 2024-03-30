@@ -97,9 +97,8 @@ class ExtendedConnectRequestPacket : public Packet {
   }
   using Packet::Packet;
  private:
-  ExtendedConnectRequestPacket() : Packet(RawPacket(PacketType::extended_connect_request, 2)) {
-    pkt_.setPayloadByte(0, 0xca);
-    pkt_.setPayloadByte(1, 0x01);
+  ExtendedConnectRequestPacket() : Packet(RawPacket(PacketType::extended_connect_request, 1)) {
+    pkt_.setPayloadByte(0, 0xc9);
   }
 };
 

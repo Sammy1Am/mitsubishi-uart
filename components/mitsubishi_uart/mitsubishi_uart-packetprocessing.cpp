@@ -48,6 +48,7 @@ void MitsubishiUART::processPacket(const ExtendedConnectResponsePacket &packet) 
   // Not sure if there's any needed content in this response, so assume we're connected.
   // TODO: Is there more useful info in these?
   hpConnected = true;
+  _capabilitiesCache = packet;
   ESP_LOGI(TAG, "Received heat pump identification packet.");
 };
 
