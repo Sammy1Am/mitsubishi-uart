@@ -27,6 +27,11 @@ const uint32_t TEMPERATURE_SOURCE_TIMEOUT_MS = 420000; // (7min) The heatpump wi
 
 const std::string TEMPERATURE_SOURCE_THERMOSTAT = "Thermostat";
 
+// these names come from Kumo. They are bad, but I am also too lazy to think of better names. they also
+// may not map perfectly yet?
+const std::array<std::string, 7> ACTUAL_FAN_SPEED_NAMES = {"Off", "Very Low", "Quiet", "Low", "Powerful",
+                                                           "Super Powerful", "Super Quiet"};
+
 class MitsubishiUART : public PollingComponent, public climate::Climate, public PacketProcessor {
  public:
   /**
@@ -64,7 +69,7 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   // Sensor setters
   void set_thermostat_temperature_sensor(sensor::Sensor *sensor) {thermostat_temperature_sensor = sensor;};
   void set_compressor_frequency_sensor(sensor::Sensor *sensor) {compressor_frequency_sensor = sensor;};
-  void set_actual_fan_sensor(sensor::Sensor *sensor) {actual_fan_sensor = sensor;};
+  void set_actual_fan_sensor(text_sensor::TextSensor *sensor) {actual_fan_sensor = sensor;};
   void set_service_filter_sensor(binary_sensor::BinarySensor *sensor) {service_filter_sensor = sensor;};
   void set_defrost_sensor(binary_sensor::BinarySensor *sensor) {defrost_sensor = sensor;};
   void set_hot_adjust_sensor(binary_sensor::BinarySensor *sensor) {hot_adjust_sensor = sensor;};
@@ -145,7 +150,7 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     // Internal sensors
     sensor::Sensor *thermostat_temperature_sensor = nullptr;
     sensor::Sensor *compressor_frequency_sensor = nullptr;
-    sensor::Sensor *actual_fan_sensor = nullptr;
+    text_sensor::TextSensor *actual_fan_sensor = nullptr;
     binary_sensor::BinarySensor *service_filter_sensor = nullptr;
     binary_sensor::BinarySensor *defrost_sensor = nullptr;
     binary_sensor::BinarySensor *hot_adjust_sensor = nullptr;
