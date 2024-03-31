@@ -101,10 +101,10 @@ SENSORS = {
     ),
     "actual_fan": (
         "Actual Fan Speed",
-        sensor.sensor_schema(
-            device_class=DEVICE_CLASS_SPEED,
+        text_sensor.text_sensor_schema(
+            icon="mdi:fan",
         ),
-        sensor.register_sensor
+        text_sensor.register_text_sensor
     ),
     "service_filter": (
         "Service Filter",

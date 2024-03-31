@@ -284,8 +284,8 @@ void MitsubishiUART::processPacket(const StandbyGetResponsePacket &packet) {
   }
 
   if (actual_fan_sensor) {
-    const uint8_t old_actual_fan = actual_fan_sensor->raw_state;
-    actual_fan_sensor->raw_state = packet.getActualFanSpeed();
+    const auto old_actual_fan = actual_fan_sensor->raw_state;
+    actual_fan_sensor->raw_state = ACTUAL_FAN_SPEED_NAMES[packet.getActualFanSpeed()];
     publishOnUpdate |= (old_actual_fan != actual_fan_sensor->raw_state);
   }
 
