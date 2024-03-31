@@ -301,12 +301,17 @@ void MitsubishiUART::processPacket(const ErrorStateGetResponsePacket &packet) {
   // TODO: Include friendly text from JSON, somehow.
   if (!packet.errorPresent()) {
     error_code_sensor->raw_state = "No Error Reported";
-  } else if (packet.getRawShortCode() != 0x00) {
+  } else if (auto rawCode = packet.getRawShortCode() != 0x00) {
+    // Not that it matters, but good for validation I guess.
+    if ((rawCode & 0x1F) > 0x15) {
+      ESP_LOGW(TAG, "Error short code %x had invalid low bits. This is an IT protocol violation!", rawCode);
+    }
+
     error_code_sensor->raw_state = "Error " + packet.getShortCode();
   } else if (packet.getErrorCode() != 0x8000) {
     error_code_sensor->raw_state = "Error " + to_string(packet.getErrorCode());
   } else {
-    // Logic bug :(
+    // Logic bug, should never happen.
     ESP_LOGW(TAG, "Packet indicated an error was present, but none of the error states matched. wat.");
   }
 

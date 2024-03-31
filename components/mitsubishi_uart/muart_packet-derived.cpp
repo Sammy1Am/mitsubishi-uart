@@ -1,5 +1,6 @@
 #include "muart_packet.h"
 #include "mitsubishi_uart.h"
+#include "muart_utils.h"
 
 namespace esphome {
 namespace mitsubishi_uart {
@@ -69,6 +70,12 @@ std::string ErrorStateGetResponsePacket::to_string() const {
 std::string RemoteTemperatureSetRequestPacket::to_string() const {
   return ("Remote Temp Set Request: " + Packet::to_string() + CONSOLE_COLOR_PURPLE +
           "\n Temp:" + std::to_string(getRemoteTemperature()));
+}
+std::string ThermostatHelloRequestPacket::to_string() const {
+  return("Thermostat Hello: " + Packet::to_string() + CONSOLE_COLOR_PURPLE +
+          "\n Model: " + getThermostatModel() +
+          " Serial: " + getThermostatSerial() +
+          " Version: " + getThermostatVersionString());
 }
 
 // TODO: Are there function implementations for packets in the .h file? (Yes)  Should they be here?
@@ -262,6 +269,20 @@ std::string ErrorStateGetResponsePacket::getShortCode() const {
   return {upperAlphabet[(errorCode & 0xE0) >> 5], lowerAlphabet[lowBits]};
 }
 
+// ThermostatHelloRequestPacket functions
+std::string ThermostatHelloRequestPacket::getThermostatModel() const {
+  return MUARTUtils::DecodeNBitString((pkt_.getBytes() + 1), 3, 6);
+}
+
+std::string ThermostatHelloRequestPacket::getThermostatSerial() const {
+  return MUARTUtils::DecodeNBitString((pkt_.getBytes() + 4), 8, 6);
+}
+
+std::string ThermostatHelloRequestPacket::getThermostatVersionString() const {
+  char buf[16];
+  sprintf(buf, "%02d.%02d.%02d", pkt_.getPayloadByte(13), pkt_.getPayloadByte(14), pkt_.getPayloadByte(15));
+  return buf;
+}
 
 }  // namespace mitsubishi_uart
 }  // namespace esphome

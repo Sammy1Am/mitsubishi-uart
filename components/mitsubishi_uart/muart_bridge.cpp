@@ -180,8 +180,8 @@ void MUARTBridge::classifyAndProcessRawPacket(RawPacket &pkt) const {
       case SetCommand::settings :
         processRawPacket<SettingsSetRequestPacket>(pkt, true);
         break;
-      case SetCommand::a_7 :
-        processRawPacket<A7SetRequestPacket>(pkt, false);
+      case SetCommand::thermostat_hello :
+        processRawPacket<ThermostatHelloRequestPacket>(pkt, false);
         break;
       default:
         processRawPacket<Packet>(pkt, true);
