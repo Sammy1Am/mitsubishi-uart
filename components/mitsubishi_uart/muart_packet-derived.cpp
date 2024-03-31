@@ -138,14 +138,14 @@ SettingsSetRequestPacket &SettingsSetRequestPacket::setHorizontalVane(const HORI
 
 // SettingsGetResponsePacket functions
 float SettingsGetResponsePacket::getTargetTemp() const {
-  auto enhancedTemperature = pkt_.getPayloadByte(PLINDEX_TARGETTEMP);
+  uint8_t enhancedRawTemp = pkt_.getPayloadByte(PLINDEX_TARGETTEMP);
 
-  if (enhancedTemperature == 0x00) {
-    auto legacyTemperature = pkt_.getPayloadByte(PLINDEX_TARGETTEMP_LEGACY);
-    return ((float)(31 - (legacyTemperature % 0x10)) + (0.5f * (float)(legacyTemperature & 0x10)));
+  if (enhancedRawTemp == 0x00) {
+    uint8_t legacyRawTemp = pkt_.getPayloadByte(PLINDEX_TARGETTEMP_LEGACY);
+    return ((float)(31 - (legacyRawTemp % 0x10)) + (0.5f * (float)(legacyRawTemp & 0x10)));
   }
 
-  return ((float)enhancedTemperature - 128) / 2.0f;
+  return ((float)enhancedRawTemp - 128) / 2.0f;
 }
 
 
@@ -167,13 +167,13 @@ RemoteTemperatureSetRequestPacket &RemoteTemperatureSetRequestPacket::useInterna
 
 // CurrentTempGetResponsePacket functions
 float CurrentTempGetResponsePacket::getCurrentTemp() const {
-  auto enhancedRawTemp = pkt_.getPayloadByte(PLINDEX_CURRENTTEMP);
+  uint8_t enhancedRawTemp = pkt_.getPayloadByte(PLINDEX_CURRENTTEMP);
 
   //TODO: Figure out how to handle "out of range" issues here.
   if (enhancedRawTemp == 0)
     return 8 + ((float) pkt_.getPayloadByte(PLINDEX_CURRENTTEMP_LEGACY) * 0.5f);
 
-  return ((float) pkt_.getPayloadByte(PLINDEX_CURRENTTEMP) - 128) / 2.0f;
+  return ((float) enhancedRawTemp - 128) / 2.0f;
 }
 
 }  // namespace mitsubishi_uart
