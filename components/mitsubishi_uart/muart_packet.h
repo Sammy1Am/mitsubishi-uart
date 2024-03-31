@@ -364,12 +364,18 @@ public:
 };
 
 // Sent by MHK2 but with no response; defined to allow setResponseExpected(false)
-class A7SetRequestPacket : public Packet {
+class ThermostatHelloRequestPacket : public Packet {
   using Packet::Packet;
  public:
-  A7SetRequestPacket() : Packet(RawPacket(PacketType::set_request, 4)) {
-    pkt_.setPayloadByte(0, static_cast<uint8_t>(SetCommand::a_7));
+  ThermostatHelloRequestPacket() : Packet(RawPacket(PacketType::set_request, 4)) {
+    pkt_.setPayloadByte(0, static_cast<uint8_t>(SetCommand::thermostat_hello));
   }
+
+  std::string getThermostatModel() const;
+  std::string getThermostatSerial() const;
+  std::string getThermostatVersionString() const;
+
+  std::string to_string() const override;
 };
 
 // Sent by MHK2 but with no response; defined to allow setResponseExpected(false)
