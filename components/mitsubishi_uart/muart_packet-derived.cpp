@@ -53,7 +53,7 @@ std::string StandbyGetResponsePacket::to_string() const {
           " Defrost:" + (inDefrost() ? "Yes" : "No") +
           " HotAdjust:" + (inHotAdjust() ? "Yes" : "No") +
           " Standby:" + (inStandby() ? "Yes" : "No") +
-          " ActualFan:" + std::to_string(getActualFanSpeed()) +
+          " ActualFan:" + ACTUAL_FAN_SPEED_NAMES[getActualFanSpeed()] + " (" + std::to_string(getActualFanSpeed()) + ")" +
           " AutoMode:" + format_hex(getAutoMode());
 }
 std::string StatusGetResponsePacket::to_string() const {
