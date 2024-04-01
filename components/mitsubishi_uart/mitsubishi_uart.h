@@ -143,6 +143,7 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     bool publishOnUpdate = false;
 
     optional<ExtendedConnectResponsePacket> _capabilitiesCache;
+    bool _capabilitiesRequested = false;
 
     // Preferences
     void save_preferences();
