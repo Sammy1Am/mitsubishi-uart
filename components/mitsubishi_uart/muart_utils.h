@@ -7,6 +7,8 @@ namespace mitsubishi_uart {
 
 class MUARTUtils {
  public:
+  /// Read a string out of data, wordSize bits at a time.
+  /// Used to decode serial numbers and other information from a thermostat.
   static std::string DecodeNBitString(const uint8_t data[], size_t dataLength, size_t wordSize) {
     auto resultLength = (dataLength / wordSize) + (dataLength % wordSize != 0);
     auto result = std::string();
@@ -21,6 +23,7 @@ class MUARTUtils {
   }
 
  private:
+  /// Extract the specified bits (inclusive) from an arbitrarily-sized byte array. Does not perform bounds checks.
   static uint64_t BitSlice(const uint8_t ds[], size_t start, size_t end) {
     // Lazies! https://stackoverflow.com/a/25297870/1817097
     uint64_t s = 0;
