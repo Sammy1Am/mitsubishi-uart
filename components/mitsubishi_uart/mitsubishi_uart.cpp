@@ -107,7 +107,8 @@ be about `update_interval` late from their actual time.  Generally the update in
 (default is 5seconds) this won't pose a practical problem.
 */
 void MitsubishiUART::update() {
-  this->_updateLoopCounter += 1;
+  // increment our update loop counter, and reset at 10,000 just to prevent overflow UB
+  if (++this->_updateLoopCounter >= 10000) this->_updateLoopCounter = 0;
 
   // TODO: Temporarily wait 5 seconds on startup to help with viewing logs
   if (millis() < 5000) {
