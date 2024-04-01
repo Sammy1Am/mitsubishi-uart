@@ -107,9 +107,6 @@ be about `update_interval` late from their actual time.  Generally the update in
 (default is 5seconds) this won't pose a practical problem.
 */
 void MitsubishiUART::update() {
-  // increment our update loop counter, and reset at 10,000 just to prevent overflow UB
-  if (++this->_updateLoopCounter >= 10000) this->_updateLoopCounter = 0;
-
   // TODO: Temporarily wait 5 seconds on startup to help with viewing logs
   if (millis() < 5000) {
     return;
@@ -130,16 +127,15 @@ void MitsubishiUART::update() {
 
   IFACTIVE(
   // Request an update from the heatpump
+  // TODO: This isn't a problem *yet*, but sending all these packets every loop might start to cause some issues in
+  //       certain configurations or setups. We may want to consider only asking for certain packets on a rarer cadence,
+  //       depending on their utility (e.g. we dont need to check for errors every loop).
   hp_bridge.sendPacket(GetRequestPacket::getSettingsInstance()); // Needs to be done before status packet for mode logic to work
   hp_bridge.sendPacket(GetRequestPacket::getStandbyInstance());
   hp_bridge.sendPacket(GetRequestPacket::getStatusInstance());
   hp_bridge.sendPacket(GetRequestPacket::getCurrentTempInstance());
+  hp_bridge.sendPacket(GetRequestPacket::getErrorInfoInstance());
   )
-
-  // TODO: get this every 60 seconds instead of every n loops
-  if (this->_updateLoopCounter % 10 == 0 && !ts_bridge) {
-    IFACTIVE(hp_bridge.sendPacket(GetRequestPacket::getErrorInfoInstance());)
-  }
 }
 
 void MitsubishiUART::doPublish() {
