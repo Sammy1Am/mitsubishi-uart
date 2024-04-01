@@ -136,6 +136,18 @@ SettingsSetRequestPacket &SettingsSetRequestPacket::setHorizontalVane(const HORI
   return *this;
 }
 
+// SettingsGetResponsePacket functions
+float SettingsGetResponsePacket::getTargetTemp() const {
+  uint8_t enhancedRawTemp = pkt_.getPayloadByte(PLINDEX_TARGETTEMP);
+
+  if (enhancedRawTemp == 0x00) {
+    uint8_t legacyRawTemp = pkt_.getPayloadByte(PLINDEX_TARGETTEMP_LEGACY);
+    return ((float)(31 - (legacyRawTemp % 0x10)) + (0.5f * (float)(legacyRawTemp & 0x10)));
+  }
+
+  return ((float)enhancedRawTemp - 128) / 2.0f;
+}
+
 
 // RemoteTemperatureSetRequestPacket functions
 
@@ -151,6 +163,17 @@ RemoteTemperatureSetRequestPacket &RemoteTemperatureSetRequestPacket::setRemoteT
 RemoteTemperatureSetRequestPacket &RemoteTemperatureSetRequestPacket::useInternalTemperature() {
   setFlags(0x00);  // Set flags to say to use internal temperature
   return *this;
+}
+
+// CurrentTempGetResponsePacket functions
+float CurrentTempGetResponsePacket::getCurrentTemp() const {
+  uint8_t enhancedRawTemp = pkt_.getPayloadByte(PLINDEX_CURRENTTEMP);
+
+  //TODO: Figure out how to handle "out of range" issues here.
+  if (enhancedRawTemp == 0)
+    return 8 + ((float) pkt_.getPayloadByte(PLINDEX_CURRENTTEMP_LEGACY) * 0.5f);
+
+  return ((float) enhancedRawTemp - 128) / 2.0f;
 }
 
 }  // namespace mitsubishi_uart
