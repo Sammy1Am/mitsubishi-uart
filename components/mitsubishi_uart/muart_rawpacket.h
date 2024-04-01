@@ -80,7 +80,7 @@ class RawPacket {
 
   virtual std::string to_string() const {return format_hex_pretty(&getBytes()[0], getLength());};
 
-  const uint8_t getLength() const { return length; };
+  uint8_t getLength() const { return length; };
   const uint8_t *getBytes() const { return packetBytes; };  // Primarily for sending packets
 
   bool isChecksumValid() const;
