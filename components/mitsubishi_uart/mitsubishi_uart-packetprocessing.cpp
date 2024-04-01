@@ -291,7 +291,7 @@ void MitsubishiUART::processPacket(const ErrorStateGetResponsePacket &packet) {
   ESP_LOGV(TAG, "Processing %s", packet.to_string().c_str());
   routePacket(packet);
 
-  auto oldErrorCode = error_code_sensor->raw_state;
+  std::string oldErrorCode = error_code_sensor->raw_state;
 
   // TODO: Include friendly text from JSON, somehow.
   if (!packet.errorPresent()) {
@@ -303,14 +303,11 @@ void MitsubishiUART::processPacket(const ErrorStateGetResponsePacket &packet) {
     }
 
     error_code_sensor->raw_state = "Error " + packet.getShortCode();
-  } else if (packet.getErrorCode() != 0x8000) {
-    error_code_sensor->raw_state = "Error " + to_string(packet.getErrorCode());
   } else {
-    // Logic bug, should never happen.
-    ESP_LOGW(TAG, "Packet indicated an error was present, but none of the error states matched. wat.");
+    error_code_sensor->raw_state = "Error " + to_string(packet.getErrorCode());
   }
 
-  publishOnUpdate |= (oldErrorCode != error_code_sensor->state);
+  publishOnUpdate |= (oldErrorCode != error_code_sensor->raw_state);
 }
 
 void MitsubishiUART::processPacket(const RemoteTemperatureSetRequestPacket &packet) {

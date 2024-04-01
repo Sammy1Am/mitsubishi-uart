@@ -206,11 +206,11 @@ std::string ThermostatHelloRequestPacket::getThermostatVersionString() const {
 
 // ErrorStateGetResponsePacket functions
 std::string ErrorStateGetResponsePacket::getShortCode() const {
-  const auto upperAlphabet = "AbEFJLPU";
-  const auto lowerAlphabet = "0123456789ABCDEFOHJLPU";
-  const auto errorCode = this->getRawShortCode();
+  const char* upperAlphabet = "AbEFJLPU";
+  const char* lowerAlphabet = "0123456789ABCDEFOHJLPU";
+  const uint8_t errorCode = this->getRawShortCode();
 
-  auto lowBits = errorCode & 0x1F;
+  uint8_t lowBits = errorCode & 0x1F;
   if (lowBits > 0x15) {
     char buf[7];
     sprintf(buf, "ERR_%x", errorCode);
