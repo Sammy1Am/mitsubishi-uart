@@ -132,7 +132,7 @@ class ExtendedConnectResponsePacket : public Packet {
   float getMaxAutoSetpoint() const { return ((int) pkt_.getPayloadByte(15) - 128) / 2.0f; }
 
   // Things that have to exist, but we don't know where yet.
-  bool supportsHVaneSwing() const { return this->supportsVaneSwing(); }
+  bool supportsHVaneSwing() const { return true; }
 
   // Fan Speeds TODO: Probably move this to .cpp?
   uint8_t getSupportedFanSpeeds() const;
