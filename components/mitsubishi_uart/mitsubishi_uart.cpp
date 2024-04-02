@@ -118,6 +118,16 @@ void MitsubishiUART::update() {
     return;
   }
 
+  // Attempt to read capabilities on the next loop after connect.
+  // TODO: This should likely be done immediately after connect, and will likely need to block setup for proper autoconf.
+  //       For now, just requesting it as part of our "init loops" is a good first step.
+  if (!this->_capabilitiesRequested) {
+    IFACTIVE(
+    hp_bridge.sendPacket(ExtendedConnectRequestPacket::instance());
+    this->_capabilitiesRequested = true;
+    )
+  }
+
   // Before requesting additional updates, publish any changes waiting from packets received
   if (publishOnUpdate){
     doPublish();
