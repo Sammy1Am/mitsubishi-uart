@@ -1,5 +1,6 @@
 #include "muart_packet.h"
 #include "muart_utils.h"
+#include "mitsubishi_uart.h"
 
 namespace esphome {
 namespace mitsubishi_uart {
@@ -75,8 +76,9 @@ std::string StatusGetResponsePacket::to_string() const {
 std::string ErrorStateGetResponsePacket::to_string() const {
   return ("Error State Response: " + Packet::to_string()
   + CONSOLE_COLOR_PURPLE
-  + "\n ErrorCode: " + format_hex(getErrorCode())
-  + " ShortCode: " + format_hex(getShortCode()) // TODO: This can be converted to a code string
+  + "\n Error State: " + (errorPresent() ? "Yes" : "No")
+  + " ErrorCode: " + format_hex(getErrorCode())
+  + " ShortCode: " + getShortCode() + "(" + format_hex(getRawShortCode()) + ")"
   );
 }
 std::string RemoteTemperatureSetRequestPacket::to_string() const {
@@ -200,6 +202,22 @@ std::string ThermostatHelloRequestPacket::getThermostatVersionString() const {
           pkt_.getPayloadByte(15));
 
   return buf;
+}
+
+// ErrorStateGetResponsePacket functions
+std::string ErrorStateGetResponsePacket::getShortCode() const {
+  const char* upperAlphabet = "AbEFJLPU";
+  const char* lowerAlphabet = "0123456789ABCDEFOHJLPU";
+  const uint8_t errorCode = this->getRawShortCode();
+
+  uint8_t lowBits = errorCode & 0x1F;
+  if (lowBits > 0x15) {
+    char buf[7];
+    sprintf(buf, "ERR_%x", errorCode);
+    return buf;
+  }
+
+  return {upperAlphabet[(errorCode & 0xE0) >> 5], lowerAlphabet[lowBits]};
 }
 
 }  // namespace mitsubishi_uart

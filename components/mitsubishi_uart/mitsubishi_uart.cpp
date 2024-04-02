@@ -107,7 +107,6 @@ be about `update_interval` late from their actual time.  Generally the update in
 (default is 5seconds) this won't pose a practical problem.
 */
 void MitsubishiUART::update() {
-
   // TODO: Temporarily wait 5 seconds on startup to help with viewing logs
   if (millis() < 5000) {
     return;
@@ -128,10 +127,14 @@ void MitsubishiUART::update() {
 
   IFACTIVE(
   // Request an update from the heatpump
+  // TODO: This isn't a problem *yet*, but sending all these packets every loop might start to cause some issues in
+  //       certain configurations or setups. We may want to consider only asking for certain packets on a rarer cadence,
+  //       depending on their utility (e.g. we dont need to check for errors every loop).
   hp_bridge.sendPacket(GetRequestPacket::getSettingsInstance()); // Needs to be done before status packet for mode logic to work
   hp_bridge.sendPacket(GetRequestPacket::getStandbyInstance());
   hp_bridge.sendPacket(GetRequestPacket::getStatusInstance());
   hp_bridge.sendPacket(GetRequestPacket::getCurrentTempInstance());
+  hp_bridge.sendPacket(GetRequestPacket::getErrorInfoInstance());
   )
 }
 
@@ -156,6 +159,10 @@ void MitsubishiUART::doPublish() {
   if (actual_fan_sensor && (actual_fan_sensor->raw_state != actual_fan_sensor->state)) {
     ESP_LOGI(TAG, "Actual fan speed differs, do publish");
     actual_fan_sensor->publish_state(actual_fan_sensor->raw_state);
+  }
+  if (error_code_sensor && (error_code_sensor->raw_state != error_code_sensor->state)) {
+    ESP_LOGI(TAG, "Error code state differs, do publish");
+    error_code_sensor->publish_state(error_code_sensor->raw_state);
   }
 
   // Binary sensors automatically dedup publishes (I think) and so will only actually publish on change
