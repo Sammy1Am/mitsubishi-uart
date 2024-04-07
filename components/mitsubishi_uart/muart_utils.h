@@ -22,6 +22,51 @@ class MUARTUtils {
     return result;
   }
 
+  static float TempScaleAToDegC(const uint8_t value) {
+    return (float)(value - 128) / 2.0f;
+  }
+
+  static uint8_t DegCToTempScaleA(const float value) {
+    // Special cases
+    if (value < -64) return 0;
+    if (value > 63.5f) return 0xFF;
+
+    float whole, fractional;
+    fractional = std::modf(value, &whole);
+
+    return (uint8_t) (whole * 2) + (fractional >= 0.5 ? 1 : 0) + 128;
+  }
+
+  static float LegacyTargetTempToDegC(const uint8_t value) {
+    return ((float)(31 - (value % 0x10)) + (((value & 0x10) > 0) ? 0.5f : 0));
+  }
+
+  static uint8_t DegCToLegacyTargetTemp(const float value) {
+    // Special cases per docs
+    if (value < 16) return 0x00;
+    if (value > 31.5) return 0x1F;
+
+    float whole, fractional;
+    fractional = std::modf(value, &whole);
+
+    return (int)(whole - 16) + (int)((fractional >= 0.5) ? 0x10 : 0);
+  }
+
+  static float LegacyRoomTempToDegC(const uint8_t value) {
+    return 8 + ((float)value * 0.5f);
+  }
+
+  static uint8_t DegCToLegacyRoomTemp(const float value) {
+    // Special cases per docs
+    if (value < 8.5f) return 0x00;
+    if (value > 32) return 0x31;
+
+    float whole, fractional;
+    fractional = std::modf(value, &whole);
+
+    return (uint8_t) (whole * 2) + (fractional >= 0.5 ? 1 : 0) - 16;
+  }
+
  private:
   /// Extract the specified bits (inclusive) from an arbitrarily-sized byte array. Does not perform bounds checks.
   static uint64_t BitSlice(const uint8_t ds[], size_t start, size_t end) {

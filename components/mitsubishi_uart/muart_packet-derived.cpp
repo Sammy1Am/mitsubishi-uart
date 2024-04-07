@@ -120,11 +120,21 @@ SettingsSetRequestPacket &SettingsSetRequestPacket::setMode(const MODE_BYTE mode
 
 SettingsSetRequestPacket &SettingsSetRequestPacket::setTargetTemperature(const float temperatureDegressC) {
   if (temperatureDegressC < 63.5 && temperatureDegressC > -64.0) {
-    pkt_.setPayloadByte(PLINDEX_TARGET_TEMPERATURE, round(temperatureDegressC * 2) + 128);
+    pkt_.setPayloadByte(PLINDEX_TARGET_TEMPERATURE, MUARTUtils::DegCToTempScaleA(temperatureDegressC));
+
+    // Handle the legacy target temp for older systems as well. For now, we won't throw an error here.
+    // TODO: Actually throw an error if this field is required for some reason. (7B data?)
+    if (temperatureDegressC >= 16 && temperatureDegressC <= 31.5 ) {
+      pkt_.setPayloadByte(PLINDEX_TARGET_TEMPERATURE_CODE, MUARTUtils::DegCToLegacyTargetTemp(temperatureDegressC));
+    } else {
+      ESP_LOGW(PTAG, "Target temp %f is out of range for the legacy temp scale. This may be a problem on older units.", temperatureDegressC);
+    }
+
     addSettingsFlag(SF_TARGET_TEMPERATURE);
   } else {
     ESP_LOGW(PTAG, "Target temp %f is outside valid range.", temperatureDegressC);
   }
+
   return *this;
 }
 SettingsSetRequestPacket &SettingsSetRequestPacket::setFan(const FAN_BYTE fan) {
@@ -151,18 +161,30 @@ float SettingsGetResponsePacket::getTargetTemp() const {
 
   if (enhancedRawTemp == 0x00) {
     uint8_t legacyRawTemp = pkt_.getPayloadByte(PLINDEX_TARGETTEMP_LEGACY);
-    return ((float)(31 - (legacyRawTemp % 0x10)) + (0.5f * (float)(legacyRawTemp & 0x10)));
+    return MUARTUtils::LegacyTargetTempToDegC(legacyRawTemp);
   }
 
-  return ((float)enhancedRawTemp - 128) / 2.0f;
+  return MUARTUtils::TempScaleAToDegC(enhancedRawTemp);
 }
 
 
 // RemoteTemperatureSetRequestPacket functions
 
+float RemoteTemperatureSetRequestPacket::getRemoteTemperature() const {
+  uint8_t rawTempA = pkt_.getPayloadByte(PLINDEX_REMOTE_TEMPERATURE);
+
+  if (rawTempA == 0) {
+    uint8_t rawTempLegacy = pkt_.getPayloadByte(PLINDEX_LEGACY_REMOTE_TEMPERATURE);
+    return MUARTUtils::LegacyRoomTempToDegC(rawTempLegacy);
+  }
+
+  return MUARTUtils::TempScaleAToDegC(rawTempA);
+}
+
 RemoteTemperatureSetRequestPacket &RemoteTemperatureSetRequestPacket::setRemoteTemperature(float temperatureDegressC) {
   if (temperatureDegressC < 63.5 && temperatureDegressC > -64.0) {
-    pkt_.setPayloadByte(PLINDEX_REMOTE_TEMPERATURE, round(temperatureDegressC * 2) + 128);
+    pkt_.setPayloadByte(PLINDEX_REMOTE_TEMPERATURE, MUARTUtils::DegCToTempScaleA(temperatureDegressC));
+    pkt_.setPayloadByte(PLINDEX_LEGACY_REMOTE_TEMPERATURE, MUARTUtils::DegCToLegacyRoomTemp(temperatureDegressC));
     setFlags(0x01); // Set flags to say we're providing the temperature
   } else {
     ESP_LOGW(PTAG, "Remote temp %f is outside valid range.", temperatureDegressC);
@@ -179,10 +201,12 @@ float CurrentTempGetResponsePacket::getCurrentTemp() const {
   uint8_t enhancedRawTemp = pkt_.getPayloadByte(PLINDEX_CURRENTTEMP);
 
   //TODO: Figure out how to handle "out of range" issues here.
-  if (enhancedRawTemp == 0)
-    return 8 + ((float) pkt_.getPayloadByte(PLINDEX_CURRENTTEMP_LEGACY) * 0.5f);
+  if (enhancedRawTemp == 0) {
+    uint8_t legacyRawTemp = pkt_.getPayloadByte(PLINDEX_CURRENTTEMP_LEGACY);
+    return MUARTUtils::LegacyRoomTempToDegC(legacyRawTemp);
+  }
 
-  return ((float) enhancedRawTemp - 128) / 2.0f;
+  return MUARTUtils::TempScaleAToDegC(enhancedRawTemp);
 }
 
 // ThermostatHelloRequestPacket functions
