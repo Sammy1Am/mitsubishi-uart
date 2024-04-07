@@ -235,7 +235,9 @@ bool MitsubishiUART::select_horizontal_vane_position(const std::string &state) {
   // NOTE: Annoyed that C++ doesn't have switches for strings, but since this is going to be called
   // infrequently, this is probably a better solution than over-optimizing via maps or something
 
-  if (state == "<<") {
+  if (state == "Auto") {
+    positionByte = SettingsSetRequestPacket::HV_AUTO;
+  } else if (state == "<<") {
     positionByte = SettingsSetRequestPacket::HV_LEFT_FULL;
   } else if (state == "<") {
     positionByte = SettingsSetRequestPacket::HV_LEFT;

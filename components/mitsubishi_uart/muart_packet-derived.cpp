@@ -255,12 +255,16 @@ climate::ClimateTraits ExtendedConnectResponsePacket::asTraits() const {
   if (!this->isFanDisabled())
     ct.add_supported_mode(climate::CLIMATE_MODE_FAN_ONLY);
 
-  if (this->supportsVaneSwing() && this->supportsHVaneSwing())
-    ct.add_supported_swing_mode(climate::CLIMATE_SWING_BOTH);
-  if (this->supportsVaneSwing())
-    ct.add_supported_swing_mode(climate::CLIMATE_SWING_VERTICAL);
-  if (this->supportsHVaneSwing())
-    ct.add_supported_swing_mode(climate::CLIMATE_SWING_HORIZONTAL);
+  if (this->supportsVaneSwing()) {
+      ct.add_supported_swing_mode(climate::CLIMATE_SWING_OFF);
+
+      if (this->supportsVane() && this->supportsHVane())
+        ct.add_supported_swing_mode(climate::CLIMATE_SWING_BOTH);
+      if (this->supportsVane())
+        ct.add_supported_swing_mode(climate::CLIMATE_SWING_VERTICAL);
+      if (this->supportsHVane())
+        ct.add_supported_swing_mode(climate::CLIMATE_SWING_HORIZONTAL);
+  }
 
   ct.set_visual_min_temperature(std::min(this->getMinCoolDrySetpoint(), this->getMinHeatingSetpoint()));
   ct.set_visual_max_temperature(std::max(this->getMaxCoolDrySetpoint(), this->getMaxHeatingSetpoint()));

@@ -55,7 +55,7 @@ CUSTOM_FAN_MODES = {
     "VERYHIGH": mitsubishi_uart_ns.FAN_MODE_VERYHIGH
 }
 VANE_POSITIONS = ["Auto","1","2","3","4","5","Swing"]
-HORIZONTAL_VANE_POSITIONS = ["<<","<","|",">",">>","<>","Swing"]
+HORIZONTAL_VANE_POSITIONS = ["Auto","<<","<","|",">",">>","<>","Swing"]
 
 INTERNAL_TEMPERATURE_SOURCE_OPTIONS = [mitsubishi_uart_ns.TEMPERATURE_SOURCE_INTERNAL] # These will always be available
 
