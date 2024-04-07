@@ -132,7 +132,7 @@ SettingsSetRequestPacket &SettingsSetRequestPacket::setTargetTemperature(const f
 
     addSettingsFlag(SF_TARGET_TEMPERATURE);
   } else {
-    ESP_LOGW(PTAG, "Target temp %f is outside valid range - refusing to send command!", temperatureDegressC);
+    ESP_LOGW(PTAG, "Target temp %f is outside valid range - target temperature not set!", temperatureDegressC);
   }
 
   return *this;
