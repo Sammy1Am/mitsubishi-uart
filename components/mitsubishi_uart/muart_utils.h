@@ -22,6 +22,42 @@ class MUARTUtils {
     return result;
   }
 
+  static float TempScaleAToDegC(const uint8_t value) {
+    return (float)(value - 128) / 2.0f;
+  }
+
+  static uint8_t DegCToTempScaleA(const float value) {
+    // Special cases
+    if (value < -64) return 0;
+    if (value > 63.5f) return 0xFF;
+
+    return (uint8_t) round(value * 2) + 128;
+  }
+
+  static float LegacyTargetTempToDegC(const uint8_t value) {
+    return ((float)(31 - (value & 0x0F)) + (((value & 0xF0) > 0) ? 0.5f : 0));
+  }
+
+  static uint8_t DegCToLegacyTargetTemp(const float value) {
+    // Special cases per docs
+    if (value < 16) return 0x0F;
+    if (value > 31.5) return 0x10;
+
+    return ((31 - (uint8_t) value) & 0xF) + (((int) (value * 2) % 2) << 4);
+  }
+
+  static float LegacyRoomTempToDegC(const uint8_t value) {
+    return 8 + ((float)value * 0.5f);
+  }
+
+  static uint8_t DegCToLegacyRoomTemp(const float value) {
+    // Special cases per docs
+    if (value < 8.5f) return 0x00;
+    if (value > 32) return 0x31;
+
+    return (uint8_t) round(value * 2) - 16;
+  }
+
  private:
   /// Extract the specified bits (inclusive) from an arbitrarily-sized byte array. Does not perform bounds checks.
   static uint64_t BitSlice(const uint8_t ds[], size_t start, size_t end) {

@@ -4,6 +4,7 @@
 #include "esphome/components/climate/climate.h"
 #include "esphome/components/uart/uart.h"
 #include "muart_rawpacket.h"
+#include "muart_utils.h"
 #include <sstream>
 
 namespace esphome {
@@ -124,12 +125,12 @@ class ExtendedConnectResponsePacket : public Packet {
   bool hasStatusDisplay() const { return pkt_.getPayloadByte(9) & 0x01; }
 
   // Bytes 10-15
-  float getMinCoolDrySetpoint() const { return ((int) pkt_.getPayloadByte(10) - 128) / 2.0f; }
-  float getMaxCoolDrySetpoint() const { return ((int) pkt_.getPayloadByte(11) - 128) / 2.0f; }
-  float getMinHeatingSetpoint() const { return ((int) pkt_.getPayloadByte(12) - 128) / 2.0f; }
-  float getMaxHeatingSetpoint() const { return ((int) pkt_.getPayloadByte(13) - 128) / 2.0f; }
-  float getMinAutoSetpoint() const { return ((int) pkt_.getPayloadByte(14) - 128) / 2.0f; }
-  float getMaxAutoSetpoint() const { return ((int) pkt_.getPayloadByte(15) - 128) / 2.0f; }
+  float getMinCoolDrySetpoint() const { return MUARTUtils::TempScaleAToDegC(pkt_.getPayloadByte(10)); }
+  float getMaxCoolDrySetpoint() const { return MUARTUtils::TempScaleAToDegC(pkt_.getPayloadByte(11)); }
+  float getMinHeatingSetpoint() const { return MUARTUtils::TempScaleAToDegC(pkt_.getPayloadByte(12)); }
+  float getMaxHeatingSetpoint() const { return MUARTUtils::TempScaleAToDegC(pkt_.getPayloadByte(13)); }
+  float getMinAutoSetpoint() const { return MUARTUtils::TempScaleAToDegC(pkt_.getPayloadByte(14)); }
+  float getMaxAutoSetpoint() const { return MUARTUtils::TempScaleAToDegC(pkt_.getPayloadByte(15)); }
 
   // Things that have to exist, but we don't know where yet.
   bool supportsHVane() const { return true; }
@@ -204,7 +205,7 @@ class SettingsGetResponsePacket : public Packet {
 };
 
 class CurrentTempGetResponsePacket : public Packet {
-  static const int PLINDEX_CURRENTTEMP_LEGACY = 3;  // TODO: I don't know why I would use this instead of the one below...
+  static const int PLINDEX_CURRENTTEMP_LEGACY = 3;
   static const int PLINDEX_CURRENTTEMP = 6;
   using Packet::Packet;
 
@@ -321,19 +322,20 @@ class SettingsSetRequestPacket : public Packet {
   SettingsSetRequestPacket() : Packet(RawPacket(PacketType::set_request, 16)) { pkt_.setPayloadByte(0, static_cast<uint8_t>(SetCommand::settings)); }
   using Packet::Packet;
 
-  SettingsSetRequestPacket &setPower(const bool isOn);
-  SettingsSetRequestPacket &setMode(const MODE_BYTE mode);
-  SettingsSetRequestPacket &setTargetTemperature(const float temperatureDegressC);
-  SettingsSetRequestPacket &setFan(const FAN_BYTE fan);
-  SettingsSetRequestPacket &setVane(const VANE_BYTE vane);
-  SettingsSetRequestPacket &setHorizontalVane(const HORIZONTAL_VANE_BYTE horizontal_vane);
+  SettingsSetRequestPacket &setPower(bool isOn);
+  SettingsSetRequestPacket &setMode(MODE_BYTE mode);
+  SettingsSetRequestPacket &setTargetTemperature(float temperatureDegressC);
+  SettingsSetRequestPacket &setFan(FAN_BYTE fan);
+  SettingsSetRequestPacket &setVane(VANE_BYTE vane);
+  SettingsSetRequestPacket &setHorizontalVane(HORIZONTAL_VANE_BYTE horizontal_vane);
 
  private:
-  void addSettingsFlag(const SETTING_FLAG flagToAdd);
-  void addSettingsFlag2(const SETTING_FLAG2 flag2ToAdd);
+  void addSettingsFlag(SETTING_FLAG flagToAdd);
+  void addSettingsFlag2(SETTING_FLAG2 flag2ToAdd);
 };
 
 class RemoteTemperatureSetRequestPacket : public Packet {
+  static const uint8_t PLINDEX_LEGACY_REMOTE_TEMPERATURE = 2;
   static const uint8_t PLINDEX_REMOTE_TEMPERATURE = 3;
 
   public:
@@ -342,10 +344,10 @@ class RemoteTemperatureSetRequestPacket : public Packet {
   }
   using Packet::Packet;
 
-  RemoteTemperatureSetRequestPacket &setRemoteTemperature(const float temperatureDegressC);
-  RemoteTemperatureSetRequestPacket &useInternalTemperature();
+  float getRemoteTemperature() const;
 
-  float getRemoteTemperature() const { return ((int) pkt_.getPayloadByte(PLINDEX_REMOTE_TEMPERATURE) - 128) / 2.0f; }
+  RemoteTemperatureSetRequestPacket &setRemoteTemperature(float temperatureDegressC);
+  RemoteTemperatureSetRequestPacket &useInternalTemperature();
 
   std::string to_string() const override;
 };
