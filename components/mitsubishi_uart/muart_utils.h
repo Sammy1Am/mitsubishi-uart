@@ -47,15 +47,14 @@ class MUARTUtils {
   }
 
   static float LegacyRoomTempToDegC(const uint8_t value) {
-    return 8 + ((float)value * 0.5f);
+    return (float) value + 10;
   }
 
   static uint8_t DegCToLegacyRoomTemp(const float value) {
-    // Special cases per docs
-    if (value < 8.5f) return 0x00;
-    if (value > 32) return 0x31;
+    if (value < 10) return 0x00;
+    if (value > 41) return 0x31;
 
-    return (uint8_t) round(value * 2) - 16;
+    return (uint8_t) value - 10;
   }
 
  private:
