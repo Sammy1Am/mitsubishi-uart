@@ -56,6 +56,9 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   // TODO: Maybe replace this with specific functions for the traits needed in configuration (a la the override fuctions)
   climate::ClimateTraits &config_traits() { return climate_traits_; }
 
+  // Dumps some configuration data that we may have missed in the real-time logs
+  void dump_config();
+
   // Called to instruct a change of the climate controls
   void control(const climate::ClimateCall &call) override;
 

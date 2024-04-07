@@ -100,6 +100,12 @@ void MitsubishiUART::loop() {
   // Send packet to HP to tell it to use internal temp sensor
 }
 
+void MitsubishiUART::dump_config() {
+  if (_capabilitiesCache.has_value()){
+    ESP_LOGCONFIG(TAG, "Discovered Capabilities: %s", _capabilitiesCache.value().to_string().c_str());
+  }
+}
+
 /* Called periodically as PollingComponent; used to send packets to connect or request updates.
 
 Possible TODO: If we only publish during updates, since data is received during loop, updates will always
