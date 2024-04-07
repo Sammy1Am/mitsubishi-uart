@@ -121,18 +121,18 @@ SettingsSetRequestPacket &SettingsSetRequestPacket::setMode(const MODE_BYTE mode
 SettingsSetRequestPacket &SettingsSetRequestPacket::setTargetTemperature(const float temperatureDegressC) {
   if (temperatureDegressC < 63.5 && temperatureDegressC > -64.0) {
     pkt_.setPayloadByte(PLINDEX_TARGET_TEMPERATURE, MUARTUtils::DegCToTempScaleA(temperatureDegressC));
+    pkt_.setPayloadByte(PLINDEX_TARGET_TEMPERATURE_CODE, MUARTUtils::DegCToLegacyTargetTemp(temperatureDegressC));
 
-    // Handle the legacy target temp for older systems as well. For now, we won't throw an error here.
-    // TODO: Actually throw an error if this field is required for some reason. (7B data?)
-    if (temperatureDegressC >= 16 && temperatureDegressC <= 31.5 ) {
-      pkt_.setPayloadByte(PLINDEX_TARGET_TEMPERATURE_CODE, MUARTUtils::DegCToLegacyTargetTemp(temperatureDegressC));
-    } else {
+    // TODO: while spawning a warning here is fine, we should (a) only actually send that warning if the system can't
+    //       support this setpoint, and (b) clamp the setpoint to the known-acceptable values.
+    // The utility class will already clamp this for us, so we only need to worry about the warning.
+    if (temperatureDegressC < 16 || temperatureDegressC > 31.5 ) {
       ESP_LOGW(PTAG, "Target temp %f is out of range for the legacy temp scale. This may be a problem on older units.", temperatureDegressC);
     }
 
     addSettingsFlag(SF_TARGET_TEMPERATURE);
   } else {
-    ESP_LOGW(PTAG, "Target temp %f is outside valid range.", temperatureDegressC);
+    ESP_LOGW(PTAG, "Target temp %f is outside valid range - refusing to send command!", temperatureDegressC);
   }
 
   return *this;
