@@ -205,7 +205,7 @@ class SettingsGetResponsePacket : public Packet {
 };
 
 class CurrentTempGetResponsePacket : public Packet {
-  static const int PLINDEX_CURRENTTEMP_LEGACY = 3;  // TODO: I don't know why I would use this instead of the one below...
+  static const int PLINDEX_CURRENTTEMP_LEGACY = 3;
   static const int PLINDEX_CURRENTTEMP = 6;
   using Packet::Packet;
 
