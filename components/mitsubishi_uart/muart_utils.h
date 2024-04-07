@@ -31,25 +31,19 @@ class MUARTUtils {
     if (value < -64) return 0;
     if (value > 63.5f) return 0xFF;
 
-    float whole, fractional;
-    fractional = std::modf(value, &whole);
-
-    return (uint8_t) (whole * 2) + (fractional >= 0.5 ? 1 : 0) + 128;
+    return (uint8_t) round(value * 2) + 128;
   }
 
   static float LegacyTargetTempToDegC(const uint8_t value) {
-    return ((float)(31 - (value % 0x10)) + (((value & 0x10) > 0) ? 0.5f : 0));
+    return ((float)(31 - (value & 0x0F)) + (((value & 0xF0) > 0) ? 0.5f : 0));
   }
 
   static uint8_t DegCToLegacyTargetTemp(const float value) {
     // Special cases per docs
-    if (value < 16) return 0x00;
-    if (value > 31.5) return 0x1F;
+    if (value < 16) return 0x0F;
+    if (value > 31.5) return 0x10;
 
-    float whole, fractional;
-    fractional = std::modf(value, &whole);
-
-    return (int)(whole - 16) + (int)((fractional >= 0.5) ? 0x10 : 0);
+    return ((31 - (uint8_t) value) & 0xF) + (((int) (value * 2) % 2) << 4);
   }
 
   static float LegacyRoomTempToDegC(const uint8_t value) {
@@ -61,10 +55,7 @@ class MUARTUtils {
     if (value < 8.5f) return 0x00;
     if (value > 32) return 0x31;
 
-    float whole, fractional;
-    fractional = std::modf(value, &whole);
-
-    return (uint8_t) (whole * 2) + (fractional >= 0.5 ? 1 : 0) - 16;
+    return (uint8_t) round(value * 2) - 16;
   }
 
  private:
