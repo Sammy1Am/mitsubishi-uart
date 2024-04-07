@@ -132,7 +132,7 @@ class ExtendedConnectResponsePacket : public Packet {
   float getMaxAutoSetpoint() const { return ((int) pkt_.getPayloadByte(15) - 128) / 2.0f; }
 
   // Things that have to exist, but we don't know where yet.
-  bool supportsHVaneSwing() const { return true; }
+  bool supportsHVane() const { return true; }
 
   // Fan Speeds TODO: Probably move this to .cpp?
   uint8_t getSupportedFanSpeeds() const;
@@ -308,6 +308,7 @@ class SettingsSetRequestPacket : public Packet {
   };
 
   enum HORIZONTAL_VANE_BYTE : uint8_t {
+    HV_AUTO = 0x00,
     HV_LEFT_FULL = 0x01,
     HV_LEFT = 0x02,
     HV_CENTER = 0x03,

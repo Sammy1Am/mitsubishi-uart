@@ -155,6 +155,9 @@ void MitsubishiUART::processPacket(const SettingsGetResponsePacket &packet) {
 
   const std::string old_horizontal_vane_position = horizontal_vane_position_select->state;
   switch(packet.getHorizontalVane()) {
+    case SettingsSetRequestPacket::HV_AUTO:
+      horizontal_vane_position_select->state = "Auto";
+      break;
     case SettingsSetRequestPacket::HV_LEFT_FULL:
       horizontal_vane_position_select->state = "<<";
       break;
