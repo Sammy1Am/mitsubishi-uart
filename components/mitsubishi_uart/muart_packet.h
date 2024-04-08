@@ -262,7 +262,7 @@ class ErrorStateGetResponsePacket : public Packet {
 class SettingsSetRequestPacket : public Packet {
   static const int PLINDEX_POWER = 3;
   static const int PLINDEX_MODE = 4;
-  static const int PLINDEX_TARGET_TEMPERATURE_CODE = 6;
+  static const int PLINDEX_TARGET_TEMPERATURE_CODE = 5;
   static const int PLINDEX_FAN = 6;
   static const int PLINDEX_VANE = 7;
   static const int PLINDEX_HORIZONTAL_VANE = 13;
