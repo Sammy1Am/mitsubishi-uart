@@ -1,7 +1,5 @@
 #pragma once
 
-#include "mitsubishi_uart.h"
-
 namespace esphome {
 namespace mitsubishi_uart {
 
