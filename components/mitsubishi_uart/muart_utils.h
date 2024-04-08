@@ -52,7 +52,7 @@ class MUARTUtils {
 
   static uint8_t DegCToLegacyRoomTemp(const float value) {
     if (value < 10) return 0x00;
-    if (value > 41) return 0x31;
+    if (value > 41) return 0x1F;
 
     return (uint8_t) value - 10;
   }
