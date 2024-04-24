@@ -49,7 +49,7 @@ std::string SettingsGetResponsePacket::to_string() const {
   + " Power:" + (getPower()==3 ? "Test" : getPower()>0 ? "On" : "Off")
   + " TargetTemp:" + std::to_string(getTargetTemp())
   + " Vane:" + format_hex(getVane())
-  + " HVane:" + format_hex(getHorizontalVane())
+  + " HVane:" + format_hex(getHorizontalVane()) + (getHorizontalVaneMSB() ? " (MSB Set)" : "")
   + "\n PowerLock:" + (lockedPower()?"Yes":"No")
   + " ModeLock:" + (lockedMode()?"Yes":"No")
   + " TempLock:" + (lockedTemp()?"Yes":"No")
