@@ -96,6 +96,9 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
   // Turns on or off actively sending packets
   void set_active_mode(const bool active) {active_mode = active;};
 
+  // Button triggers
+  void reset_filter_status();
+
   protected:
     void routePacket(const Packet &packet);
 

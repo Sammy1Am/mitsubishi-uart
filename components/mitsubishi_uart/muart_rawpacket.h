@@ -43,6 +43,7 @@ enum class GetCommand : uint8_t {
 enum class SetCommand : uint8_t {
   settings = 0x01,
   remote_temperature = 0x07,
+  run_status = 0x08,
   thermostat_hello = 0xa7
 };
 

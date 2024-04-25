@@ -296,5 +296,16 @@ void MitsubishiUART::temperature_source_report(const std::string &temperature_so
   }
 }
 
+void MitsubishiUART::reset_filter_status() {
+  ESP_LOGI(TAG, "Received a request to reset the filter status.");
+
+  IFNOTACTIVE(return;)
+
+  SetRunStatusPacket pkt = SetRunStatusPacket();
+  pkt.setFilterReset(true);
+  // hp_bridge.sendPacket(pkt);
+  ESP_LOGE(TAG, "STUBBED - SENDING FILTER RESET!");
+}
+
 }  // namespace mitsubishi_uart
 }  // namespace esphome
