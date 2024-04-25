@@ -113,7 +113,9 @@ SENSORS = {
     ),
     "service_filter": (
         "Service Filter",
-        binary_sensor.binary_sensor_schema(),
+        binary_sensor.binary_sensor_schema(
+            device_class="problem"
+        ),
         binary_sensor.register_binary_sensor
     ),
     "defrost": (
