@@ -111,7 +111,7 @@ class MitsubishiUART : public PollingComponent, public climate::Climate, public 
     void processPacket(const StandbyGetResponsePacket &packet);
     void processPacket(const ErrorStateGetResponsePacket &packet);
     void processPacket(const RemoteTemperatureSetRequestPacket &packet);
-    void processPacket(const RemoteTemperatureSetResponsePacket &packet);
+    void processPacket(const SetResponsePacket &packet);
 
     void doPublish();
 
