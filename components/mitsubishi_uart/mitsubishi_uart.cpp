@@ -303,8 +303,7 @@ void MitsubishiUART::reset_filter_status() {
 
   SetRunStatusPacket pkt = SetRunStatusPacket();
   pkt.setFilterReset(true);
-  // hp_bridge.sendPacket(pkt);
-  ESP_LOGE(TAG, "STUBBED - SENDING FILTER RESET!");
+  hp_bridge.sendPacket(pkt);
 }
 
 }  // namespace mitsubishi_uart

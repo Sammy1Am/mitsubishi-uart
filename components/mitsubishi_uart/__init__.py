@@ -184,7 +184,7 @@ BUTTONS = {
         "Filter Reset",
         button.button_schema(
             FilterResetButton,
-            entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+            entity_category=ENTITY_CATEGORY_CONFIG,
             icon="mdi:air-filter"
         )
     )
