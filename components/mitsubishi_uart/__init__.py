@@ -114,23 +114,30 @@ SENSORS = {
     "service_filter": (
         "Service Filter",
         binary_sensor.binary_sensor_schema(
-            device_class="problem"
+            device_class="problem",
+            icon="mdi:air-filter"
         ),
         binary_sensor.register_binary_sensor
     ),
     "defrost": (
         "Defrost",
-        binary_sensor.binary_sensor_schema(),
+        binary_sensor.binary_sensor_schema(
+            icon="mdi:snowflake-melt"
+        ),
         binary_sensor.register_binary_sensor
     ),
     "hot_adjust": (
         "Hot Adjust",
-        binary_sensor.binary_sensor_schema(),
+        binary_sensor.binary_sensor_schema(
+            icon="mdi:heating-coil"
+        ),
         binary_sensor.register_binary_sensor
     ),
     "standby": (
         "Standby",
-        binary_sensor.binary_sensor_schema(),
+        binary_sensor.binary_sensor_schema(
+            icon="mdi:progress-clock"
+        ),
         binary_sensor.register_binary_sensor
     ),
     CONF_SENSORS_ERROR_CODE: (
