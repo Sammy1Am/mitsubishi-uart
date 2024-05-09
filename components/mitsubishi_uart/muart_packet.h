@@ -197,7 +197,8 @@ class SettingsGetResponsePacket : public Packet {
   bool lockedPower() const { return pkt_.getPayloadByte(PLINDEX_PROHIBITFLAGS) & 0x01; }
   bool lockedMode() const { return pkt_.getPayloadByte(PLINDEX_PROHIBITFLAGS) & 0x02; }
   bool lockedTemp() const { return pkt_.getPayloadByte(PLINDEX_PROHIBITFLAGS) & 0x04; }
-  uint8_t getHorizontalVane() const { return pkt_.getPayloadByte(PLINDEX_HVANE); }
+  uint8_t getHorizontalVane() const { return pkt_.getPayloadByte(PLINDEX_HVANE) & 0x7F; }
+  bool getHorizontalVaneMSB() const { return pkt_.getPayloadByte(PLINDEX_HVANE) & 0x80; }
 
   float getTargetTemp() const;
 
