@@ -337,11 +337,10 @@ void MitsubishiUART::processPacket(const RemoteTemperatureSetRequestPacket &pack
     publishOnUpdate |= (old_thermostat_temp != thermostat_temperature_sensor->raw_state);
   }
 };
-void MitsubishiUART::processPacket(const RemoteTemperatureSetResponsePacket &packet) {
+void MitsubishiUART::processPacket(const SetResponsePacket &packet) {
+  ESP_LOGV(TAG, "Got Set Response packet, success = %s (code = %x)", packet.isSuccessful() ? "true" : "false", packet.getResultCode());
   routePacket(packet);
-  ESP_LOGI(TAG, "Unhandled packet RemoteTemperatureSetResponsePacket received.");
-  ESP_LOGD(TAG, "%s", packet.to_string().c_str());
-};
+}
 
 }  // namespace mitsubishi_uart
 }  // namespace esphome

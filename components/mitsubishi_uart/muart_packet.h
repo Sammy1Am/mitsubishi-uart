@@ -359,6 +359,15 @@ public:
   RemoteTemperatureSetResponsePacket() : Packet(RawPacket(PacketType::set_response, 16)) {}
 };
 
+class SetResponsePacket : public Packet {
+  using Packet::Packet;
+public:
+  SetResponsePacket() : Packet(RawPacket(PacketType::set_response, 16)) {}
+
+  uint8_t getResultCode() const { return pkt_.getPayloadByte(0); }
+  bool isSuccessful() const { return getResultCode() == 0; }
+};
+
 // Sent by MHK2 but with no response; defined to allow setResponseExpected(false)
 class ThermostatHelloRequestPacket : public Packet {
   using Packet::Packet;
@@ -397,7 +406,7 @@ class PacketProcessor {
     virtual void processPacket(const StandbyGetResponsePacket &packet) {};
     virtual void processPacket(const ErrorStateGetResponsePacket &packet) {};
     virtual void processPacket(const RemoteTemperatureSetRequestPacket &packet) {};
-    virtual void processPacket(const RemoteTemperatureSetResponsePacket &packet) {};
+    virtual void processPacket(const SetResponsePacket &packet) {};
 };
 
 }  // namespace mitsubishi_uart
