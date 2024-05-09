@@ -353,12 +353,6 @@ class RemoteTemperatureSetRequestPacket : public Packet {
   std::string to_string() const override;
 };
 
-class RemoteTemperatureSetResponsePacket : public Packet {
-  using Packet::Packet;
-public:
-  RemoteTemperatureSetResponsePacket() : Packet(RawPacket(PacketType::set_response, 16)) {}
-};
-
 class SetResponsePacket : public Packet {
   using Packet::Packet;
 public:

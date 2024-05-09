@@ -323,7 +323,7 @@ void MitsubishiUART::processPacket(const RemoteTemperatureSetRequestPacket &pack
   if (currentTemperatureSource == TEMPERATURE_SOURCE_THERMOSTAT || !active_mode) {
     routePacket(packet);
   } else {
-    ts_bridge->sendPacket(RemoteTemperatureSetResponsePacket());
+    ts_bridge->sendPacket(SetResponsePacket());
   }
 
   float t = packet.getRemoteTemperature();
