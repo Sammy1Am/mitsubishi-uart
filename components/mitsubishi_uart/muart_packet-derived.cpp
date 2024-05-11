@@ -167,6 +167,14 @@ float SettingsGetResponsePacket::getTargetTemp() const {
   return MUARTUtils::TempScaleAToDegC(enhancedRawTemp);
 }
 
+bool SettingsGetResponsePacket::getiSeeStatus() const {
+  uint8_t mode = pkt_.getPayloadByte(PLINDEX_MODE);
+
+  // so far only modes 0x09 to 0x11 are known to be i-see. Mode 0x08 technically *can* be, but it's not a guarantee
+  // alone.
+  return (mode >= 0x09 && mode <= 0x11);
+}
+
 
 // RemoteTemperatureSetRequestPacket functions
 
