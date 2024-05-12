@@ -1,5 +1,17 @@
 # Mitsubishi UART
 
+## ❗We've moved❗
+
+### Please use the [new repository](https://github.com/muart-group/esphome) going foward.
+
+**Why?**
+
+Very shortly we hope to be merging the `mitsubishi_uart` component into ESPHome so that it will be available without having to worry about an `external_component` configuration.  In order to make pull requests easier, we've moved development to a fork of esphome (and moved from Sammy1Am's personal repositories to an organization).  There's still a little bit of work to complete this move (like eventually archiving this repo), but everything at the new repo should be usable.
+
+<br/><br/><br/><br/><br/><br/><br/>
+
+----
+
 [![Discord](https://img.shields.io/discord/1219515821043220500?label=discord)](https://discord.gg/VRpgcF5JG5)
 [![GitHub Release](https://img.shields.io/github/v/release/Sammy1am/mitsubishi-uart)](https://github.com/Sammy1Am/mitsubishi-uart/releases/latest)
 
