@@ -155,6 +155,13 @@ SettingsSetRequestPacket &SettingsSetRequestPacket::setHorizontalVane(const HORI
   return *this;
 }
 
+// SettingsSetRunStatisPacket functions
+SetRunStatusPacket &SetRunStatusPacket::setFilterReset(bool doReset) {
+  pkt_.setPayloadByte(PLINDEX_FILTER_RESET, doReset ? 1 : 0);
+  setFlags(0x01);
+  return *this;
+}
+
 // SettingsGetResponsePacket functions
 float SettingsGetResponsePacket::getTargetTemp() const {
   uint8_t enhancedRawTemp = pkt_.getPayloadByte(PLINDEX_TARGETTEMP);

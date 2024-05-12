@@ -386,6 +386,20 @@ class A9GetRequestPacket : public Packet {
   }
 };
 
+class SetRunStatusPacket : public Packet {
+  // bytes 1 and 2 are update flags
+  static const uint8_t PLINDEX_FILTER_RESET = 3;
+
+  using Packet::Packet;
+ public:
+  SetRunStatusPacket() : Packet(RawPacket(PacketType::set_request, 10)) {
+    pkt_.setPayloadByte(0, static_cast<uint8_t>(SetCommand::run_status));
+  }
+
+  bool getFilterReset() { return pkt_.getPayloadByte(PLINDEX_FILTER_RESET) != 0; };
+  SetRunStatusPacket &setFilterReset(bool doReset);
+};
+
 class PacketProcessor {
   public:
     virtual void processPacket(const Packet &packet) {};
